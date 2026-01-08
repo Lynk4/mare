@@ -1,4 +1,4 @@
-# Bangladesh GPCA Malware
+# Bangladesh GPCA Malware Analysis
 
 ---
 
