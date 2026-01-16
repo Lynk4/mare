@@ -14,3 +14,8 @@
 | 5     | [Regin Malware](https://github.com/Lynk4/mare/tree/main/Regin%20Malware)                                                   | Advanced Persistent Threat (APT) |
 | 6     | [SillyPutty](https://github.com/Lynk4/mare/tree/main/SillyPutty)                                                           | Modular Backdoor                 |
 | 7     | [Zeus Banking Trojan](https://github.com/Lynk4/mare/tree/main/Zeus%20Banking%20Trojan%20Malware)                           | Financial Malware                |
+| 8     | [RansomWare WannaCry](https://github.com/Lynk4/mare/tree/main/WannaCry%20Ransomware)                           | Ransomware Malware                |
+
+
+
+
