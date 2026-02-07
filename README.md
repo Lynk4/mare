@@ -16,7 +16,10 @@
 | 7     | [Zeus Banking Trojan](https://github.com/Lynk4/mare/tree/main/Zeus%20Banking%20Trojan%20Malware)                           | Financial Malware                |
 | 8     | [RansomWare WannaCry](https://github.com/Lynk4/mare/tree/main/WannaCry%20Ransomware)                           | Ransomware Malware                |
 | 9     | [Qak bot Malware Unpacking](https://github.com/Lynk4/mare/tree/main/Qakbot%20Unpacking)                           | Advanced Loader / Unpacking               |
-| 10     | [notepad++ Chrysalis Backdoor](https://github.com/Lynk4/mare/tree/main/notepad%2B%2B%20Chrysalis)                           | Supply Chain Attack / APT Backdoor |
+| 10     | [Agent Tesla](https://github.com/Lynk4/mare/tree/main/Agent%20Tesla)                           | InfoStealer / Remote Access Trojan |
+
+
+
 
 ---
 
