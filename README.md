@@ -2,6 +2,12 @@
 
 ---
 
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/f58188a7-f65c-4746-b432-b84c0ea6352d" alt="54bda352b17744efa1f6898040455423" />
+</div>
+
+---
+
 ## Malware analysis and malware reports...
 ---
 
