@@ -25,6 +25,7 @@
 | 10     | [notepad++ Chrysalis Backdoor](https://github.com/Lynk4/mare/tree/main/notepad%2B%2B%20Chrysalis)                           | Supply Chain Attack / APT Backdoor | 
 | 11     | [Agent Tesla](https://github.com/Lynk4/mare/tree/main/Agent%20Tesla)                           | InfoStealer / Remote Access Trojan |
 | 12     | [Shellcode Extraction](https://github.com/Lynk4/mare/tree/main/Shellcode%20Extraction)                           | Cobalt Strike / Loader Analysis|
+| 13     | [Automated Unpacking](https://github.com/Lynk4/mare/tree/main/Automated%20Unpacking)                           | Automated Unpacking using mal_unpack tool |
 
 
 
