@@ -1212,10 +1212,37 @@ param_1[10] = (int)pFVar3;
 - The malware uses the **legitimate installer as the loader**
 - No exploits needed - pure social engineering + DLL hijacking
 
+---
+
+
 ### **IOCs**
 
 - File: **`log.dll`** (side-loaded next to legitimate installer)
 - File: BluetoothService (encrypted payload, ~200KB)
 - Behavior: **`LoadLibraryW("log.dll")`** followed by **`GetProcAddress("LogInit")`**
-
----
+- From wireshark
+    
+    ```nasm
+    Line 17: DNS query for api.skycloudcenter.com (A record)
+    Line 18: DNS query for api.skycloudcenter.com (AAAA record)
+    Line 25: DNS response: api.skycloudcenter.com → 127.0.0.1
+    Line 26: DNS response: api.skycloudcenter.com → 64:ff9b::7f00:1
+    Line 255: DNS query for api.skycloudcenter.com (A record) 
+    Line 256: DNS query for api.skycloudcenter.com (AAAA record)
+    Line 258: DNS response: api.skycloudcenter.com → 127.0.0.1
+    Line 259: DNS response: api.skycloudcenter.com → 64:ff9b::7f00:1
+    ```
+    
+- **Network**
+    
+    Domain:
+    
+    - **`api[.]skycloudcenter[.]com`**
+    
+    IP Addresses:
+    
+    - **`102.47.123.65 (Primary C2 - Port 7035)`**
+    
+    Ports:
+    
+    - **`7035/TCP (Non-standard C2 port)`**
