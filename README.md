@@ -27,6 +27,7 @@
 | 12     | [Shellcode Extraction](https://github.com/Lynk4/mare/tree/main/Shellcode%20Extraction)                           | Cobalt Strike / Loader Analysis|
 | 13     | [Automated Unpacking](https://github.com/Lynk4/mare/tree/main/Automated%20Unpacking)                           | Automated Unpacking using mal_unpack tool |
 | 14     | [DLL Malware](https://github.com/Lynk4/mare/tree/main/DLL%20Malware%20Emotet)                           | DLL Malware Emotet |
+| 15     | [Debugging Malware](https://github.com/Lynk4/mare/tree/main/Debugging%20Malware)                           | Debugging Malware: Manually Extracting a Hidden Cobalt Strike Beacon|
 
 
 
