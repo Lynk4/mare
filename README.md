@@ -28,7 +28,7 @@
 | 13     | [Automated Unpacking](https://github.com/Lynk4/mare/tree/main/Automated%20Unpacking)                           | Automated Unpacking using mal_unpack tool |
 | 14     | [DLL Malware](https://github.com/Lynk4/mare/tree/main/DLL%20Malware%20Emotet)                           | DLL Malware Emotet |
 | 15     | [Debugging Malware](https://github.com/Lynk4/mare/tree/main/Debugging%20Malware)                           | Debugging Malware: Manually Extracting a Hidden Cobalt Strike Beacon|
-| 16     | [NPM Axios](https://github.com/Lynk4/mare/tree/main/NPM%20AXIOS)                           | NPM Supply Chain Attack on March 31|
+| 16     | [NPM Axios](https://github.com/Lynk4/mare/tree/main/NPM%20AXIOS)                           | NPM Supply Chain Attack on March 31, 2026|
 
 
 ---
