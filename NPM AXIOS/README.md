@@ -579,7 +579,7 @@ And the RAT replies with
 
 - **Supports multiple paths** in a single command (array-based).
 - Uses **nlohmann::json** heavily for clean structured data exchange.
-- The heavy lifting is done in **GetDetailedFileList()** (which you should analyze next).
+- The heavy lifting is done in **GetDetailedFileList()**
 - Proper memory management with RAII-style cleanup (assert_invariant + destructor calls).
 - This is a classic reconnaissance function used to map the victim's filesystem.
 
