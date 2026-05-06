@@ -572,7 +572,12 @@ We’ll keep an eye on RDI-hooked dump.
 
 you will see those bytes changed 
 
-[trim.mov](API%20UNHOOKING%20-%20Gazprom%20ransomware/trim.mov)
+
+
+https://github.com/user-attachments/assets/7344b953-336c-416c-b732-4f0ac91f3170
+
+
+
 
 ---
 
