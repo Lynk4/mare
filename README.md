@@ -31,6 +31,9 @@
 | 16     | [NPM Axios](https://github.com/Lynk4/mare/tree/main/NPM%20AXIOS)                           | NPM Supply Chain Attack on March 31, 2026|
 | 17     | [Deconstructing Emotet](https://github.com/Lynk4/mare/tree/main/Deconstructing%20Emotet)                           | Deconstructing Emotet Malware - Manual Unpacking |
 | 18     | [Mirai Botnet](https://github.com/Lynk4/mare/tree/main/Mirai%20Botnet)                           | Reversing Mirai Botnet |
+| 19     | [API Unhooking](https://github.com/Lynk4/mare/tree/main/API%20Unhooking)                           | Reverse engineered a Gazprom ransomware sample to study its API unhooking |
+
+
 
 
 ---
