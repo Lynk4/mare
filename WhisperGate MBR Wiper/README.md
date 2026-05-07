@@ -332,22 +332,29 @@ This sample is a **high-confidence wiper**.
 
 Hardcoded strings found within the malware's data segment, used for the fake ransomware facade.
 • **Bitcoin (BTC) Wallet:** `1AVNM68gj6PGPFcJuftKATa4WLnzg8fpfv`
+
 • **Tox ID:** `8BEDC411012A33BA34F49130D0F186993C6A32DAD8976F6A5D82C1ED23054C057ECED5496F65`
+
 • **Note Phrasing:** "Your hard drive has been corrupted. In case you want to recover all hard drives of your organization..."
 
 ### **Host-Based & Behavioral Indicators (HBI)**
 
 These patterns indicate active execution or successful infection on an endpoint.
 • **Device Access:** Unauthorized processes opening a handle to `\\.\PhysicalDrive0` with `GENERIC_WRITE` permissions.
+
 • **Artifacts:** A 512-byte overwrite of Sector 0 (MBR) that includes the plaintext "Your hard drive has been corrupted" starting at offset `0x7C88` (when loaded in memory).
+
 • **Partition Table Destruction:** The traditional partition table entries (offsets `0x1BE` through `0x1FD` in the MBR) are filled with static bytes, specifically `0x41` ("A").
+
 • **Boot Signature:** Presence of the standard boot signature `55 AA` at the end of a corrupted/malicious MBR.
 
 ### **Technical Artifacts (MBR Code)**
 
 Specific 16-bit instructions within the dumped MBR that signal malicious "disk hammering" behavior:
 • **Opcode Pattern:** `B4 43 B0 00` (Setup for `INT 0x13, AH=43h` - Extended Read).
+
 • **Interrupt:** `CD 13` (BIOS Disk Service call).
+
 • **LBA Modification:** `81 06 7A 7C C7 00` (Adding `0xC7` to the Logical Block Address to shift the read target).
 
 ---
