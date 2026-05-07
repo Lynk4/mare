@@ -210,11 +210,14 @@ The function concludes by calling `CloseHandle` to commit the changes to the dis
 
 what’s inside `DAT_00404020` 
 
+
 ![Screenshot 2026-05-08 at 1.37.01 AM.png](Analyzing%20WhisperGate%20MBR%20Wiper/Screenshot_2026-05-08_at_1.37.01_AM.png)
 
 ---
 
 We can copy the bytes and paste it into Hxd.
+
+```In ghidra Copy from address: 00404020 to 0040421f```
 
 now we have the full buffer which is being overwritten by the malware.
 
