@@ -34,7 +34,7 @@
 | 19     | [API Unhooking](https://github.com/Lynk4/mare/tree/main/API%20Unhooking)                           | Reverse engineered a Gazprom ransomware sample to study its API unhooking |
 | 20     | [Analyzing WhisperGate MBR Wiper](https://github.com/Lynk4/mare/tree/main/WhisperGate%20MBR%20Wiper)                 | destructive malware targeting Ukraine  |
 
-
+| 21     | [NotPetya Ransomware](https://github.com/Lynk4/mare/tree/main/NotPetya%20Ransomware)                 | Ransomware  |
 
 ---
 
