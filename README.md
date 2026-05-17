@@ -38,6 +38,8 @@
 
 
 
+| 1 | [Reverse Engineering a Packed Trojan](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Reverse%20Engineering%20a%20Packed%20Trojan) | Malware Reverse Engineering |
+
 ---
 
 
