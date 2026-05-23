@@ -35,5 +35,7 @@
 | 20    | [Analyzing WhisperGate MBR Wiper](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/WhisperGate%20MBR%20Wiper)                       | Destructive malware targeting Ukraine |
 | 21    | [NotPetya Ransomware](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/NotPetya%20Ransomware)                                       | Ransomware                       |
 | 22    | [Bypassing IsDebuggerPresent](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Bypassing%20IsDebuggerPresent)                       | How to bypass IsDebuggerPresent  |
+| 23    | [Reversing a Packed AutoIt Malware Sample](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Reversing%20a%20Packed%20AutoIt%20Malware%20Sample)  | Reverse engineering walkthrough of a packed AutoIt malware sample covering anti-debugging bypass, RWX memory analysis, shellcode extraction, and dynamic API resolution.  |
+
 
 ---
