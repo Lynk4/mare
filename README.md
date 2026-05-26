@@ -36,6 +36,10 @@
 | 21    | [NotPetya Ransomware](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/NotPetya%20Ransomware)                                       | Ransomware                       |
 | 22    | [Bypassing IsDebuggerPresent](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Bypassing%20IsDebuggerPresent)                       | How to bypass IsDebuggerPresent  |
 | 23    | [Reversing a Packed AutoIt Malware Sample](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Reversing%20a%20Packed%20AutoIt%20Malware%20Sample)  | Reverse engineering walkthrough of a packed AutoIt malware sample covering anti-debugging bypass, RWX memory analysis, shellcode extraction, and dynamic API resolution.  |
+| 24    | [Reversing Hash-Based API Resolution](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Reversing%20Hash-Based%20API%20Resolution)  | How Malware Resolves APIs Using Pre-Computed Hashes: No Imports, No Strings  |
+
+
+
 
 
 ---
