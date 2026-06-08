@@ -41,7 +41,7 @@
 | 21    | [Reversing a Packed AutoIt Malware Sample](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Windows/Reversing%20a%20Packed%20AutoIt%20Malware%20Sample)  | Reverse engineering walkthrough of a packed AutoIt malware sample covering anti-debugging bypass, RWX memory analysis, shellcode extraction, and dynamic API resolution.  |
 | 22    | [Reversing Hash-Based API Resolution](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Windows/Reversing%20Hash-Based%20API%20Resolution)  | How Malware Resolves APIs Using Pre-Computed Hashes: No Imports, No Strings  |
 | 23    | [Dynamic API Resolution](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Windows/Dynamic%20API%20Resolution)  | Analyze code that locates the image base of NTDLL , Demonstrate how to dynamically explore related structures, Begin to understand how an import table is dynamically constructed |
-| 24    | [Dynamic API Resolution](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Windows/Shellcode%20Triage%20and%20API%20Resolution)  | Shellcode Triage and API Resolution with capa and Binary Ninja |
+| 24    | [Shellcode Triage and API Resolution](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Windows/Shellcode%20Triage%20and%20API%20Resolution)  | Shellcode Triage and API Resolution with capa and Binary Ninja |
 
 ---
 
