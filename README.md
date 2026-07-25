@@ -43,7 +43,7 @@
 | 23    | [Dynamic API Resolution](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Windows/Dynamic%20API%20Resolution)  | Analyze code that locates the image base of NTDLL , Demonstrate how to dynamically explore related structures, Begin to understand how an import table is dynamically constructed |
 | 24    | [Shellcode Triage and API Resolution](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Windows/Shellcode%20Triage%20and%20API%20Resolution)  | Shellcode Triage and API Resolution with capa and Binary Ninja |
 | 25    | [Malware Binary Diffing](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Windows/Malware%20Binary%20Diffing)  | Malware Binary Diffing with Ghidra & BinDiff: Comparing Conti and LockBit Green |
-
+| 26 | [Extracting a Hidden Malware Payload with x64dbg](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Windows/Payload%20Extraction) | Dynamic malware analysis using x64dbg to trace VirtualAlloc, monitor memory allocation, and extract a hidden Cobalt Strike Beacon payload from process memory. |
 ---
 
 ### 🐧 Linux
