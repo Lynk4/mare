@@ -49,15 +49,6 @@
 
 ---
 
-### 🐧 Linux
-
-| **#** | **Malware / Topic**                                                                                                        | **Platform / Type**              |
-| ----- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| 1     | [Mirai Botnet](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Linux/Mirai%20Botnet)                                                     | Reversing Mirai Botnet           |
-| 2     | [Linux Backdoor BPFDoor](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Linux/Linux%20Backdoor%20BPFDoor)                               | Stealthy Linux Backdoor          |
-
----
-
 ### 🍎 macOS
 
 | **#** | **Malware / Topic**                                                                                                        | **Platform / Type**              |
@@ -65,6 +56,14 @@
 | 1     | [AMOS MacOS Malware](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/macOS/Atomic%20Macos%20Stealer)  | Atomic MacOS Malware Analysis - Reversing Xor encryption, decrypting strings.|
 | 2     | [Macho static analysis](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/macOS/macho%20sample%20static%20analysis)  | Reverse Engineering a Malware That Refused to Run Without Python |
 
+---
+
+### 🐧 Linux
+
+| **#** | **Malware / Topic**                                                                                                        | **Platform / Type**              |
+| ----- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| 1     | [Mirai Botnet](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Linux/Mirai%20Botnet)                                                     | Reversing Mirai Botnet           |
+| 2     | [Linux Backdoor BPFDoor](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Linux/Linux%20Backdoor%20BPFDoor)                               | Stealthy Linux Backdoor          |
 
 ---
 
