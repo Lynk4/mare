@@ -52,9 +52,10 @@
 ### 🍎 macOS
 
 | **#** | **Malware / Topic**                                                                                                        | **Platform / Type**              |
-| ----- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| ------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
 | 1     | [AMOS MacOS Malware](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/macOS/Atomic%20Macos%20Stealer)  | Atomic MacOS Malware Analysis - Reversing Xor encryption, decrypting strings.|
 | 2     | [Macho static analysis](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/macOS/macho%20sample%20static%20analysis)  | Reverse Engineering a Malware That Refused to Run Without Python |
+| 3     | [Kitty Stealer](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/macOS/KittyStealer)  | macOS infostealer targeting browser credentials and cryptocurrency wallets. |
 
 ---
 
