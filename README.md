@@ -46,6 +46,8 @@
 | 26 | [Extracting a Hidden Malware Payload with x64dbg](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Windows/Payload%20Extraction) | Dynamic malware analysis using x64dbg to trace VirtualAlloc, monitor memory allocation, and extract a hidden Cobalt Strike Beacon payload from process memory. |
 | 27 | [Malware String Deobfuscation with x64dbg Conditional Breakpoints](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Windows/x64dbg-conditional-breakpoints) | Learn how to use x64dbg conditional breakpoints to automatically log deobfuscated malware strings and quickly identify executable memory regions during dynamic malware analysis. |
 | 28 | [EtherRAT: Ethereum-Based C2 Analysis](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Windows/EtherRAT%20Ethereum%20C2%20Analysis) | Technical analysis of EtherRAT covering multi-stage payload extraction and decryption, reverse engineering, Ethereum smart-contract C2 configuration, historical C2 infrastructure, persistence, and randomized HTTP communication. |
+| 29 | [Unpacking Modified UPX Malware](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/Windows/Unpacking%20modified%20UPX%20malware) | Learn how to identify and unpack malware protected with a modified UPX packer, analyze the custom packing modifications, locate the original entry point (OEP), dump the unpacked payload, and perform post-unpacking analysis using x64dbg and reverse-engineering techniques. |
+
 
 ---
 
