@@ -906,6 +906,17 @@ function buildReportPage(r) {
     @media (max-width: 1024px) {
       .article-layout {
         grid-template-columns: 1fr;
+        gap: 40px;
+      }
+      .article-content {
+        min-width: 0;
+        max-width: 100%;
+      }
+      .sidebar-sticky {
+        position: static;
+        margin-top: 36px;
+        padding-top: 36px;
+        border-top: 1px solid var(--border-line);
       }
       h1.article-title {
         font-size: 32px;
@@ -915,6 +926,129 @@ function buildReportPage(r) {
       }
       .site-nav {
         padding: 16px 24px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .site-nav {
+        padding: 12px 16px;
+      }
+      .nav-breadcrumbs {
+        font-size: 12px;
+        gap: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .brand-title {
+        font-size: 13px;
+        gap: 6px;
+      }
+      .article-wrap {
+        padding: 24px 16px 60px;
+      }
+      .article-header {
+        margin-bottom: 32px;
+        padding-bottom: 24px;
+      }
+      h1.article-title {
+        font-size: 24px;
+        line-height: 1.3;
+        letter-spacing: -0.3px;
+      }
+      .article-lead {
+        font-size: 15px;
+        line-height: 1.6;
+        margin-bottom: 18px;
+      }
+      .article-meta-info {
+        font-size: 12px;
+        gap: 8px 10px;
+      }
+      h2 {
+        font-size: 20px;
+        margin-top: 36px;
+        margin-bottom: 14px;
+      }
+      h3 {
+        font-size: 17px;
+        margin-top: 26px;
+        margin-bottom: 12px;
+      }
+      p {
+        font-size: 15px;
+        line-height: 1.7;
+      }
+      .code-box {
+        margin: 18px 0 24px;
+        max-width: 100%;
+      }
+      pre {
+        padding: 14px 14px;
+        font-size: 12px;
+        max-width: 100%;
+      }
+      .code-box-header {
+        padding: 8px 12px;
+        font-size: 10px;
+      }
+      .table-responsive {
+        margin: 18px 0 24px;
+        max-width: 100%;
+      }
+      th {
+        padding: 10px 12px;
+        font-size: 11px;
+      }
+      td {
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+      .figure-wrapper {
+        margin: 24px 0;
+        max-width: 100%;
+      }
+      .figure-image-container {
+        padding: 8px;
+      }
+      .figure-caption {
+        padding: 10px 14px;
+        font-size: 12px;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .sidebar-block-title {
+        font-size: 13px;
+      }
+      .toc-nav a {
+        font-size: 13px;
+        padding: 7px 10px;
+      }
+      .threat-v {
+        font-size: 12.5px;
+      }
+      .hash-interactive {
+        font-size: 11.5px;
+        padding: 6px 10px;
+      }
+      #toast-msg {
+        bottom: 16px;
+        right: 16px;
+        left: 16px;
+        text-align: center;
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .nav-breadcrumbs span:last-child {
+        display: none;
+      }
+      .nav-breadcrumbs .meta-divider {
+        display: none;
+      }
+      h1.article-title {
+        font-size: 21px;
       }
     }
 
@@ -2222,6 +2356,7 @@ function buildPortalIndex(allReports) {
     @media (max-width: 1024px) {
       .portal-layout {
         grid-template-columns: 1fr;
+        gap: 32px;
       }
       .portal-container {
         padding: 36px 24px 80px;
@@ -2239,6 +2374,140 @@ function buildPortalIndex(allReports) {
       .search-box-wrapper {
         max-width: 100%;
         min-width: 100%;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .topic-sidebar {
+        position: static;
+        margin-bottom: 8px;
+      }
+      .sidebar-heading {
+        display: none;
+      }
+      .category-list {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 8px;
+        padding-bottom: 8px;
+        scrollbar-width: none;
+      }
+      .category-list::-webkit-scrollbar {
+        display: none;
+      }
+      .category-item {
+        flex-shrink: 0;
+        white-space: nowrap;
+        padding: 7px 14px;
+        border-radius: 20px;
+        border: 1px solid var(--border-line);
+        background: rgba(255, 255, 255, 0.02);
+        font-size: 12.5px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .site-nav {
+        padding: 12px 16px;
+      }
+      .brand-title {
+        font-size: 13.5px;
+        gap: 8px;
+      }
+      .nav-stats {
+        font-size: 11px;
+      }
+      .portal-container {
+        padding: 24px 16px 60px;
+      }
+      .header-section {
+        margin-bottom: 28px;
+        padding-bottom: 24px;
+      }
+      .header-title {
+        font-size: 28px;
+        letter-spacing: -0.6px;
+        margin-bottom: 12px;
+      }
+      .header-desc {
+        font-size: 14.5px;
+        line-height: 1.55;
+      }
+      .platform-subnav {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        max-width: 100%;
+        scrollbar-width: none;
+        border-radius: 12px;
+        padding: 4px;
+        gap: 6px;
+      }
+      .platform-subnav::-webkit-scrollbar {
+        display: none;
+      }
+      .platform-btn {
+        flex-shrink: 0;
+        white-space: nowrap;
+        padding: 6px 13px;
+        font-size: 12px;
+      }
+      .stream-header-info {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .report-entry {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 20px 0;
+      }
+      .entry-image-col {
+        aspect-ratio: 16 / 9;
+        max-height: 220px;
+        width: 100%;
+      }
+      .entry-title {
+        font-size: 18px;
+        line-height: 1.35;
+        margin-bottom: 8px;
+      }
+      .entry-desc {
+        font-size: 13.5px;
+        line-height: 1.55;
+        margin-bottom: 12px;
+      }
+      .entry-meta-top {
+        flex-wrap: wrap;
+        gap: 6px 10px;
+        font-size: 11px;
+        margin-bottom: 8px;
+      }
+      .entry-meta-bottom {
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header-title {
+        font-size: 24px;
+      }
+      .nav-stats {
+        display: none;
+      }
+      .stream-header-info {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .sort-control-wrapper {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .sort-select {
+        flex: 1;
       }
     }
 
@@ -2463,16 +2732,6 @@ function buildPortalIndex(allReports) {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
       z-index: 10;
-    }
-
-    @media (max-width: 768px) {
-      .report-entry {
-        grid-template-columns: 1fr;
-        gap: 20px;
-      }
-      .entry-image-col {
-        aspect-ratio: 16 / 9;
-      }
     }
   </style>
 </head>
