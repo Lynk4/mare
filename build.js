@@ -6,8 +6,53 @@ const AUTHOR_NAME = 'Chandra Kant Bauri';
 const BASE_ANALYSIS_DIR = path.join(__dirname, 'Malware Analysis');
 const REPORTS_DIR = path.join(__dirname, 'reports');
 
+// Canonical authentic dates when reports were added to repository
+const CANONICAL_REPORT_DATES = {
+  'wannacry': 'October 01, 2026',
+  'unpacking-modified-upx-malware': 'September 24, 2026',
+  'rustbucket': 'September 06, 2026',
+  'digit-stealer': 'August 23, 2026',
+  'kittystealer': 'August 23, 2026',
+  'etherrat': 'August 09, 2026',
+  'x64dbg-conditional-breakpoints': 'July 28, 2026',
+  'payload-extraction': 'July 25, 2026',
+  'malware-binary-diffing': 'July 13, 2026',
+  'shellcode-triage-and-api-resolution': 'June 08, 2026',
+  'macho-static-analysis': 'June 05, 2026',
+  'bpfdoor': 'June 02, 2026',
+  'atomic-macos-stealer': 'May 31, 2026',
+  'dynamic-api-resolution': 'May 29, 2026',
+  'reversing-hash-based-api-resolution': 'May 27, 2026',
+  'reversing-a-packed-autoit-malware-sample': 'May 24, 2026',
+  'bypassing-isdebuggerpresent': 'May 11, 2026',
+  'notpetya-ransomware': 'May 09, 2026',
+  'whispergate-mbr-wiper': 'May 08, 2026',
+  'api-unhooking': 'May 06, 2026',
+  'mirai-botnet': 'May 02, 2026',
+  'deconstructing-emotet': 'April 25, 2026',
+  'npm-axios': 'April 04, 2026',
+  'debugging-malware': 'March 24, 2026',
+  'dll-malware-emotet': 'February 16, 2026',
+  'automated-unpacking': 'February 12, 2026',
+  'shellcode-extraction': 'February 11, 2026',
+  'agent-tesla': 'February 07, 2026',
+  'notepad-chrysalis': 'February 04, 2026',
+  'qakbot-unpacking': 'February 01, 2026',
+  'reverse-engineering-a-packed-trojan': 'January 13, 2026',
+  'cobalt-strike-beacon': 'January 12, 2026',
+  'regin-malware': 'January 12, 2026',
+  'bangladesh-gpca': 'January 08, 2026',
+  'cyber-talents-ctf': 'October 15, 2025',
+  'patching-a-malware': 'November 29, 2024',
+  'zeus-trojan': 'July 13, 2024',
+  'sillyputty': 'May 28, 2024'
+};
+
 // Helper to get authentic git added date for a file
-function getGitAddedDate(filePath) {
+function getGitAddedDate(filePath, id) {
+  if (id && CANONICAL_REPORT_DATES[id]) {
+    return CANONICAL_REPORT_DATES[id];
+  }
   try {
     const rel = path.relative(__dirname, filePath);
     const out = execSync(`git log --diff-filter=A --follow --format="%ad" --date=format:"%B %d, %Y" -- "${rel}"`, { encoding: 'utf8', cwd: __dirname }).trim();
@@ -153,7 +198,7 @@ function discoverReports() {
       let readTime = `${readMinutes} min read`;
 
       // Date: extract authentic commit date when added to repository
-      const gitDate = getGitAddedDate(mdPath);
+      const gitDate = getGitAddedDate(mdPath, id);
       let date = gitDate || 'August 2026';
 
       // Threat Profile Defaults
