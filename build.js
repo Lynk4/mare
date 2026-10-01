@@ -11,6 +11,7 @@ const CANONICAL_REPORT_DATES = {
   'wannacry': 'January 16, 2026',
   'unpacking-modified-upx-malware': 'September 24, 2026',
   'rustbucket': 'September 06, 2026',
+  'rustbucket-2': 'October 02, 2026',
   'digit-stealer': 'August 23, 2026',
   'kittystealer': 'August 23, 2026',
   'etherrat': 'August 09, 2026',
@@ -628,21 +629,22 @@ function buildReportPage(r) {
     // Images
     const mdImgMatch = line.match(/!\[([^\]]*)\]\(([^)]+)\)/);
     if (mdImgMatch) {
-      const alt = mdImgMatch[1] || 'Investigation Screenshot';
+      const alt = mdImgMatch[1] ? mdImgMatch[1].trim() : '';
       const localSrc = bundleImageLocally(mdImgMatch[2]);
       if (!firstEncounteredImage && localSrc) {
         firstEncounteredImage = localSrc;
         r.firstImage = localSrc;
       }
+      const captionHtml = alt ? `
+          <div class="figure-caption">
+            <span><strong>Figure:</strong> ${escapeHtml(alt)}</span>
+            <span class="zoom-link" style="font-size: 11.5px; color: var(--accent-blue-hover); cursor: pointer;" onclick="openLightbox('${localSrc}', '${escapeHtml(alt)}')">Click to zoom ↗</span>
+          </div>` : '';
       htmlBuffer.push(`
         <div class="figure-wrapper">
           <div class="figure-image-container" onclick="openLightbox(this.querySelector('img').src, '${escapeHtml(alt)}')">
             <img src="${localSrc}" alt="${escapeHtml(alt)}" loading="lazy">
-          </div>
-          <div class="figure-caption">
-            <span><strong>Figure:</strong> ${escapeHtml(alt)}</span>
-            <span class="zoom-link" style="font-size: 11.5px; color: var(--accent-blue-hover); cursor: pointer;" onclick="openLightbox('${localSrc}', '${escapeHtml(alt)}')">Click to zoom ↗</span>
-          </div>
+          </div>${captionHtml}
         </div>
       `);
       continue;
@@ -655,17 +657,18 @@ function buildReportPage(r) {
         firstEncounteredImage = localSrc;
         r.firstImage = localSrc;
       }
-      const altMatch = line.match(/alt=["']([^"']+)["']/i);
-      const alt = altMatch ? altMatch[1] : 'Analysis Artifact';
+      const altMatch = line.match(/alt=["']([^"']*)["']/i);
+      const alt = (altMatch && altMatch[1]) ? altMatch[1].trim() : '';
+      const captionHtml = alt ? `
+          <div class="figure-caption">
+            <span><strong>Figure:</strong> ${escapeHtml(alt)}</span>
+            <span class="zoom-link" style="font-size: 11.5px; color: var(--accent-blue-hover); cursor: pointer;" onclick="openLightbox('${localSrc}', '${escapeHtml(alt)}')">Click to zoom ↗</span>
+          </div>` : '';
       htmlBuffer.push(`
         <div class="figure-wrapper">
           <div class="figure-image-container" onclick="openLightbox(this.querySelector('img').src, '${escapeHtml(alt)}')">
             <img src="${localSrc}" alt="${escapeHtml(alt)}" loading="lazy">
-          </div>
-          <div class="figure-caption">
-            <span><strong>Figure:</strong> ${escapeHtml(alt)}</span>
-            <span class="zoom-link" style="font-size: 11.5px; color: var(--accent-blue-hover); cursor: pointer;" onclick="openLightbox('${localSrc}', '${escapeHtml(alt)}')">Click to zoom ↗</span>
-          </div>
+          </div>${captionHtml}
         </div>
       `);
       continue;
@@ -1807,7 +1810,10 @@ function buildReportPage(r) {
       if (!modal || !img) return;
       img.src = src;
       img.classList.remove('expanded');
-      if (cap) cap.textContent = caption || '';
+      if (cap) {
+        cap.textContent = caption || '';
+        cap.style.display = caption ? 'block' : 'none';
+      }
       modal.style.display = 'flex';
       document.body.style.overflow = 'hidden';
     }
