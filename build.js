@@ -1765,42 +1765,84 @@ function buildReportPage(r) {
   <div id="toast-msg">Copied</div>
 
   <script>
-    const sections = document.querySelectorAll('.article-content section, .article-content h2, .article-content h3');
-    const navLinks = document.querySelectorAll('.toc-nav a');
+    const navLinks = Array.from(document.querySelectorAll('.toc-nav a'));
+    const linkMap = navLinks.map(link => {
+      const href = link.getAttribute('href');
+      const targetId = href ? href.replace(/^#/, '') : '';
+      const targetEl = document.getElementById(targetId);
+      return { link, targetId, targetEl };
+    }).filter(item => item.targetEl);
 
-    window.addEventListener('scroll', () => {
-      const winScroll = document.documentElement.scrollTop;
-      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      const scrolled = (winScroll / height) * 100;
-      const pb = document.getElementById('progress-bar');
-      if (pb) pb.style.width = scrolled + '%';
+    let isTOCScrolling = false;
+    function updateTOC() {
+      if (linkMap.length === 0) return;
 
-      let currentSectionId = '';
-      sections.forEach(section => {
-        const sectionTop = section.offsetTop - 140;
-        if (winScroll >= sectionTop) {
-          const id = section.getAttribute('id');
-          if (id) currentSectionId = id;
+      const winScroll = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
+      const atBottom = (winScroll + clientHeight >= scrollHeight - 60);
+
+      let activeItem = linkMap[0];
+      if (atBottom) {
+        activeItem = linkMap[linkMap.length - 1];
+      } else {
+        for (let i = 0; i < linkMap.length; i++) {
+          const rect = linkMap[i].targetEl.getBoundingClientRect();
+          if (rect.top <= 160) {
+            activeItem = linkMap[i];
+          } else {
+            break;
+          }
+        }
+      }
+
+      let activeChanged = false;
+      linkMap.forEach(item => {
+        const isActive = (item === activeItem);
+        if (item.link.classList.contains('active') !== isActive) {
+          item.link.classList.toggle('active', isActive);
+          if (isActive) activeChanged = true;
         }
       });
 
-      if (currentSectionId) {
-        navLinks.forEach(link => {
-          const isMatch = link.getAttribute('href') === '#' + currentSectionId;
-          const wasActive = link.classList.contains('active');
-          link.classList.toggle('active', isMatch);
-          if (isMatch && !wasActive) {
-            const sidebar = document.querySelector('.sidebar-sticky');
-            if (sidebar && !sidebar.matches(':hover') && sidebar.scrollHeight > sidebar.clientHeight) {
-              const linkRect = link.getBoundingClientRect();
-              const sidebarRect = sidebar.getBoundingClientRect();
-              if (linkRect.top < sidebarRect.top + 30 || linkRect.bottom > sidebarRect.bottom - 30) {
-                link.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-              }
-            }
+      if (activeChanged && activeItem && activeItem.link) {
+        const sidebar = document.querySelector('.sidebar-sticky');
+        if (sidebar && !sidebar.matches(':hover') && sidebar.scrollHeight > sidebar.clientHeight) {
+          const linkRect = activeItem.link.getBoundingClientRect();
+          const sidebarRect = sidebar.getBoundingClientRect();
+          if (linkRect.top < sidebarRect.top + 30 || linkRect.bottom > sidebarRect.bottom - 30) {
+            activeItem.link.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
           }
-        });
+        }
       }
+    }
+
+    window.addEventListener('scroll', () => {
+      const winScroll = window.scrollY || document.documentElement.scrollTop;
+      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrolled = height > 0 ? (winScroll / height) * 100 : 0;
+      const pb = document.getElementById('progress-bar');
+      if (pb) pb.style.width = scrolled + '%';
+
+      if (!isTOCScrolling) {
+        window.requestAnimationFrame(() => {
+          updateTOC();
+          isTOCScrolling = false;
+        });
+        isTOCScrolling = true;
+      }
+    }, { passive: true });
+
+    // Initial check on load
+    updateTOC();
+
+    // Click handling for TOC links
+    navLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        navLinks.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        setTimeout(updateTOC, 400);
+      });
     });
 
     function openLightbox(src, caption) {
