@@ -220,6 +220,7 @@ function discoverReports() {
         try {
           const meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
           if (meta.title) title = meta.title;
+          if (meta.subtitle || meta.lead) lead = meta.subtitle || meta.lead;
           if (meta.category) category = meta.category;
           // Note: Authentic git commit date is preserved; meta.date is skipped
           if (meta.readTime) readTime = meta.readTime;
