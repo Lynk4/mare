@@ -8,7 +8,7 @@ const REPORTS_DIR = path.join(__dirname, 'reports');
 
 // Canonical authentic dates when reports were added to repository
 const CANONICAL_REPORT_DATES = {
-  'wannacry': 'October 01, 2026',
+  'wannacry': 'January 16, 2026',
   'unpacking-modified-upx-malware': 'September 24, 2026',
   'rustbucket': 'September 06, 2026',
   'digit-stealer': 'August 23, 2026',
