@@ -915,161 +915,34 @@ function buildReportPage(r) {
       align-items: start;
     }
 
-    @media (max-width: 1024px) {
-      .article-layout {
-        grid-template-columns: 1fr;
-        gap: 40px;
-      }
-      .article-content {
-        min-width: 0;
-        max-width: 100%;
-      }
-      .sidebar-sticky {
-        position: static;
-        margin-top: 36px;
-        padding-top: 36px;
-        border-top: 1px solid var(--border-line);
-      }
-      h1.article-title {
-        font-size: 32px;
-      }
-      .article-wrap {
-        padding: 36px 24px 80px;
-      }
-      .site-nav {
-        padding: 16px 24px;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .site-nav {
-        padding: 12px 16px;
-      }
-      .nav-breadcrumbs {
-        font-size: 12px;
-        gap: 6px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .brand-title {
-        font-size: 13px;
-        gap: 6px;
-      }
-      .article-wrap {
-        padding: 24px 16px 60px;
-      }
-      .article-header {
-        margin-bottom: 32px;
-        padding-bottom: 24px;
-      }
-      h1.article-title {
-        font-size: 24px;
-        line-height: 1.3;
-        letter-spacing: -0.3px;
-      }
-      .article-lead {
-        font-size: 15px;
-        line-height: 1.6;
-        margin-bottom: 18px;
-      }
-      .article-meta-info {
-        font-size: 12px;
-        gap: 8px 10px;
-      }
-      h2 {
-        font-size: 20px;
-        margin-top: 36px;
-        margin-bottom: 14px;
-      }
-      h3 {
-        font-size: 17px;
-        margin-top: 26px;
-        margin-bottom: 12px;
-      }
-      p {
-        font-size: 15px;
-        line-height: 1.7;
-      }
-      .code-box {
-        margin: 18px 0 24px;
-        max-width: 100%;
-      }
-      pre {
-        padding: 14px 14px;
-        font-size: 12px;
-        max-width: 100%;
-      }
-      .code-box-header {
-        padding: 8px 12px;
-        font-size: 10px;
-      }
-      .table-responsive {
-        margin: 18px 0 24px;
-        max-width: 100%;
-      }
-      th {
-        padding: 10px 12px;
-        font-size: 11px;
-      }
-      td {
-        padding: 10px 12px;
-        font-size: 13px;
-      }
-      .figure-wrapper {
-        margin: 24px 0;
-        max-width: 100%;
-      }
-      .figure-image-container {
-        padding: 8px;
-      }
-      .figure-caption {
-        padding: 10px 14px;
-        font-size: 12px;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-      .sidebar-block-title {
-        font-size: 13px;
-      }
-      .toc-nav a {
-        font-size: 13px;
-        padding: 7px 10px;
-      }
-      .threat-v {
-        font-size: 12.5px;
-      }
-      .hash-interactive {
-        font-size: 11.5px;
-        padding: 6px 10px;
-      }
-      #toast-msg {
-        bottom: 16px;
-        right: 16px;
-        left: 16px;
-        text-align: center;
-        font-size: 12px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .nav-breadcrumbs span:last-child {
-        display: none;
-      }
-      .nav-breadcrumbs .meta-divider {
-        display: none;
-      }
-      h1.article-title {
-        font-size: 21px;
-      }
-    }
-
+    /* Sticky Independently Scrollable Sidebar */
     .sidebar-sticky {
       position: sticky;
-      top: 100px;
+      top: 80px;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+      padding-right: 8px;
       display: flex;
       flex-direction: column;
       gap: 36px;
+    }
+
+    .sidebar-sticky::-webkit-scrollbar {
+      width: 4px;
+    }
+    .sidebar-sticky::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .sidebar-sticky::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+    .sidebar-sticky::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 82, 255, 0.5);
     }
 
     .sidebar-block-title {
@@ -1578,6 +1451,159 @@ function buildReportPage(r) {
       opacity: 1;
       transform: translateY(0);
     }
+
+    /* Responsive Breakpoints (Cascaded at bottom) */
+    @media (max-width: 1024px) {
+      .article-layout {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+      .article-content {
+        min-width: 0;
+        max-width: 100%;
+      }
+      .sidebar-sticky {
+        position: static;
+        max-height: none;
+        overflow-y: visible;
+        padding-right: 0;
+        margin-top: 36px;
+        padding-top: 36px;
+        border-top: 1px solid var(--border-line);
+      }
+      h1.article-title {
+        font-size: 32px;
+      }
+      .article-wrap {
+        padding: 36px 24px 80px;
+      }
+      .site-nav {
+        padding: 16px 24px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .site-nav {
+        padding: 12px 16px;
+      }
+      .nav-breadcrumbs {
+        font-size: 12px;
+        gap: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .brand-title {
+        font-size: 13px;
+        gap: 6px;
+      }
+      .article-wrap {
+        padding: 24px 16px 60px;
+      }
+      .article-header {
+        margin-bottom: 32px;
+        padding-bottom: 24px;
+      }
+      h1.article-title {
+        font-size: 24px;
+        line-height: 1.3;
+        letter-spacing: -0.3px;
+      }
+      .article-lead {
+        font-size: 15px;
+        line-height: 1.6;
+        margin-bottom: 18px;
+      }
+      .article-meta-info {
+        font-size: 12px;
+        gap: 8px 10px;
+      }
+      h2 {
+        font-size: 20px;
+        margin-top: 36px;
+        margin-bottom: 14px;
+      }
+      h3 {
+        font-size: 17px;
+        margin-top: 26px;
+        margin-bottom: 12px;
+      }
+      p {
+        font-size: 15px;
+        line-height: 1.7;
+      }
+      .code-box {
+        margin: 18px 0 24px;
+        max-width: 100%;
+      }
+      pre {
+        padding: 14px 14px;
+        font-size: 12px;
+        max-width: 100%;
+      }
+      .code-box-header {
+        padding: 8px 12px;
+        font-size: 10px;
+      }
+      .table-responsive {
+        margin: 18px 0 24px;
+        max-width: 100%;
+      }
+      th {
+        padding: 10px 12px;
+        font-size: 11px;
+      }
+      td {
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+      .figure-wrapper {
+        margin: 24px 0;
+        max-width: 100%;
+      }
+      .figure-image-container {
+        padding: 8px;
+      }
+      .figure-caption {
+        padding: 10px 14px;
+        font-size: 12px;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .sidebar-block-title {
+        font-size: 13px;
+      }
+      .toc-nav a {
+        font-size: 13px;
+        padding: 7px 10px;
+      }
+      .threat-v {
+        font-size: 12.5px;
+      }
+      .hash-interactive {
+        font-size: 11.5px;
+        padding: 6px 10px;
+      }
+      #toast-msg {
+        bottom: 16px;
+        right: 16px;
+        left: 16px;
+        text-align: center;
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .nav-breadcrumbs span:last-child {
+        display: none;
+      }
+      .nav-breadcrumbs .meta-divider {
+        display: none;
+      }
+      h1.article-title {
+        font-size: 21px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1703,7 +1729,19 @@ function buildReportPage(r) {
 
       if (currentSectionId) {
         navLinks.forEach(link => {
-          link.classList.toggle('active', link.getAttribute('href') === '#' + currentSectionId);
+          const isMatch = link.getAttribute('href') === '#' + currentSectionId;
+          const wasActive = link.classList.contains('active');
+          link.classList.toggle('active', isMatch);
+          if (isMatch && !wasActive) {
+            const sidebar = document.querySelector('.sidebar-sticky');
+            if (sidebar && !sidebar.matches(':hover') && sidebar.scrollHeight > sidebar.clientHeight) {
+              const linkRect = link.getBoundingClientRect();
+              const sidebarRect = sidebar.getBoundingClientRect();
+              if (linkRect.top < sidebarRect.top + 30 || linkRect.bottom > sidebarRect.bottom - 30) {
+                link.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+              }
+            }
+          }
         });
       }
     });
