@@ -218,11 +218,22 @@ function discoverReports() {
       let firstImage = null;
       const mdImg = rawContent.match(/!\[.*?\]\((.+?)\)/);
       const htmlImg = rawContent.match(/<img[^>]+src=["']([^"']+)["']/i);
-      const foundImg = mdImg ? mdImg[1].trim() : (htmlImg ? htmlImg[1].trim() : null);
-      if (foundImg && !foundImg.startsWith('http')) {
-        const cleanFound = decodeURIComponent(foundImg);
-        const baseName = path.basename(cleanFound).replace(/[^\w.-]/g, '_');
-        firstImage = `images/${encodeURIComponent(baseName)}`;
+      let foundImg = null;
+      if (mdImg && htmlImg) {
+        foundImg = (mdImg.index < htmlImg.index) ? mdImg[1].trim() : htmlImg[1].trim();
+      } else if (mdImg) {
+        foundImg = mdImg[1].trim();
+      } else if (htmlImg) {
+        foundImg = htmlImg[1].trim();
+      }
+      if (foundImg) {
+        if (foundImg.startsWith('http://') || foundImg.startsWith('https://')) {
+          firstImage = foundImg;
+        } else {
+          const cleanFound = decodeURIComponent(foundImg);
+          const baseName = path.basename(cleanFound).replace(/[^\w.-]/g, '_');
+          firstImage = `images/${encodeURIComponent(baseName)}`;
+        }
       }
 
       let thumbnail = null;
@@ -473,6 +484,23 @@ function buildReportPage(r) {
   // Copies image locally to reports/<id>/images/ and returns self-contained relative path 'images/<name>'
   function bundleImageLocally(rawSrc) {
     if (rawSrc.startsWith('http://') || rawSrc.startsWith('https://')) {
+      try {
+        const urlObj = new URL(rawSrc);
+        let baseName = path.basename(urlObj.pathname);
+        if (!baseName || baseName.length < 3 || !/\.(png|jpe?g|webp|gif|svg)$/i.test(baseName)) {
+          const cleanPart = baseName ? baseName.replace(/[^\w-]/g, '') : 'remote_img';
+          baseName = `banner_${cleanPart}.webp`;
+        }
+        const targetPath = path.join(imagesDir, baseName);
+        if (!fs.existsSync(targetPath) || fs.statSync(targetPath).size === 0) {
+          execSync(`curl -sL --max-time 15 "${rawSrc}" -o "${targetPath}"`, { stdio: 'ignore' });
+        }
+        if (fs.existsSync(targetPath) && fs.statSync(targetPath).size > 100) {
+          return `images/${encodeURIComponent(baseName)}`;
+        }
+      } catch (e) {
+        // Fallback to raw remote URL
+      }
       return rawSrc;
     }
     const cleanSrc = decodeURIComponent(rawSrc.trim());
@@ -490,6 +518,8 @@ function buildReportPage(r) {
     }
     return rawSrc;
   }
+
+  let firstEncounteredImage = null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -600,7 +630,8 @@ function buildReportPage(r) {
     if (mdImgMatch) {
       const alt = mdImgMatch[1] || 'Investigation Screenshot';
       const localSrc = bundleImageLocally(mdImgMatch[2]);
-      if (!r.firstImage && localSrc && !localSrc.startsWith('http')) {
+      if (!firstEncounteredImage && localSrc) {
+        firstEncounteredImage = localSrc;
         r.firstImage = localSrc;
       }
       htmlBuffer.push(`
@@ -620,7 +651,8 @@ function buildReportPage(r) {
     const htmlImgMatch = line.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
     if (htmlImgMatch) {
       const localSrc = bundleImageLocally(htmlImgMatch[1]);
-      if (!r.firstImage && localSrc && !localSrc.startsWith('http')) {
+      if (!firstEncounteredImage && localSrc) {
+        firstEncounteredImage = localSrc;
         r.firstImage = localSrc;
       }
       const altMatch = line.match(/alt=["']([^"']+)["']/i);
@@ -2025,6 +2057,9 @@ function buildPortalIndex(allReports) {
 
     // 2. First image referenced in the report markdown
     if (r.firstImage) {
+      if (r.firstImage.startsWith('http://') || r.firstImage.startsWith('https://')) {
+        return { url: r.firstImage, isScreenshot: true };
+      }
       const firstImgRel = path.join(r.id, r.firstImage);
       if (fs.existsSync(path.join(REPORTS_DIR, firstImgRel))) {
         return { url: firstImgRel, isScreenshot: true };
