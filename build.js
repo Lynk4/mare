@@ -1,9 +1,27 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const AUTHOR_NAME = 'Chandra Kant Bauri';
 const BASE_ANALYSIS_DIR = path.join(__dirname, 'Malware Analysis');
 const REPORTS_DIR = path.join(__dirname, 'reports');
+
+// Helper to get authentic git added date for a file
+function getGitAddedDate(filePath) {
+  try {
+    const rel = path.relative(__dirname, filePath);
+    const out = execSync(`git log --diff-filter=A --follow --format="%ad" --date=format:"%B %d, %Y" -- "${rel}"`, { encoding: 'utf8', cwd: __dirname }).trim();
+    if (!out) {
+      const out2 = execSync(`git log --reverse --format="%ad" --date=format:"%B %d, %Y" -- "${rel}"`, { encoding: 'utf8', cwd: __dirname }).trim();
+      const lines2 = out2.split('\n').filter(Boolean);
+      return lines2[0] || null;
+    }
+    const lines = out.split('\n').filter(Boolean);
+    return lines[lines.length - 1]; // oldest commit where file was added
+  } catch (e) {
+    return null;
+  }
+}
 
 // Helper to escape HTML
 function escapeHtml(str) {
@@ -134,12 +152,9 @@ function discoverReports() {
       const readMinutes = Math.max(8, Math.min(25, Math.round(wordCount / 180)));
       let readTime = `${readMinutes} min read`;
 
-      // Date: default to realistic recent dates
-      let date = 'August 2026';
-      const dateMatch = rawContent.match(/(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}/);
-      if (dateMatch) {
-        date = dateMatch[0];
-      }
+      // Date: extract authentic commit date when added to repository
+      const gitDate = getGitAddedDate(mdPath);
+      let date = gitDate || 'August 2026';
 
       // Threat Profile Defaults
       let family = dirName.replace(/Malware|Analysis|Report|Sample/gi, '').trim() || dirName;
@@ -161,7 +176,7 @@ function discoverReports() {
           const meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
           if (meta.title) title = meta.title;
           if (meta.category) category = meta.category;
-          if (meta.date) date = meta.date;
+          // Note: Authentic git commit date is preserved; meta.date is skipped
           if (meta.readTime) readTime = meta.readTime;
           if (meta.family) family = meta.family;
           if (meta.classification) classification = meta.classification;
@@ -309,7 +324,14 @@ function buildReportPage(r) {
     if (!inTable) return;
     inTable = false;
     const isTwoCol = tableHeader.length === 2;
-    let html = `<div class="table-responsive"><table class="${isTwoCol ? 'table-metadata' : ''}"><thead><tr>`;
+    const header0 = (tableHeader[0] || '').replace(/<[^>]+>/g, '').trim().toLowerCase();
+    const header1 = (tableHeader[1] || '').replace(/<[^>]+>/g, '').trim().toLowerCase();
+    const isMetadataTable = isTwoCol && (
+      (header0.includes('property') || header0.includes('attribute') || header0.includes('parameter') || header0 === 'field' || header0 === 'key') &&
+      (header1.includes('value') || header1.includes('telemetry') || header1.includes('detail'))
+    );
+
+    let html = `<div class="table-responsive"><table class="${isMetadataTable ? 'table-metadata' : ''}"><thead><tr>`;
     tableHeader.forEach(cell => { html += `<th>${cell}</th>`; });
     html += '</tr></thead><tbody>';
     tableRows.forEach(row => {
@@ -320,7 +342,7 @@ function buildReportPage(r) {
       html += '<tr>';
       row.forEach((cell, idx) => {
         // If it is a 2-col metadata table and this is the value cell (idx === 1)
-        if (isTwoCol && idx === 1) {
+        if (isMetadataTable && idx === 1) {
           const propName = row[0].replace(/<[^>]+>/g, '').trim().toLowerCase();
           const isHashProp = ['md5', 'sha-1', 'sha1', 'sha-256', 'sha256', 'vhash', 'ssdeep', 'tlsh', 'cdhash', 'symhash', 'imphash', 'authentihash', 'rich header', 'sample hash', 'file hash', 'hash'].some(k => propName.includes(k));
           if (isHashProp && !cell.includes('<button') && !cell.includes('btn-copy')) {
@@ -342,11 +364,20 @@ function buildReportPage(r) {
 
   function inlineFormat(text) {
     if (!text) return '';
-    return text
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
+    const codes = [];
+    let processed = text.replace(/`([^`]+)`/g, (match, code) => {
+      codes.push(code);
+      return `\x00CODE_${codes.length - 1}\x00`;
+    });
+
+    processed = processed
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>')
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+    return processed.replace(/\x00CODE_(\d+)\x00/g, (match, idx) => {
+      return `<code>${codes[Number(idx)]}</code>`;
+    });
   }
 
   function splitTableRow(line) {
@@ -1091,6 +1122,7 @@ function buildReportPage(r) {
       margin: 28px 0 36px;
       border-top: 1px solid var(--border-line);
       border-bottom: 1px solid var(--border-line);
+      -webkit-overflow-scrolling: touch;
     }
 
     table {
@@ -1110,28 +1142,43 @@ function buildReportPage(r) {
       font-size: 13px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      vertical-align: top;
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
 
     td {
       padding: 12px 18px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
       color: var(--text-body);
-      vertical-align: middle;
+      vertical-align: top;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+
+    th code,
+    td code {
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: normal;
     }
 
     .table-metadata th:first-child,
     .table-metadata td:first-child {
-      width: 200px;
+      width: 220px;
       min-width: 160px;
-      max-width: 220px;
+      max-width: 280px;
       color: var(--text-white);
       font-weight: 600;
-      white-space: nowrap;
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
 
     .table-metadata th:last-child,
     .table-metadata td:last-child {
       width: auto;
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
 
     tr:last-child td {
@@ -1358,7 +1405,6 @@ function buildReportPage(r) {
 
     <div class="nav-actions">
       <span class="badge-tlp">● TLP:CLEAR</span>
-      <button class="btn-ioc-copy" onclick="copyAllHashes(this)">Copy All IOCs</button>
     </div>
   </nav>
 
