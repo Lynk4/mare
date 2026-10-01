@@ -412,7 +412,7 @@ function buildReportPage(r) {
           <div class="code-box">
             <div class="code-box-header">
               <span>TELEMETRY / INSTRUCTION</span>
-              <button class="btn-copy" onclick="copySnippet('${snippetId}')">Copy Snippet</button>
+              <button class="btn-copy" onclick="copySnippet('${snippetId}', this)">Copy Snippet</button>
             </div>
             <pre><code id="${snippetId}">${escapeHtml(content)}</code></pre>
           </div>
@@ -433,7 +433,7 @@ function buildReportPage(r) {
           <div class="code-box">
             <div class="code-box-header">
               <span>${label}</span>
-              <button class="btn-copy" onclick="copySnippet('${snippetId}')">Copy Snippet</button>
+              <button class="btn-copy" onclick="copySnippet('${snippetId}', this)">Copy Snippet</button>
             </div>
             <pre><code id="${snippetId}">${escaped}</code></pre>
           </div>
@@ -509,12 +509,12 @@ function buildReportPage(r) {
       const localSrc = bundleImageLocally(mdImgMatch[2]);
       htmlBuffer.push(`
         <div class="figure-wrapper">
-          <div class="figure-image-container" onclick="openLightbox(this.querySelector('img').src)">
+          <div class="figure-image-container" onclick="openLightbox(this.querySelector('img').src, '${escapeHtml(alt)}')">
             <img src="${localSrc}" alt="${escapeHtml(alt)}" loading="lazy">
           </div>
           <div class="figure-caption">
             <span><strong>Figure:</strong> ${escapeHtml(alt)}</span>
-            <span style="font-size: 11.5px; color: var(--accent-blue-hover); cursor: pointer;" onclick="openLightbox('${localSrc}')">Click to zoom ↗</span>
+            <span class="zoom-link" style="font-size: 11.5px; color: var(--accent-blue-hover); cursor: pointer;" onclick="openLightbox('${localSrc}', '${escapeHtml(alt)}')">Click to zoom ↗</span>
           </div>
         </div>
       `);
@@ -528,12 +528,12 @@ function buildReportPage(r) {
       const alt = altMatch ? altMatch[1] : 'Analysis Artifact';
       htmlBuffer.push(`
         <div class="figure-wrapper">
-          <div class="figure-image-container" onclick="openLightbox(this.querySelector('img').src)">
+          <div class="figure-image-container" onclick="openLightbox(this.querySelector('img').src, '${escapeHtml(alt)}')">
             <img src="${localSrc}" alt="${escapeHtml(alt)}" loading="lazy">
           </div>
           <div class="figure-caption">
             <span><strong>Figure:</strong> ${escapeHtml(alt)}</span>
-            <span style="font-size: 11.5px; color: var(--accent-blue-hover); cursor: pointer;" onclick="openLightbox('${localSrc}')">Click to zoom ↗</span>
+            <span class="zoom-link" style="font-size: 11.5px; color: var(--accent-blue-hover); cursor: pointer;" onclick="openLightbox('${localSrc}', '${escapeHtml(alt)}')">Click to zoom ↗</span>
           </div>
         </div>
       `);
@@ -578,7 +578,7 @@ function buildReportPage(r) {
       <div class="code-box">
         <div class="code-box-header">
           <span>${label}</span>
-          <button class="btn-copy" onclick="copySnippet('${snippetId}')">Copy Snippet</button>
+          <button class="btn-copy" onclick="copySnippet('${snippetId}', this)">Copy Snippet</button>
         </div>
         <pre><code id="${snippetId}">${escaped}</code></pre>
       </div>
@@ -930,8 +930,8 @@ function buildReportPage(r) {
     .hash-interactive {
       cursor: pointer;
       display: block;
-      padding: 6px 10px;
-      margin-top: 4px;
+      padding: 7px 12px;
+      margin-top: 5px;
       border-radius: 4px;
       background: rgba(0, 82, 255, 0.08);
       border: 1px solid rgba(0, 82, 255, 0.2);
@@ -939,12 +939,22 @@ function buildReportPage(r) {
       line-height: 1.45;
       word-break: break-all;
       transition: all 0.2s ease;
+      position: relative;
     }
 
     .hash-interactive:hover {
       background: rgba(0, 82, 255, 0.22);
       border-color: #0052FF;
       color: #FFFFFF;
+    }
+
+    .hash-interactive.copied {
+      background: rgba(16, 185, 129, 0.15) !important;
+      border-color: #10B981 !important;
+      color: #34D399 !important;
+      text-align: center;
+      font-weight: 600;
+      letter-spacing: 0.3px;
     }
 
     .article-content section {
@@ -1044,13 +1054,21 @@ function buildReportPage(r) {
       cursor: zoom-in;
     }
 
-    .figure-image-container img {
+    .figure-image-container img,
+    .article-content img {
       max-width: 100%;
       height: auto;
       max-height: 520px;
       object-fit: contain;
       display: block;
       margin: 0 auto;
+      cursor: zoom-in;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .figure-image-container img:hover {
+      opacity: 0.95;
+      transform: scale(1.008);
     }
 
     .figure-caption {
@@ -1167,6 +1185,13 @@ function buildReportPage(r) {
       border-color: #0052FF;
     }
 
+    .btn-copy.btn-copied,
+    .btn-ioc-copy.btn-copied {
+      background: rgba(16, 185, 129, 0.2) !important;
+      border-color: #10B981 !important;
+      color: #6EE7B7 !important;
+    }
+
     .hash-cell-wrapper {
       display: flex;
       align-items: center;
@@ -1218,27 +1243,78 @@ function buildReportPage(r) {
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.96);
+      background-color: rgba(0, 0, 0, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       align-items: center;
       justify-content: center;
       padding: 24px;
+      box-sizing: border-box;
+    }
+
+    .lightbox-content-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      max-width: 95vw;
+      max-height: 95vh;
+      position: relative;
     }
 
     .lightbox-modal img {
       max-width: 92vw;
-      max-height: 88vh;
-      border-radius: 4px;
-      border: 1px solid #333333;
+      max-height: 85vh;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+      cursor: zoom-in;
+      transition: max-width 0.2s ease, max-height 0.2s ease;
+      object-fit: contain;
+    }
+
+    .lightbox-modal img.expanded {
+      max-width: 98vw;
+      max-height: 94vh;
+      cursor: zoom-out;
+    }
+
+    .lightbox-caption-text {
+      margin-top: 14px;
+      font-size: 13.5px;
+      color: #A0AEC0;
+      font-family: var(--font-body);
+      text-align: center;
+      max-width: 850px;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 6px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border-line);
     }
 
     .lightbox-close {
-      position: absolute;
+      position: fixed;
       top: 24px;
       right: 32px;
       color: #FFFFFF;
-      font-size: 32px;
+      font-size: 34px;
       cursor: pointer;
       font-weight: 300;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: all 0.2s ease;
+      z-index: 10001;
+    }
+
+    .lightbox-close:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.08);
     }
 
     #toast-msg {
@@ -1253,10 +1329,16 @@ function buildReportPage(r) {
       font-size: 13px;
       font-family: var(--font-mono);
       opacity: 0;
-      transition: opacity 0.25s ease;
+      transform: translateY(10px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
       z-index: 99999;
       pointer-events: none;
       box-shadow: 0 4px 20px rgba(0, 82, 255, 0.3);
+    }
+
+    #toast-msg.toast-show {
+      opacity: 1;
+      transform: translateY(0);
     }
   </style>
 </head>
@@ -1276,7 +1358,7 @@ function buildReportPage(r) {
 
     <div class="nav-actions">
       <span class="badge-tlp">● TLP:CLEAR</span>
-      <button class="btn-ioc-copy" onclick="copyAllHashes()">Copy All IOCs</button>
+      <button class="btn-ioc-copy" onclick="copyAllHashes(this)">Copy All IOCs</button>
     </div>
   </nav>
 
@@ -1341,7 +1423,7 @@ function buildReportPage(r) {
             </div>
             <div class="threat-row">
               <span class="threat-k">${hashLabel}</span>
-              <span class="threat-v mono hash-interactive" title="Click to copy full ${r.hashType} hash" onclick="copyText('${fullHash}')">${fullHash}</span>
+              <span class="threat-v mono hash-interactive" title="Click to copy full ${r.hashType} hash" onclick="copyText('${fullHash}', this)">${fullHash}</span>
             </div>
           </div>
         </div>
@@ -1352,9 +1434,12 @@ function buildReportPage(r) {
 
   </article>
 
-  <div id="lightbox" class="lightbox-modal" onclick="closeLightbox()">
-    <span class="lightbox-close">&times;</span>
-    <img id="lightbox-img" src="" alt="Fullscreen Screenshot Preview">
+  <div id="lightbox" class="lightbox-modal">
+    <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+    <div class="lightbox-content-wrap">
+      <img id="lightbox-img" src="" alt="Zoomed Screenshot Preview">
+      <div id="lightbox-caption" class="lightbox-caption-text"></div>
+    </div>
   </div>
 
   <div id="toast-msg">Copied</div>
@@ -1367,7 +1452,8 @@ function buildReportPage(r) {
       const winScroll = document.documentElement.scrollTop;
       const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
       const scrolled = (winScroll / height) * 100;
-      document.getElementById('progress-bar').style.width = scrolled + '%';
+      const pb = document.getElementById('progress-bar');
+      if (pb) pb.style.width = scrolled + '%';
 
       let currentSectionId = '';
       sections.forEach(section => {
@@ -1385,57 +1471,199 @@ function buildReportPage(r) {
       }
     });
 
-    function openLightbox(src) {
-      document.getElementById('lightbox-img').src = src;
-      document.getElementById('lightbox').style.display = 'flex';
+    function openLightbox(src, caption) {
+      const modal = document.getElementById('lightbox');
+      const img = document.getElementById('lightbox-img');
+      const cap = document.getElementById('lightbox-caption');
+      if (!modal || !img) return;
+      img.src = src;
+      img.classList.remove('expanded');
+      if (cap) cap.textContent = caption || '';
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
     }
 
     function closeLightbox() {
-      document.getElementById('lightbox').style.display = 'none';
+      const modal = document.getElementById('lightbox');
+      if (!modal) return;
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+      const img = document.getElementById('lightbox-img');
+      if (img) img.classList.remove('expanded');
     }
 
+    let toastTimeout;
     function showToast(msg) {
       const toast = document.getElementById('toast-msg');
+      if (!toast) return;
       toast.textContent = msg;
-      toast.style.opacity = '1';
-      setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+      toast.classList.add('toast-show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('toast-show');
+      }, 2000);
     }
 
-    function copyText(txt, btn) {
-      navigator.clipboard.writeText(txt);
-      showToast('Copied: ' + txt.substring(0, 16) + '...');
+    function copyToClipboard(txt) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(txt).catch(() => fallbackCopy(txt));
+      } else {
+        fallbackCopy(txt);
+        return Promise.resolve();
+      }
+    }
+
+    function fallbackCopy(txt) {
+      const ta = document.createElement('textarea');
+      ta.value = txt;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        console.error('Fallback copy failed', err);
+      }
+      document.body.removeChild(ta);
+    }
+
+    function copyText(txt, el) {
+      copyToClipboard(txt);
+      showToast('Copied: ' + (txt.length > 22 ? txt.substring(0, 18) + '...' : txt));
+      if (el) {
+        if (el.classList.contains('hash-interactive')) {
+          const origHtml = el.innerHTML;
+          el.classList.add('copied');
+          el.innerHTML = '<span>✓ Copied to clipboard</span>';
+          setTimeout(() => {
+            el.innerHTML = origHtml;
+            el.classList.remove('copied');
+          }, 1800);
+        } else if (el.classList.contains('btn-copy') || el.tagName === 'BUTTON') {
+          const orig = el.innerText;
+          el.innerText = 'Copied!';
+          el.classList.add('btn-copied');
+          setTimeout(() => {
+            el.innerText = orig;
+            el.classList.remove('btn-copied');
+          }, 1800);
+        } else {
+          const btn = el.closest ? el.closest('.hash-cell-wrapper')?.querySelector('.btn-copy') : null;
+          if (btn) {
+            const orig = btn.innerText;
+            btn.innerText = 'Copied!';
+            btn.classList.add('btn-copied');
+            setTimeout(() => {
+              btn.innerText = orig;
+              btn.classList.remove('btn-copied');
+            }, 1800);
+          }
+        }
+      }
+    }
+
+    function copySnippet(id, btn) {
+      const codeEl = document.getElementById(id);
+      if (!codeEl) return;
+      const code = codeEl.innerText;
+      copyToClipboard(code);
+      showToast('Copied code snippet');
       if (btn) {
         const orig = btn.innerText;
         btn.innerText = 'Copied!';
-        btn.style.color = '#8DCAFE';
-        btn.style.borderColor = '#0052FF';
+        btn.classList.add('btn-copied');
         setTimeout(() => {
           btn.innerText = orig;
-          btn.style.color = '';
-          btn.style.borderColor = '';
+          btn.classList.remove('btn-copied');
         }, 1800);
       }
     }
 
-    function copySnippet(id) {
-      const code = document.getElementById(id).innerText;
-      navigator.clipboard.writeText(code);
-      showToast('Copied to clipboard');
-    }
-
-    function copyAllHashes() {
+    function copyAllHashes(btn) {
       const hashStr = '${fullHash}  ${r.family}';
-      navigator.clipboard.writeText(hashStr);
+      copyToClipboard(hashStr);
       showToast('Copied investigation IOC hash');
+      if (btn) {
+        const orig = btn.innerText;
+        btn.innerText = 'Copied!';
+        btn.classList.add('btn-copied');
+        setTimeout(() => {
+          btn.innerText = orig;
+          btn.classList.remove('btn-copied');
+        }, 1800);
+      }
     }
 
-    // Click on code in hash wrapper to copy
+    // Toggle zoom on lightbox image click
+    const lightboxImg = document.getElementById('lightbox-img');
+    if (lightboxImg) {
+      lightboxImg.addEventListener('click', (e) => {
+        e.stopPropagation();
+        lightboxImg.classList.toggle('expanded');
+      });
+    }
+
+    // Close on background click
+    const lightboxModal = document.getElementById('lightbox');
+    if (lightboxModal) {
+      lightboxModal.addEventListener('click', (e) => {
+        if (e.target === lightboxModal || e.target.classList.contains('lightbox-close')) {
+          closeLightbox();
+        }
+      });
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeLightbox();
+      }
+    });
+
+    // Global click listener for images and copy elements
     document.addEventListener('click', (e) => {
+      // Image click
+      const img = e.target.closest('.figure-image-container img, .figure-wrapper img, .article-content img');
+      if (img && img.id !== 'lightbox-img') {
+        const wrapper = img.closest('.figure-wrapper');
+        const cap = wrapper ? (wrapper.querySelector('.figure-caption span')?.innerText || img.alt) : img.alt;
+        openLightbox(img.src, cap);
+        return;
+      }
+
+      // Click to zoom link
+      const zoomLink = e.target.closest('.zoom-link');
+      if (zoomLink) {
+        const wrapper = zoomLink.closest('.figure-wrapper');
+        const imgEl = wrapper ? wrapper.querySelector('img') : null;
+        if (imgEl) {
+          const cap = wrapper.querySelector('.figure-caption span')?.innerText || imgEl.alt;
+          openLightbox(imgEl.src, cap);
+        }
+        return;
+      }
+
+      // Hash cell code click
       const codeEl = e.target.closest('.hash-cell-wrapper code');
       if (codeEl) {
         const wrapper = codeEl.closest('.hash-cell-wrapper');
         const btn = wrapper ? wrapper.querySelector('.btn-copy') : null;
         copyText(codeEl.innerText.trim(), btn);
+        return;
+      }
+
+      // Delegated btn-copy click without inline onclick
+      const copyBtn = e.target.closest('.btn-copy');
+      if (copyBtn && !copyBtn.getAttribute('onclick')) {
+        const wrapper = copyBtn.closest('.hash-cell-wrapper');
+        const code = wrapper ? wrapper.querySelector('code') : null;
+        if (code) {
+          copyText(code.innerText.trim(), copyBtn);
+        }
+        return;
       }
     });
 
@@ -1443,8 +1671,8 @@ function buildReportPage(r) {
     document.querySelectorAll('table td').forEach(td => {
       if (td.querySelector('.btn-copy') || td.querySelector('button')) return;
       const text = td.innerText.trim();
-      if (/^[a-fA-F0-9]{32}$|^[a-fA-F0-9]{40}$|^[a-fA-F0-9]{64}$|^T[1-9A-Fa-f][a-fA-F0-9]{68,70}$|^\d+:[a-zA-Z0-9/+=]+:[a-zA-Z0-9/+=]+$/i.test(text)) {
-        td.innerHTML = '<div class="hash-cell-wrapper"><code>' + text + '</code><button class="btn-copy" onclick="copyText(\'' + text + '\', this)">Copy</button></div>';
+      if (/^[a-fA-F0-9]{32}$|^[a-fA-F0-9]{40}$|^[a-fA-F0-9]{64}$|^T[1-9A-Fa-f][a-fA-F0-9]{68,70}$|^\\d+:[a-zA-Z0-9/+=]+:[a-zA-Z0-9/+=]+$/i.test(text)) {
+        td.innerHTML = '<div class="hash-cell-wrapper"><code>' + text + '</code><button class="btn-copy" type="button">Copy</button></div>';
       }
     });
   </script>
