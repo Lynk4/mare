@@ -1406,10 +1406,18 @@ function buildPortalIndex(allReports) {
       border-bottom: 1px dotted rgba(255, 255, 255, 0.4);
     }
 
+    .header-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+    }
+
     .platform-subnav {
       display: flex;
       gap: 12px;
-      margin-top: 32px;
       flex-wrap: wrap;
     }
 
@@ -1448,6 +1456,154 @@ function buildPortalIndex(allReports) {
       opacity: 0.85;
     }
 
+    .search-box-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      min-width: 320px;
+      max-width: 440px;
+      flex: 1;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      width: 15px;
+      height: 15px;
+      color: var(--text-muted);
+      pointer-events: none;
+      transition: color 0.2s ease;
+    }
+
+    .search-input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid var(--border-line);
+      border-radius: 24px;
+      padding: 9px 38px 9px 38px;
+      font-family: var(--font-body);
+      font-size: 13.5px;
+      color: var(--text-white);
+      outline: none;
+      transition: all 0.25s ease;
+    }
+
+    .search-input::placeholder {
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    .search-input:focus {
+      background: rgba(0, 0, 0, 0.7);
+      border-color: rgba(0, 82, 255, 0.7);
+      box-shadow: 0 0 0 3px rgba(0, 82, 255, 0.15), 0 4px 20px rgba(0, 82, 255, 0.12);
+    }
+
+    .search-box-wrapper:focus-within .search-icon {
+      color: var(--accent-blue-hover);
+    }
+
+    .search-clear-btn {
+      position: absolute;
+      right: 12px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 18px;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .search-clear-btn:hover {
+      color: var(--text-white);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .search-kbd {
+      position: absolute;
+      right: 14px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .stream-header-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-line);
+      font-size: 12.5px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    .stream-header-info span#results-count {
+      color: #8DCAFE;
+      font-weight: 600;
+    }
+
+    .no-results-state {
+      padding: 64px 20px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.015);
+      border: 1px dashed var(--border-line);
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+
+    .no-results-icon {
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      display: inline-flex;
+    }
+
+    .no-results-state h3 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      color: var(--text-white);
+      margin-bottom: 8px;
+    }
+
+    .no-results-state p {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 400px;
+      margin: 0 auto 20px;
+    }
+
+    .reset-filters-btn {
+      background: rgba(0, 82, 255, 0.15);
+      color: #8DCAFE;
+      border: 1px solid rgba(0, 82, 255, 0.4);
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .reset-filters-btn:hover {
+      background: var(--accent-blue);
+      color: #FFFFFF;
+    }
+
     .portal-layout {
       display: grid;
       grid-template-columns: 280px minmax(0, 1fr);
@@ -1467,6 +1623,14 @@ function buildPortalIndex(allReports) {
       }
       .header-title {
         font-size: 38px;
+      }
+      .header-controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .search-box-wrapper {
+        max-width: 100%;
+        min-width: 100%;
       }
     }
 
@@ -1724,13 +1888,25 @@ function buildPortalIndex(allReports) {
         Independent cyber threat intelligence, technical malware analyses, and adversary tradecraft research by <span class="header-author-link">${AUTHOR_NAME}</span>.
       </p>
 
-      <nav class="platform-subnav" aria-label="Operating System Filter">
-        <button class="platform-btn active" data-filter="all">All Platforms <span class="count-badge">${counts.All}</span></button>
-        <button class="platform-btn" data-filter="Windows">Windows <span class="count-badge">${counts.Windows}</span></button>
-        <button class="platform-btn" data-filter="macOS">macOS <span class="count-badge">${counts.macOS}</span></button>
-        <button class="platform-btn" data-filter="Linux">Linux <span class="count-badge">${counts.Linux}</span></button>
-        <button class="platform-btn" data-filter="Cross-Platform">Cross-Platform <span class="count-badge">${counts['Cross-Platform']}</span></button>
-      </nav>
+      <div class="header-controls">
+        <nav class="platform-subnav" aria-label="Operating System Filter">
+          <button class="platform-btn active" data-filter="all">All Platforms <span class="count-badge">${counts.All}</span></button>
+          <button class="platform-btn" data-filter="Windows">Windows <span class="count-badge">${counts.Windows}</span></button>
+          <button class="platform-btn" data-filter="macOS">macOS <span class="count-badge">${counts.macOS}</span></button>
+          <button class="platform-btn" data-filter="Linux">Linux <span class="count-badge">${counts.Linux}</span></button>
+          <button class="platform-btn" data-filter="Cross-Platform">Cross-Platform <span class="count-badge">${counts['Cross-Platform']}</span></button>
+        </nav>
+
+        <div class="search-box-wrapper">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="live-search" class="search-input" placeholder="Search investigations, malware, CVEs, IOCs..." autocomplete="off" spellcheck="false">
+          <button id="search-clear" class="search-clear-btn" aria-label="Clear search" title="Clear">&times;</button>
+          <kbd class="search-kbd">/</kbd>
+        </div>
+      </div>
     </header>
 
     <div class="portal-layout">
@@ -1752,10 +1928,28 @@ function buildPortalIndex(allReports) {
       </aside>
 
       <section class="reports-stream">
+        <div class="stream-header-info">
+          <span class="showing-count">Showing <span id="results-count">${totalCount}</span> of ${totalCount} investigations</span>
+        </div>
+
+        <div id="no-results" class="no-results-state" style="display: none;">
+          <div class="no-results-icon">
+            <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              <line x1="8" y1="11" x2="14" y2="11"></line>
+            </svg>
+          </div>
+          <h3>No matching investigations</h3>
+          <p>We couldn't find any threat research matching your search or filters.</p>
+          <button id="reset-filters-btn" class="reset-filters-btn">Reset All Filters</button>
+        </div>
+
         ${allReports.map(r => {
           const thumbObj = resolveThumbnail(r);
+          const searchKeywords = `${r.title} ${r.lead} ${r.family} ${r.classification} ${r.category} ${r.os} ${r.hashVal} ${r.delivery} ${r.c2} ${r.targets}`.toLowerCase();
           return `
-          <article class="report-entry" data-os="${escapeHtml(r.os)}" data-category="${escapeHtml(r.category)}">
+          <article class="report-entry" data-os="${escapeHtml(r.os)}" data-category="${escapeHtml(r.category)}" data-search="${escapeHtml(searchKeywords)}">
             <a href="${r.id}/index.html" class="full-card-link" aria-label="${escapeHtml(r.title)}"></a>
             <div class="entry-image-col">
               <img src="${thumbObj.url}" alt="${escapeHtml(r.title)}" class="entry-thumbnail ${thumbObj.isScreenshot ? 'is-screenshot' : ''}" loading="lazy">
@@ -1787,26 +1981,83 @@ function buildPortalIndex(allReports) {
   </main>
 
   <script>
+    const searchInput = document.getElementById('live-search');
+    const clearBtn = document.getElementById('search-clear');
+    const searchKbd = document.querySelector('.search-kbd');
     const platformBtns = document.querySelectorAll('.platform-btn');
     const categoryItems = document.querySelectorAll('.category-item');
     const reports = document.querySelectorAll('.report-entry');
+    const resultsCount = document.getElementById('results-count');
+    const noResults = document.getElementById('no-results');
+    const resetBtn = document.getElementById('reset-filters-btn');
 
     let currentOs = 'all';
     let currentCat = 'all';
+    let searchQuery = '';
 
     function filterReports() {
+      let visibleCount = 0;
+      const query = searchQuery.trim().toLowerCase();
+
       reports.forEach(report => {
         const reportOs = report.getAttribute('data-os');
         const reportCat = report.getAttribute('data-category');
+        const reportSearch = report.getAttribute('data-search') || '';
 
         const osMatch = (currentOs === 'all' || reportOs === currentOs);
         const catMatch = (currentCat === 'all' || reportCat === currentCat);
+        const searchMatch = !query || reportSearch.includes(query);
 
-        if (osMatch && catMatch) {
+        if (osMatch && catMatch && searchMatch) {
           report.style.display = 'grid';
+          visibleCount++;
         } else {
           report.style.display = 'none';
         }
+      });
+
+      if (resultsCount) {
+        resultsCount.textContent = visibleCount;
+      }
+
+      if (noResults) {
+        noResults.style.display = (visibleCount === 0) ? 'block' : 'none';
+      }
+
+      if (clearBtn && searchKbd) {
+        if (query.length > 0) {
+          clearBtn.style.display = 'flex';
+          searchKbd.style.display = 'none';
+        } else {
+          clearBtn.style.display = 'none';
+          searchKbd.style.display = 'inline-block';
+        }
+      }
+    }
+
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      filterReports();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      searchQuery = '';
+      filterReports();
+      searchInput.focus();
+    });
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        searchQuery = '';
+        currentOs = 'all';
+        currentCat = 'all';
+        platformBtns.forEach(b => b.classList.remove('active'));
+        document.querySelector('.platform-btn[data-filter="all"]').classList.add('active');
+        categoryItems.forEach(i => i.classList.remove('active'));
+        document.querySelector('.category-item[data-cat="all"]').classList.add('active');
+        filterReports();
       });
     }
 
@@ -1826,6 +2077,19 @@ function buildPortalIndex(allReports) {
         currentCat = item.getAttribute('data-cat');
         filterReports();
       });
+    });
+
+    // Keyboard shortcut: '/' to focus search, 'Esc' to clear & blur
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== searchInput) {
+        e.preventDefault();
+        searchInput.focus();
+      } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+        searchInput.value = '';
+        searchQuery = '';
+        filterReports();
+        searchInput.blur();
+      }
     });
   </script>
 </body>
