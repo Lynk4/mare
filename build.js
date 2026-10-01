@@ -314,6 +314,26 @@ function buildReportPage(r) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
+    // Single-line code block e.g. ```text```
+    if (line.trim().startsWith('```') && line.trim().endsWith('```') && line.trim().length > 3) {
+      if (!inCodeBlock) {
+        flushTable();
+        const content = line.trim().slice(3, -3).trim();
+        codeSnippetCounter++;
+        const snippetId = `code-block-${codeSnippetCounter}`;
+        htmlBuffer.push(`
+          <div class="code-box">
+            <div class="code-box-header">
+              <span>TELEMETRY / INSTRUCTION</span>
+              <button class="btn-copy" onclick="copySnippet('${snippetId}')">Copy Snippet</button>
+            </div>
+            <pre><code id="${snippetId}">${escapeHtml(content)}</code></pre>
+          </div>
+        `);
+        continue;
+      }
+    }
+
     // Code blocks
     if (line.trim().startsWith('```')) {
       if (inCodeBlock) {
@@ -441,21 +461,39 @@ function buildReportPage(r) {
     }
 
     // Lists
-    if (/^\s*[-*]\s+(.+)$/.test(line)) {
-      const itemMatch = line.match(/^\s*[-*]\s+(.+)$/);
+    if (/^\s*[-*•]\s+(.+)$/.test(line)) {
+      const itemMatch = line.match(/^\s*[-*•]\s+(.+)$/);
       htmlBuffer.push(`<div class="list-bullet-item"><span class="bullet-dot">▪</span><span>${inlineFormat(escapeHtml(itemMatch[1]))}</span></div>`);
       continue;
     }
 
     if (/^\s*\d+\.\s+(.+)$/.test(line)) {
       const numMatch = line.match(/^\s*(\d+)\.\s+(.+)$/);
-      htmlBuffer.push(`<div class="list-bullet-item"><span class="bullet-num">${numMatch[1]}.</span><span>${inlineFormat(escapeHtml(numMatch[1]))}</span></div>`);
+      htmlBuffer.push(`<div class="list-bullet-item"><span class="bullet-num">${numMatch[1]}.</span><span>${inlineFormat(escapeHtml(numMatch[2]))}</span></div>`);
       continue;
     }
 
     if (line.trim().length > 0) {
       htmlBuffer.push(`<p>${inlineFormat(escapeHtml(line))}</p>`);
     }
+  }
+
+  if (inCodeBlock && codeBlockBuffer.length > 0) {
+    codeSnippetCounter++;
+    const snippetId = `code-block-${codeSnippetCounter}`;
+    const escaped = escapeHtml(codeBlockBuffer.join('\n'));
+    const label = codeBlockLang ? codeBlockLang.toUpperCase() : 'TELEMETRY / DISASSEMBLY';
+    htmlBuffer.push(`
+      <div class="code-box">
+        <div class="code-box-header">
+          <span>${label}</span>
+          <button class="btn-copy" onclick="copySnippet('${snippetId}')">Copy Snippet</button>
+        </div>
+        <pre><code id="${snippetId}">${escaped}</code></pre>
+      </div>
+    `);
+    codeBlockBuffer = [];
+    inCodeBlock = false;
   }
 
   flushTable();
@@ -486,6 +524,7 @@ function buildReportPage(r) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(r.title)} | ${AUTHOR_NAME}</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1283,6 +1322,7 @@ function buildPortalIndex(allReports) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Threat Intelligence Research Portal | ${AUTHOR_NAME}</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
