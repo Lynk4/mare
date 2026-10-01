@@ -3,8 +3,9 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const AUTHOR_NAME = 'Chandra Kant Bauri';
-const BASE_ANALYSIS_DIR = path.join(__dirname, 'Malware Analysis');
-const REPORTS_DIR = path.join(__dirname, 'reports');
+const ROOT_DIR = path.resolve(__dirname, '..');
+const BASE_ANALYSIS_DIR = path.join(ROOT_DIR, 'Malware Analysis');
+const REPORTS_DIR = path.join(ROOT_DIR, 'reports');
 
 // Canonical authentic dates when reports were added to repository
 const CANONICAL_REPORT_DATES = {
@@ -55,10 +56,10 @@ function getGitAddedDate(filePath, id) {
     return CANONICAL_REPORT_DATES[id];
   }
   try {
-    const rel = path.relative(__dirname, filePath);
-    const out = execSync(`git log --diff-filter=A --follow --format="%ad" --date=format:"%B %d, %Y" -- "${rel}"`, { encoding: 'utf8', cwd: __dirname }).trim();
+    const rel = path.relative(ROOT_DIR, filePath);
+    const out = execSync(`git log --diff-filter=A --follow --format="%ad" --date=format:"%B %d, %Y" -- "${rel}"`, { encoding: 'utf8', cwd: ROOT_DIR }).trim();
     if (!out) {
-      const out2 = execSync(`git log --reverse --format="%ad" --date=format:"%B %d, %Y" -- "${rel}"`, { encoding: 'utf8', cwd: __dirname }).trim();
+      const out2 = execSync(`git log --reverse --format="%ad" --date=format:"%B %d, %Y" -- "${rel}"`, { encoding: 'utf8', cwd: ROOT_DIR }).trim();
       const lines2 = out2.split('\n').filter(Boolean);
       return lines2[0] || null;
     }
@@ -330,9 +331,9 @@ function buildReportPage(r) {
 
   // Cyber Talents CTF supplement
   if (r.id === 'cyber-talents-ctf') {
-    const pureLuck = path.join(__dirname, 'Malware Analysis/Cross-Platform/cyber talents/Pure Luck/README.md');
-    const elfMaster = path.join(__dirname, 'Malware Analysis/Cross-Platform/cyber talents/ELF Master/README.md');
-    const m0v = path.join(__dirname, 'Malware Analysis/Cross-Platform/cyber talents/m0v/README.md');
+    const pureLuck = path.join(ROOT_DIR, 'Malware Analysis/Cross-Platform/cyber talents/Pure Luck/README.md');
+    const elfMaster = path.join(ROOT_DIR, 'Malware Analysis/Cross-Platform/cyber talents/ELF Master/README.md');
+    const m0v = path.join(ROOT_DIR, 'Malware Analysis/Cross-Platform/cyber talents/m0v/README.md');
     mdContent = `# Cyber Talents CTF: Reverse Engineering Challenge Series\n\n`;
     if (fs.existsSync(pureLuck)) mdContent += `\n## Challenge 1: Pure Luck (ELF 32-bit & UPX Recovery)\n` + fs.readFileSync(pureLuck, 'utf8');
     if (fs.existsSync(elfMaster)) mdContent += `\n## Challenge 2: ELF Master (Binary Ninja & XOR Decoding)\n` + fs.readFileSync(elfMaster, 'utf8');
