@@ -1,0 +1,8 @@
+{
+  "name": "mare-threat-research",
+  "version": "1.0.0",
+  "description": "Publication-grade Threat Intelligence and Malware Analysis Research Portal",
+  "scripts": {
+    "build": "node build.js"
+  }
+}
