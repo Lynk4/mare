@@ -37,8 +37,6 @@ jobs:
 
       - name: Setup Pages Configuration
         uses: actions/configure-pages@v4
-        with:
-          enablement: true
 
       - name: Upload Static Portal Artifacts
         uses: actions/upload-pages-artifact@v3
