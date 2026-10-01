@@ -214,6 +214,19 @@ function discoverReports() {
       if (iconType === 'wiper') classification = `${os} Disk Wiper / Ransomware`;
       if (iconType === 'apt') classification = 'State-Sponsored Espionage Framework';
 
+      // E. Extract First Image in README.md as default card thumbnail
+      let firstImage = null;
+      const mdImg = rawContent.match(/!\[.*?\]\((.+?)\)/);
+      const htmlImg = rawContent.match(/<img[^>]+src=["']([^"']+)["']/i);
+      const foundImg = mdImg ? mdImg[1].trim() : (htmlImg ? htmlImg[1].trim() : null);
+      if (foundImg && !foundImg.startsWith('http')) {
+        const cleanFound = decodeURIComponent(foundImg);
+        const baseName = path.basename(cleanFound).replace(/[^\w.-]/g, '_');
+        firstImage = `images/${encodeURIComponent(baseName)}`;
+      }
+
+      let thumbnail = null;
+
       // Load optional 5-line meta.json if present in the folder
       const metaFile = path.join(fullDir, 'meta.json');
       if (fs.existsSync(metaFile)) {
@@ -221,6 +234,7 @@ function discoverReports() {
           const meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
           if (meta.title) title = meta.title;
           if (meta.subtitle || meta.lead) lead = meta.subtitle || meta.lead;
+          if (meta.thumbnail || meta.thumb || meta.image) thumbnail = meta.thumbnail || meta.thumb || meta.image;
           if (meta.category) category = meta.category;
           // Note: Authentic git commit date is preserved; meta.date is skipped
           if (meta.readTime) readTime = meta.readTime;
@@ -253,6 +267,8 @@ function discoverReports() {
         targets,
         hashType,
         hashVal,
+        firstImage,
+        thumbnail,
         srcDir: fullDir,
         mdPath
       });
@@ -584,6 +600,9 @@ function buildReportPage(r) {
     if (mdImgMatch) {
       const alt = mdImgMatch[1] || 'Investigation Screenshot';
       const localSrc = bundleImageLocally(mdImgMatch[2]);
+      if (!r.firstImage && localSrc && !localSrc.startsWith('http')) {
+        r.firstImage = localSrc;
+      }
       htmlBuffer.push(`
         <div class="figure-wrapper">
           <div class="figure-image-container" onclick="openLightbox(this.querySelector('img').src, '${escapeHtml(alt)}')">
@@ -601,6 +620,9 @@ function buildReportPage(r) {
     const htmlImgMatch = line.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
     if (htmlImgMatch) {
       const localSrc = bundleImageLocally(htmlImgMatch[1]);
+      if (!r.firstImage && localSrc && !localSrc.startsWith('http')) {
+        r.firstImage = localSrc;
+      }
       const altMatch = line.match(/alt=["']([^"']+)["']/i);
       const alt = altMatch ? altMatch[1] : 'Analysis Artifact';
       htmlBuffer.push(`
@@ -1990,11 +2012,26 @@ function buildPortalIndex(allReports) {
   });
 
   function resolveThumbnail(r) {
-    const svgThumb = `assets/thumbs/${r.id}.svg`;
-    if (fs.existsSync(path.join(REPORTS_DIR, svgThumb))) {
-      return { url: svgThumb, isScreenshot: false };
+    // 1. Explicit thumbnail override in meta.json
+    if (r.thumbnail) {
+      const explicitRel = path.join(r.id, r.thumbnail);
+      if (fs.existsSync(path.join(REPORTS_DIR, explicitRel))) {
+        return { url: explicitRel, isScreenshot: true };
+      }
+      if (fs.existsSync(path.join(REPORTS_DIR, r.thumbnail))) {
+        return { url: r.thumbnail, isScreenshot: true };
+      }
     }
-    // Check local bundled images folder
+
+    // 2. First image referenced in the report markdown
+    if (r.firstImage) {
+      const firstImgRel = path.join(r.id, r.firstImage);
+      if (fs.existsSync(path.join(REPORTS_DIR, firstImgRel))) {
+        return { url: firstImgRel, isScreenshot: true };
+      }
+    }
+
+    // 3. Any image bundled in reports/<id>/images/
     const imagesDir = path.join(REPORTS_DIR, r.id, 'images');
     if (fs.existsSync(imagesDir)) {
       const imgs = fs.readdirSync(imagesDir).filter(f => /\.(png|jpe?g|webp|svg)$/i.test(f));
@@ -2002,6 +2039,14 @@ function buildPortalIndex(allReports) {
         return { url: `${r.id}/images/${encodeURIComponent(imgs[0])}`, isScreenshot: true };
       }
     }
+
+    // 4. SVG thumbnail badge for reports without images
+    const svgThumb = `assets/thumbs/${r.id}.svg`;
+    if (fs.existsSync(path.join(REPORTS_DIR, svgThumb))) {
+      return { url: svgThumb, isScreenshot: false };
+    }
+
+    // 5. Default fallback
     return { url: 'assets/thumbs/digit-stealer.svg', isScreenshot: false };
   }
 
@@ -2537,9 +2582,9 @@ function buildPortalIndex(allReports) {
     }
 
     .entry-thumbnail.is-screenshot {
-      object-fit: contain;
-      background: #000000;
-      padding: 6px;
+      object-fit: cover;
+      background: #020204;
+      padding: 0;
     }
 
     .report-entry:hover .entry-thumbnail {
