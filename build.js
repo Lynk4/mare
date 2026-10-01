@@ -264,6 +264,40 @@ function buildReportPage(r) {
   let tableHeader = [];
   let tableRows = [];
 
+  function enhanceHashCell(cell) {
+    if (!cell) return '';
+    if (cell.includes('<button') || cell.includes('btn-copy')) return cell;
+
+    // Pattern 1: Exact <code>hash</code> cell (32, 40, or 64 hex characters)
+    const exactCode = cell.match(/^<code>([a-fA-F0-9]{32}|[a-fA-F0-9]{40}|[a-fA-F0-9]{64})<\/code>$/);
+    if (exactCode) {
+      const hash = exactCode[1];
+      return `<div class="hash-cell-wrapper"><code>${hash}</code><button class="btn-copy" onclick="copyText('${hash}', this)" title="Copy hash to clipboard">Copy</button></div>`;
+    }
+
+    // Pattern 2: Exact SSDEEP cell
+    const exactSsdeep = cell.match(/^<code>(\d+:[a-zA-Z0-9/+=]+:[a-zA-Z0-9/+=]+)<\/code>$/);
+    if (exactSsdeep) {
+      const ssdeep = exactSsdeep[1];
+      return `<div class="hash-cell-wrapper"><code class="ssdeep-code">${ssdeep}</code><button class="btn-copy" onclick="copyText('${ssdeep}', this)" title="Copy SSDEEP to clipboard">Copy</button></div>`;
+    }
+
+    // Pattern 3: Raw hex hash without code tags
+    const rawClean = cell.replace(/<[^>]+>/g, '').trim();
+    if (/^[a-fA-F0-9]{32}$|^[a-fA-F0-9]{40}$|^[a-fA-F0-9]{64}$/.test(rawClean)) {
+      return `<div class="hash-cell-wrapper"><code>${rawClean}</code><button class="btn-copy" onclick="copyText('${rawClean}', this)" title="Copy hash to clipboard">Copy</button></div>`;
+    }
+
+    // Pattern 4: Any <code>hash</code> embedded in text within the cell
+    if (/<code>([a-fA-F0-9]{32}|[a-fA-F0-9]{40}|[a-fA-F0-9]{64})<\/code>/.test(cell)) {
+      return cell.replace(/<code>([a-fA-F0-9]{32}|[a-fA-F0-9]{40}|[a-fA-F0-9]{64})<\/code>/g, (match, hash) => {
+        return `<span class="hash-cell-wrapper"><code>${hash}</code><button class="btn-copy" onclick="copyText('${hash}', this)" title="Copy hash to clipboard">Copy</button></span>`;
+      });
+    }
+
+    return cell;
+  }
+
   function flushTable() {
     if (!inTable) return;
     inTable = false;
@@ -272,7 +306,7 @@ function buildReportPage(r) {
     html += '</tr></thead><tbody>';
     tableRows.forEach(row => {
       html += '<tr>';
-      row.forEach(cell => { html += `<td>${cell}</td>`; });
+      row.forEach(cell => { html += `<td>${enhanceHashCell(cell)}</td>`; });
       html += '</tr>';
     });
     html += '</tbody></table></div>';
@@ -463,7 +497,11 @@ function buildReportPage(r) {
     // Lists
     if (/^\s*[-*•]\s+(.+)$/.test(line)) {
       const itemMatch = line.match(/^\s*[-*•]\s+(.+)$/);
-      htmlBuffer.push(`<div class="list-bullet-item"><span class="bullet-dot">▪</span><span>${inlineFormat(escapeHtml(itemMatch[1]))}</span></div>`);
+      let formatted = inlineFormat(escapeHtml(itemMatch[1]));
+      formatted = formatted.replace(/<code>([a-fA-F0-9]{32}|[a-fA-F0-9]{40}|[a-fA-F0-9]{64})<\/code>/g, (m, h) => {
+        return `<code>${h}</code><button class="btn-copy" style="margin-left: 8px; vertical-align: middle; padding: 2px 8px; font-size: 11px;" onclick="copyText('${h}', this)">Copy</button>`;
+      });
+      htmlBuffer.push(`<div class="list-bullet-item"><span class="bullet-dot">▪</span><span>${formatted}</span></div>`);
       continue;
     }
 
@@ -1061,6 +1099,46 @@ function buildReportPage(r) {
       border-color: #0052FF;
     }
 
+    .hash-cell-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .hash-cell-wrapper code {
+      word-break: break-all;
+      color: #8DCAFE;
+      background: rgba(0, 82, 255, 0.08);
+      border: 1px solid rgba(0, 82, 255, 0.2);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .hash-cell-wrapper code:hover {
+      background: rgba(0, 82, 255, 0.18);
+      border-color: #0052FF;
+      color: #FFFFFF;
+    }
+
+    .hash-cell-wrapper .btn-copy {
+      flex-shrink: 0;
+      padding: 3px 10px;
+      font-size: 11px;
+    }
+
+    .ssdeep-code {
+      font-size: 11px !important;
+      max-width: 480px;
+      display: inline-block;
+      overflow-wrap: anywhere;
+    }
+
     .lightbox-modal {
       display: none;
       position: fixed;
@@ -1252,9 +1330,20 @@ function buildReportPage(r) {
       setTimeout(() => { toast.style.opacity = '0'; }, 2000);
     }
 
-    function copyText(txt) {
+    function copyText(txt, btn) {
       navigator.clipboard.writeText(txt);
       showToast('Copied: ' + txt.substring(0, 16) + '...');
+      if (btn) {
+        const orig = btn.innerText;
+        btn.innerText = 'Copied!';
+        btn.style.color = '#8DCAFE';
+        btn.style.borderColor = '#0052FF';
+        setTimeout(() => {
+          btn.innerText = orig;
+          btn.style.color = '';
+          btn.style.borderColor = '';
+        }, 1800);
+      }
     }
 
     function copySnippet(id) {
@@ -1268,6 +1357,25 @@ function buildReportPage(r) {
       navigator.clipboard.writeText(hashStr);
       showToast('Copied investigation IOC hash');
     }
+
+    // Click on code in hash wrapper to copy
+    document.addEventListener('click', (e) => {
+      const codeEl = e.target.closest('.hash-cell-wrapper code');
+      if (codeEl) {
+        const wrapper = codeEl.closest('.hash-cell-wrapper');
+        const btn = wrapper ? wrapper.querySelector('.btn-copy') : null;
+        copyText(codeEl.innerText.trim(), btn);
+      }
+    });
+
+    // Auto-detect any raw table cells with hashes that missed build-time enhancement
+    document.querySelectorAll('table td').forEach(td => {
+      if (td.querySelector('.btn-copy') || td.querySelector('button')) return;
+      const text = td.innerText.trim();
+      if (/^[a-fA-F0-9]{32}$|^[a-fA-F0-9]{40}$|^[a-fA-F0-9]{64}$/.test(text)) {
+        td.innerHTML = '<div class="hash-cell-wrapper"><code>' + text + '</code><button class="btn-copy" onclick="copyText(\'' + text + '\', this)">Copy</button></div>';
+      }
+    });
   </script>
 </body>
 </html>
