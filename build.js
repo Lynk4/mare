@@ -275,20 +275,27 @@ function buildReportPage(r) {
       return `<div class="hash-cell-wrapper"><code>${hash}</code><button class="btn-copy" onclick="copyText('${hash}', this)" title="Copy hash to clipboard">Copy</button></div>`;
     }
 
-    // Pattern 2: Exact SSDEEP cell
-    const exactSsdeep = cell.match(/^<code>(\d+:[a-zA-Z0-9/+=]+:[a-zA-Z0-9/+=]+)<\/code>$/);
+    // Pattern 2: Exact TLSH cell (starts with T1, ~70-72 chars)
+    const exactTlsh = cell.match(/^(?:<code>)?(T[1-9A-Fa-f][a-fA-F0-9]{68,70})(?:<\/code>)?$/i);
+    if (exactTlsh) {
+      const tlsh = exactTlsh[1];
+      return `<div class="hash-cell-wrapper"><code class="tlsh-code">${tlsh}</code><button class="btn-copy" onclick="copyText('${tlsh}', this)" title="Copy TLSH to clipboard">Copy</button></div>`;
+    }
+
+    // Pattern 3: Exact SSDEEP cell
+    const exactSsdeep = cell.match(/^(?:<code>)?(\d+:[a-zA-Z0-9/+=]+:[a-zA-Z0-9/+=]+)(?:<\/code>)?$/);
     if (exactSsdeep) {
       const ssdeep = exactSsdeep[1];
       return `<div class="hash-cell-wrapper"><code class="ssdeep-code">${ssdeep}</code><button class="btn-copy" onclick="copyText('${ssdeep}', this)" title="Copy SSDEEP to clipboard">Copy</button></div>`;
     }
 
-    // Pattern 3: Raw hex hash without code tags
+    // Pattern 4: Raw hex hash without code tags
     const rawClean = cell.replace(/<[^>]+>/g, '').trim();
     if (/^[a-fA-F0-9]{32}$|^[a-fA-F0-9]{40}$|^[a-fA-F0-9]{64}$/.test(rawClean)) {
       return `<div class="hash-cell-wrapper"><code>${rawClean}</code><button class="btn-copy" onclick="copyText('${rawClean}', this)" title="Copy hash to clipboard">Copy</button></div>`;
     }
 
-    // Pattern 4: Any <code>hash</code> embedded in text within the cell
+    // Pattern 5: Any <code>hash</code> embedded in text within the cell
     if (/<code>([a-fA-F0-9]{32}|[a-fA-F0-9]{40}|[a-fA-F0-9]{64})<\/code>/.test(cell)) {
       return cell.replace(/<code>([a-fA-F0-9]{32}|[a-fA-F0-9]{40}|[a-fA-F0-9]{64})<\/code>/g, (match, hash) => {
         return `<span class="hash-cell-wrapper"><code>${hash}</code><button class="btn-copy" onclick="copyText('${hash}', this)" title="Copy hash to clipboard">Copy</button></span>`;
@@ -301,12 +308,30 @@ function buildReportPage(r) {
   function flushTable() {
     if (!inTable) return;
     inTable = false;
-    let html = '<div class="table-responsive"><table><thead><tr>';
+    const isTwoCol = tableHeader.length === 2;
+    let html = `<div class="table-responsive"><table class="${isTwoCol ? 'table-metadata' : ''}"><thead><tr>`;
     tableHeader.forEach(cell => { html += `<th>${cell}</th>`; });
     html += '</tr></thead><tbody>';
     tableRows.forEach(row => {
+      // If table is 2 columns, but this row has >2 cells due to internal pipes, join the rest into column 2
+      if (isTwoCol && row.length > 2) {
+        row = [row[0], row.slice(1).join(' · ')];
+      }
       html += '<tr>';
-      row.forEach(cell => { html += `<td>${enhanceHashCell(cell)}</td>`; });
+      row.forEach((cell, idx) => {
+        // If it is a 2-col metadata table and this is the value cell (idx === 1)
+        if (isTwoCol && idx === 1) {
+          const propName = row[0].replace(/<[^>]+>/g, '').trim().toLowerCase();
+          const isHashProp = ['md5', 'sha-1', 'sha1', 'sha-256', 'sha256', 'vhash', 'ssdeep', 'tlsh', 'cdhash', 'symhash', 'imphash', 'authentihash', 'rich header', 'sample hash', 'file hash', 'hash'].some(k => propName.includes(k));
+          if (isHashProp && !cell.includes('<button') && !cell.includes('btn-copy')) {
+            const rawVal = cell.replace(/<[^>]+>/g, '').trim();
+            if (rawVal && rawVal.toLowerCase() !== 'n/a' && rawVal.length > 8) {
+              cell = `<div class="hash-cell-wrapper"><code>${escapeHtml(rawVal)}</code><button class="btn-copy" onclick="copyText('${escapeHtml(rawVal)}', this)" title="Copy ${escapeHtml(propName.toUpperCase())} to clipboard">Copy</button></div>`;
+            }
+          }
+        }
+        html += `<td>${enhanceHashCell(cell)}</td>`;
+      });
       html += '</tr>';
     });
     html += '</tbody></table></div>';
@@ -322,6 +347,34 @@ function buildReportPage(r) {
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>')
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  }
+
+  function splitTableRow(line) {
+    let trimmed = line.trim();
+    if (trimmed.startsWith('|')) trimmed = trimmed.slice(1);
+    if (trimmed.endsWith('|')) trimmed = trimmed.slice(0, -1);
+
+    const cells = [];
+    let current = '';
+    let inCode = false;
+
+    for (let i = 0; i < trimmed.length; i++) {
+      const ch = trimmed[i];
+      if (ch === '`') {
+        inCode = !inCode;
+        current += ch;
+      } else if (ch === '\\' && i + 1 < trimmed.length && trimmed[i + 1] === '|') {
+        current += '|';
+        i++;
+      } else if (ch === '|' && !inCode) {
+        cells.push(current.trim());
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    cells.push(current.trim());
+    return cells;
   }
 
   // Copies image locally to reports/<id>/images/ and returns self-contained relative path 'images/<name>'
@@ -404,7 +457,7 @@ function buildReportPage(r) {
 
     // Markdown tables
     if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
-      const parts = line.split('|').map(p => p.trim()).slice(1, -1);
+      const parts = splitTableRow(line);
       if (parts.every(p => /^:?-+:?$/.test(p))) continue;
       if (!inTable) {
         inTable = true;
@@ -1042,10 +1095,25 @@ function buildReportPage(r) {
     }
 
     td {
-      padding: 14px 18px;
+      padding: 12px 18px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
       color: var(--text-body);
-      vertical-align: top;
+      vertical-align: middle;
+    }
+
+    .table-metadata th:first-child,
+    .table-metadata td:first-child {
+      width: 200px;
+      min-width: 160px;
+      max-width: 220px;
+      color: var(--text-white);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .table-metadata th:last-child,
+    .table-metadata td:last-child {
+      width: auto;
     }
 
     tr:last-child td {
@@ -1105,6 +1173,7 @@ function buildReportPage(r) {
       justify-content: space-between;
       gap: 12px;
       width: 100%;
+      flex-wrap: nowrap;
     }
 
     .hash-cell-wrapper code {
@@ -1118,6 +1187,8 @@ function buildReportPage(r) {
       font-size: 12px;
       cursor: pointer;
       transition: all 0.2s ease;
+      flex: 1;
+      min-width: 0;
     }
 
     .hash-cell-wrapper code:hover {
@@ -1128,15 +1199,15 @@ function buildReportPage(r) {
 
     .hash-cell-wrapper .btn-copy {
       flex-shrink: 0;
+      white-space: nowrap;
       padding: 3px 10px;
       font-size: 11px;
     }
 
-    .ssdeep-code {
+    .tlsh-code, .ssdeep-code {
       font-size: 11px !important;
-      max-width: 480px;
+      word-break: break-all;
       display: inline-block;
-      overflow-wrap: anywhere;
     }
 
     .lightbox-modal {
@@ -1372,7 +1443,7 @@ function buildReportPage(r) {
     document.querySelectorAll('table td').forEach(td => {
       if (td.querySelector('.btn-copy') || td.querySelector('button')) return;
       const text = td.innerText.trim();
-      if (/^[a-fA-F0-9]{32}$|^[a-fA-F0-9]{40}$|^[a-fA-F0-9]{64}$/.test(text)) {
+      if (/^[a-fA-F0-9]{32}$|^[a-fA-F0-9]{40}$|^[a-fA-F0-9]{64}$|^T[1-9A-Fa-f][a-fA-F0-9]{68,70}$|^\d+:[a-zA-Z0-9/+=]+:[a-zA-Z0-9/+=]+$/i.test(text)) {
         td.innerHTML = '<div class="hash-cell-wrapper"><code>' + text + '</code><button class="btn-copy" onclick="copyText(\'' + text + '\', this)">Copy</button></div>';
       }
     });
