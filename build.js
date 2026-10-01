@@ -1685,6 +1685,13 @@ function buildReportPage(r) {
 
 // 3. GENERATE HOMEPAGE PORTAL (REPORTS/INDEX.HTML)
 function buildPortalIndex(allReports) {
+  // Sort reports by latest date added by default
+  allReports.sort((a, b) => {
+    const diff = new Date(b.date).getTime() - new Date(a.date).getTime();
+    if (diff !== 0) return diff;
+    return a.title.localeCompare(b.title);
+  });
+
   const totalCount = allReports.length;
   const counts = {
     All: totalCount,
@@ -1992,16 +1999,79 @@ function buildPortalIndex(allReports) {
       justify-content: space-between;
       align-items: center;
       margin-bottom: 24px;
-      padding-bottom: 12px;
+      padding-bottom: 14px;
       border-bottom: 1px solid var(--border-line);
-      font-size: 12.5px;
-      font-family: var(--font-mono);
-      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 16px;
     }
 
+    .showing-count {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      font-family: var(--font-body);
+    }
+
+    .showing-count span,
     .stream-header-info span#results-count {
       color: #8DCAFE;
       font-weight: 600;
+      font-family: var(--font-mono);
+    }
+
+    .sort-control-wrapper {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid var(--border-line);
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: all 0.2s ease;
+    }
+
+    .sort-control-wrapper:hover,
+    .sort-control-wrapper:focus-within {
+      border-color: rgba(0, 82, 255, 0.4);
+      background: rgba(0, 82, 255, 0.08);
+      box-shadow: 0 0 12px rgba(0, 82, 255, 0.15);
+    }
+
+    .sort-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      font-family: var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+    }
+
+    .sort-icon {
+      width: 14px;
+      height: 14px;
+      color: #8DCAFE;
+    }
+
+    .sort-select {
+      background: transparent;
+      border: none;
+      color: var(--text-white);
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      padding: 2px 4px;
+    }
+
+    .sort-select option {
+      background: #0D0F17;
+      color: #FFFFFF;
+      font-family: var(--font-body);
+      padding: 8px;
     }
 
     .no-results-state {
@@ -2377,6 +2447,22 @@ function buildPortalIndex(allReports) {
       <section class="reports-stream">
         <div class="stream-header-info">
           <span class="showing-count">Showing <span id="results-count">${totalCount}</span> of ${totalCount} investigations</span>
+          <div class="sort-control-wrapper">
+            <label for="sort-select" class="sort-label">
+              <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="6" x2="20" y2="6"></line>
+                <line x1="4" y1="12" x2="14" y2="12"></line>
+                <line x1="4" y1="18" x2="8" y2="18"></line>
+              </svg>
+              <span>Sort:</span>
+            </label>
+            <select id="sort-select" class="sort-select" aria-label="Sort investigations">
+              <option value="latest" selected>Latest Added</option>
+              <option value="oldest">Oldest First</option>
+              <option value="title">Title (A–Z)</option>
+              <option value="readtime">Read Time</option>
+            </select>
+          </div>
         </div>
 
         <div id="no-results" class="no-results-state" style="display: none;">
@@ -2396,7 +2482,7 @@ function buildPortalIndex(allReports) {
           const thumbObj = resolveThumbnail(r);
           const searchKeywords = `${r.title} ${r.lead} ${r.family} ${r.classification} ${r.category} ${r.os} ${r.hashVal} ${r.delivery} ${r.c2} ${r.targets}`.toLowerCase();
           return `
-          <article class="report-entry" data-os="${escapeHtml(r.os)}" data-category="${escapeHtml(r.category)}" data-search="${escapeHtml(searchKeywords)}">
+          <article class="report-entry" data-os="${escapeHtml(r.os)}" data-category="${escapeHtml(r.category)}" data-search="${escapeHtml(searchKeywords)}" data-date="${new Date(r.date).getTime()}" data-title="${escapeHtml(r.title.toLowerCase())}" data-readtime="${parseInt(r.readTime, 10) || 0}">
             <a href="${r.id}/index.html" class="full-card-link" aria-label="${escapeHtml(r.title)}"></a>
             <div class="entry-image-col">
               <img src="${thumbObj.url}" alt="${escapeHtml(r.title)}" class="entry-thumbnail ${thumbObj.isScreenshot ? 'is-screenshot' : ''}" loading="lazy">
@@ -2482,6 +2568,37 @@ function buildPortalIndex(allReports) {
       }
     }
 
+    const sortSelect = document.getElementById('sort-select');
+    let currentSort = 'latest';
+
+    function applySort(order) {
+      currentSort = order;
+      const streamContainer = document.querySelector('.reports-stream');
+      const entries = Array.from(streamContainer.querySelectorAll('.report-entry'));
+
+      entries.sort((a, b) => {
+        if (order === 'latest') {
+          return Number(b.getAttribute('data-date')) - Number(a.getAttribute('data-date'));
+        } else if (order === 'oldest') {
+          return Number(a.getAttribute('data-date')) - Number(b.getAttribute('data-date'));
+        } else if (order === 'title') {
+          return a.getAttribute('data-title').localeCompare(b.getAttribute('data-title'));
+        } else if (order === 'readtime') {
+          return Number(b.getAttribute('data-readtime')) - Number(a.getAttribute('data-readtime'));
+        }
+        return 0;
+      });
+
+      entries.forEach(entry => streamContainer.appendChild(entry));
+    }
+
+    if (sortSelect) {
+      sortSelect.addEventListener('change', (e) => {
+        applySort(e.target.value);
+        filterReports();
+      });
+    }
+
     searchInput.addEventListener('input', (e) => {
       searchQuery = e.target.value;
       filterReports();
@@ -2500,6 +2617,8 @@ function buildPortalIndex(allReports) {
         searchQuery = '';
         currentOs = 'all';
         currentCat = 'all';
+        if (sortSelect) sortSelect.value = 'latest';
+        applySort('latest');
         platformBtns.forEach(b => b.classList.remove('active'));
         document.querySelector('.platform-btn[data-filter="all"]').classList.add('active');
         categoryItems.forEach(i => i.classList.remove('active'));
@@ -2549,6 +2668,11 @@ function buildPortalIndex(allReports) {
 // 4. MAIN BUILD PROCESS
 console.log('=== Building 100% Autonomous Threat Research Portal ===');
 const allReports = discoverReports();
+allReports.sort((a, b) => {
+  const diff = new Date(b.date).getTime() - new Date(a.date).getTime();
+  if (diff !== 0) return diff;
+  return a.title.localeCompare(b.title);
+});
 console.log(`Discovered ${allReports.length} reports dynamically across folders.`);
 
 const platformStats = {};
