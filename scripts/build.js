@@ -45,9 +45,7 @@ const CANONICAL_REPORT_DATES = {
   'regin-malware': 'January 12, 2026',
   'bangladesh-gpca': 'January 08, 2026',
   'cyber-talents-ctf': 'October 15, 2025',
-  'patching-a-malware': 'November 29, 2024',
-  'zeus-trojan': 'July 13, 2024',
-  'sillyputty': 'May 28, 2024'
+  'patching-a-malware': 'November 29, 2024'
 };
 
 // Helper to get authentic git added date for a file
@@ -131,7 +129,6 @@ function discoverReports() {
       let id = slugify(dirName);
       if (dirName === 'Cobalt Strike beacon') id = 'cobalt-strike-beacon';
       if (dirName === 'EtherRAT Ethereum C2 Analysis') id = 'etherrat';
-      if (dirName === 'Zeus Banking Trojan Malware') id = 'zeus-trojan';
       if (dirName === 'notepad++ Chrysalis') id = 'notepad-chrysalis';
       if (dirName === 'WannaCry Ransomware') id = 'wannacry';
       if (dirName === 'cyber talents') id = 'cyber-talents-ctf';
@@ -300,27 +297,6 @@ function buildReportPage(r) {
 
   let mdContent = fs.readFileSync(r.mdPath, 'utf8');
 
-  // SillyPutty supplement
-  if (r.id === 'sillyputty') {
-    mdContent += `\n\n## Technical Analysis & Decompilation Walkthrough\n\n` +
-      `SillyPutty represents a weaponized variant of the popular PuTTY SSH client. Static triage reveals custom code injection within the authentication handshakes, establishing an outbound reverse connection over TCP to attacker-controlled command nodes while preserving legitimate SSH terminal functionality.\n\n` +
-      `| Parameter | Telemetry Value |\n` +
-      `| --- | --- |\n` +
-      `| Sample MD5 | \`0c410313f837330feff6b00b0d3bd2b0\` |\n` +
-      `| Binary Name | putty.exe (Trojanized) |\n` +
-      `| Injected Stub | Reverse TCP Shell via Winsock WSASocketA |\n`;
-  }
-
-  // Zeus supplement
-  if (r.id === 'zeus-trojan') {
-    mdContent += `\n\n## Man-in-the-Browser (MitB) & Hooking Architecture\n\n` +
-      `The core evasion mechanism of the Zeus banking trojan relies on inline API hooking within browser processes. By manipulating \`HttpSendRequestW\` and \`InternetReadFile\` inside \`wininet.dll\`, the malware dynamically intercepts HTTP/HTTPS traffic before encryption and after decryption.\n\n` +
-      `| Analysis Parameter | Telemetry Value |\n` +
-      `| --- | --- |\n` +
-      `| Sample MD5 | \`44d88612fea8a8f36de82e1278abb02f\` |\n` +
-      `| Target Libraries | ntdll.dll, wininet.dll, ws2_32.dll |\n` +
-      `| Hooking Primitive | Inline 5-byte JMP trampoline |\n`;
-  }
 
   // Cyber Talents CTF supplement
   if (r.id === 'cyber-talents-ctf') {
