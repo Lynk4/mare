@@ -2296,11 +2296,30 @@ function buildPortalIndex(allReports) {
       user-select: none;
     }
 
+    @keyframes logoPulse {
+      0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+        filter: drop-shadow(0 0 10px rgba(53, 229, 208, 0.4));
+      }
+      50% {
+        transform: translateY(-2px) rotate(1.5deg);
+        filter: drop-shadow(0 0 14px rgba(183, 255, 60, 0.55));
+      }
+    }
+
     .brand-logo-img {
       width: 30px;
       height: 30px;
       object-fit: contain;
       filter: drop-shadow(0 0 10px rgba(53, 229, 208, 0.4));
+      animation: logoPulse 4s ease-in-out infinite;
+      will-change: transform, filter;
+      transition: transform 0.3s ease, filter 0.3s ease;
+    }
+
+    .brand-group:hover .brand-logo-img {
+      transform: scale(1.08) translateY(-2px);
+      filter: drop-shadow(0 0 18px rgba(183, 255, 60, 0.7));
     }
 
     .brand-text-block {
@@ -2654,6 +2673,17 @@ function buildPortalIndex(allReports) {
       align-items: center;
     }
 
+    @keyframes heroCubeFloat {
+      0%, 100% {
+        transform: translateY(0px);
+        filter: drop-shadow(0 0 35px rgba(53, 229, 208, 0.12));
+      }
+      50% {
+        transform: translateY(-8px);
+        filter: drop-shadow(0 0 45px rgba(53, 229, 208, 0.22)) drop-shadow(0 0 20px rgba(183, 255, 60, 0.12));
+      }
+    }
+
     .hero-cube-img {
       width: 100%;
       height: auto;
@@ -2661,9 +2691,17 @@ function buildPortalIndex(allReports) {
       object-fit: contain;
       filter: drop-shadow(0 0 35px rgba(53, 229, 208, 0.12));
       user-select: none;
+      animation: heroCubeFloat 6s ease-in-out infinite;
+      will-change: transform, filter;
+      transform: translateZ(0);
     }
 
-    /* Horizontal Section Divider */
+    @media (prefers-reduced-motion: reduce) {
+      .brand-logo-img,
+      .hero-cube-img {
+        animation: none !important;
+      }
+    }
     .section-hdivider {
       max-width: 1480px;
       margin: 8px auto 14px;
@@ -3396,12 +3434,12 @@ function buildPortalIndex(allReports) {
       <div class="hero-left-col">
         <div class="hero-eyebrow">
           <span class="eyebrow-dash"></span>
-          <span class="eyebrow-text">INDEPENDENT THREAT RESEARCH &bull; 2024 &mdash; 2026</span>
+          <span class="eyebrow-text">INDEPENDENT THREAT RESEARCH</span>
         </div>
 
         <h1 class="hero-headline">
-          <span class="hl-white">Understand</span><br>
-          <span class="hl-white">the </span><span class="hl-lime">unknown.</span>
+          <span class="hl-white">Tracing the</span><br>
+          <span class="hl-lime">unknown</span>
         </h1>
 
         <p class="hero-lead-text">
