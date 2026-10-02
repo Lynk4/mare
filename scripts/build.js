@@ -173,25 +173,22 @@ function discoverReports() {
       }
 
       // D. Determine Category & Threat Family
-      let category = 'Malware Analysis';
+      let category = 'Malware Family Analysis';
       let iconType = 'binary';
       const textLower = (rawContent + ' ' + dirName).toLowerCase();
 
-      if (textLower.includes('apt') || textLower.includes('lazarus') || textLower.includes('red menshen') || textLower.includes('regin') || textLower.includes('espionage') || textLower.includes('chrysalis')) {
-        category = 'Advanced Persistent Threats';
-        iconType = 'apt';
-      } else if (textLower.includes('stealer') || textLower.includes('amos') || textLower.includes('keychain') || textLower.includes('credential')) {
-        category = 'Malware Analysis';
-        iconType = 'stealer';
-      } else if (textLower.includes('ransomware') || textLower.includes('wiper') || textLower.includes('notpetya') || textLower.includes('wannacry') || textLower.includes('whispergate')) {
+      if (textLower.includes('ransomware') || textLower.includes('wiper') || textLower.includes('notpetya') || textLower.includes('wannacry') || textLower.includes('whispergate') || textLower.includes('gazprom')) {
         category = 'Ransomware & Wipers';
         iconType = 'wiper';
-      } else if (textLower.includes('beacon') || textLower.includes('c2') || textLower.includes('backdoor') || textLower.includes('rat') || textLower.includes('botnet') || textLower.includes('mirai')) {
-        category = 'Threat Intelligence';
-        iconType = textLower.includes('botnet') ? 'botnet' : 'c2';
-      } else if (textLower.includes('unpacking') || textLower.includes('diffing') || textLower.includes('resolution') || textLower.includes('breakpoints') || textLower.includes('shellcode') || textLower.includes('isdebuggerpresent')) {
-        category = 'Digital Forensics & Reverse Engineering';
+      } else if (textLower.includes('apt') || textLower.includes('lazarus') || textLower.includes('red menshen') || textLower.includes('regin') || textLower.includes('espionage') || textLower.includes('chrysalis') || textLower.includes('supply-chain') || textLower.includes('supply chain') || textLower.includes('nation-state')) {
+        category = 'Threat Intelligence & APTs';
+        iconType = 'apt';
+      } else if (textLower.includes('unpacking') || textLower.includes('diffing') || textLower.includes('resolution') || textLower.includes('breakpoints') || textLower.includes('shellcode') || textLower.includes('isdebuggerpresent') || textLower.includes('patching') || textLower.includes('debugging') || textLower.includes('ctf')) {
+        category = 'Reverse Engineering Techniques';
         iconType = 'binary';
+      } else if (textLower.includes('stealer') || textLower.includes('amos') || textLower.includes('beacon') || textLower.includes('c2') || textLower.includes('backdoor') || textLower.includes('rat') || textLower.includes('botnet') || textLower.includes('trojan') || textLower.includes('emotet') || textLower.includes('credential')) {
+        category = 'Malware Family Analysis';
+        iconType = 'stealer';
       }
 
       // Read time calculation (~200 words / min)
@@ -2076,10 +2073,9 @@ function buildPortalIndex(allReports) {
   };
 
   const categories = [
-    'Digital Forensics & Reverse Engineering',
-    'Malware Analysis',
-    'Threat Intelligence',
-    'Advanced Persistent Threats',
+    'Malware Family Analysis',
+    'Reverse Engineering Techniques',
+    'Threat Intelligence & APTs',
     'Ransomware & Wipers'
   ];
 
