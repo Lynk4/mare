@@ -333,6 +333,96 @@ function buildReportPage(r) {
     if (fs.existsSync(m0v)) mdContent += `\n## Challenge 3: m0v (Assembly Register Tracing)\n` + fs.readFileSync(m0v, 'utf8');
   }
 
+  // Pre-process: consolidate multi-line table cells into single lines.
+  // Standard markdown tables require each row on one line. If a row starts
+  // with | but doesn't end with |, accumulate continuation lines until a
+  // closing | is found, joining values with ' · '.
+  mdContent = (function consolidateMultiLineTableCells(md) {
+    const srcLines = md.split('\n');
+    const result = [];
+    let pendingRow = null;
+    let inCode = false;
+
+    for (let i = 0; i < srcLines.length; i++) {
+      const line = srcLines[i];
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith('```')) {
+        inCode = !inCode;
+        if (pendingRow !== null) {
+          result.push(pendingRow + (pendingRow.endsWith('|') ? '' : ' |'));
+          pendingRow = null;
+        }
+        result.push(line);
+        continue;
+      }
+
+      if (inCode) {
+        result.push(line);
+        continue;
+      }
+
+      if (pendingRow !== null) {
+        // If the new line starts with '|', then the previous pendingRow was just missing its closing pipe!
+        if (trimmed.startsWith('|')) {
+          result.push(pendingRow + (pendingRow.endsWith('|') ? '' : ' |'));
+          pendingRow = null;
+          // fall through to process the current line below
+        } else if (trimmed.startsWith('#') || trimmed.startsWith('---') || trimmed.startsWith('>')) {
+          // Hit heading/divider - flush pendingRow
+          result.push(pendingRow + (pendingRow.endsWith('|') ? '' : ' |'));
+          pendingRow = null;
+          result.push(line);
+          continue;
+        } else if (trimmed === '') {
+          // Empty line inside a potential multi-line cell: check ahead if subsequent lines close the cell before a heading/codeblock
+          let hasClosingPipeAhead = false;
+          for (let j = i + 1; j < Math.min(srcLines.length, i + 10); j++) {
+            const nextTrim = srcLines[j].trim();
+            if (nextTrim.startsWith('#') || nextTrim.startsWith('```') || nextTrim.startsWith('|')) break;
+            if (nextTrim.endsWith('|')) {
+              hasClosingPipeAhead = true;
+              break;
+            }
+          }
+          if (hasClosingPipeAhead) {
+            // Continuation across empty line
+            continue;
+          } else {
+            // Table ended
+            result.push(pendingRow + (pendingRow.endsWith('|') ? '' : ' |'));
+            pendingRow = null;
+            result.push(line);
+            continue;
+          }
+        } else if (trimmed.endsWith('|')) {
+          // Closing line of a multi-line cell
+          pendingRow += ' · ' + trimmed.replace(/\|$/, '').trim() + ' |';
+          result.push(pendingRow);
+          pendingRow = null;
+          continue;
+        } else {
+          // Intermediate line of a multi-line cell
+          pendingRow += ' · ' + trimmed;
+          continue;
+        }
+      }
+
+      // Check if this line starts a table row without closing pipe
+      if (trimmed.startsWith('|') && !trimmed.endsWith('|') && trimmed.includes('|')) {
+        pendingRow = trimmed;
+        continue;
+      }
+
+      result.push(line);
+    }
+
+    if (pendingRow !== null) {
+      result.push(pendingRow + (pendingRow.endsWith('|') ? '' : ' |'));
+    }
+    return result.join('\n');
+  })(mdContent);
+
   // Parse Markdown & Bundle Images Locally
   const lines = mdContent.split('\n');
   const tocItems = [];
@@ -574,8 +664,14 @@ function buildReportPage(r) {
     }
 
     // Markdown tables
-    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
-      const parts = splitTableRow(line);
+    let tableCandidate = line.trim();
+    if (tableCandidate.startsWith('|')) {
+      if (!tableCandidate.endsWith('|') && tableCandidate.includes('|')) {
+        tableCandidate += ' |';
+      }
+    }
+    if (tableCandidate.startsWith('|') && tableCandidate.endsWith('|')) {
+      const parts = splitTableRow(tableCandidate);
       if (parts.every(p => /^:?-+:?$/.test(p))) continue;
       if (!inTable) {
         inTable = true;
