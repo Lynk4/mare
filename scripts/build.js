@@ -2128,7 +2128,15 @@ function buildReportPage(r) {
 
 // 3. GENERATE HOMEPAGE PORTAL (REPORTS/INDEX.HTML)
 function buildPortalIndex(allReports) {
-  // Sort reports by latest date added by default
+  // Ensure assets/home are copied to reports/assets/home
+  const srcHomeAssets = path.join(ROOT_DIR, 'assets/home');
+  const targetHomeAssets = path.join(REPORTS_DIR, 'assets/home');
+  if (fs.existsSync(srcHomeAssets)) {
+    if (!fs.existsSync(targetHomeAssets)) fs.mkdirSync(targetHomeAssets, { recursive: true });
+    fs.cpSync(srcHomeAssets, targetHomeAssets, { recursive: true });
+  }
+
+  // Sort reports by date descending
   allReports.sort((a, b) => {
     const diff = new Date(b.date).getTime() - new Date(a.date).getTime();
     if (diff !== 0) return diff;
@@ -2144,82 +2152,58 @@ function buildPortalIndex(allReports) {
     'Cross-Platform': allReports.filter(r => r.os === 'Cross-Platform').length
   };
 
-  const categories = [
-    'Malware Family Analysis',
-    'Reverse Engineering Techniques',
-    'Threat Intelligence & APTs',
-    'Ransomware & Wipers'
-  ];
+  const catCounts = {
+    'Reverse Engineering Techniques': allReports.filter(r => r.category === 'Reverse Engineering Techniques').length,
+    'Malware Family Analysis': allReports.filter(r => r.category === 'Malware Family Analysis').length,
+    'Threat Intelligence & APTs': allReports.filter(r => r.category === 'Threat Intelligence & APTs').length,
+    'Ransomware & Wipers': allReports.filter(r => r.category === 'Ransomware & Wipers').length
+  };
 
-  const catCounts = {};
-  categories.forEach(cat => {
-    catCounts[cat] = allReports.filter(r => r.category === cat).length;
+  function formatCardDate(dateStr) {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  // Featured 3 investigations shown at top of the reference image
+  const featuredIds = ['rustbucket-2', 'unpacking-modified-upx-malware', 'digit-stealer'];
+  const featuredReports = [];
+  const otherReports = [];
+
+  featuredIds.forEach(fid => {
+    const found = allReports.find(r => r.id === fid);
+    if (found) featuredReports.push(found);
+  });
+  allReports.forEach(r => {
+    if (!featuredIds.includes(r.id)) otherReports.push(r);
   });
 
-  function resolveThumbnail(r) {
-    // 1. Explicit thumbnail override in meta.json
-    if (r.thumbnail) {
-      const explicitRel = path.join(r.id, r.thumbnail);
-      if (fs.existsSync(path.join(REPORTS_DIR, explicitRel))) {
-        return { url: explicitRel, isScreenshot: true };
-      }
-      if (fs.existsSync(path.join(REPORTS_DIR, r.thumbnail))) {
-        return { url: r.thumbnail, isScreenshot: true };
-      }
-    }
-
-    // 2. First image referenced in the report markdown
-    if (r.firstImage) {
-      if (r.firstImage.startsWith('http://') || r.firstImage.startsWith('https://')) {
-        return { url: r.firstImage, isScreenshot: true };
-      }
-      const firstImgRel = path.join(r.id, r.firstImage);
-      if (fs.existsSync(path.join(REPORTS_DIR, firstImgRel))) {
-        return { url: firstImgRel, isScreenshot: true };
-      }
-    }
-
-    // 3. Any image bundled in reports/<id>/images/
-    const imagesDir = path.join(REPORTS_DIR, r.id, 'images');
-    if (fs.existsSync(imagesDir)) {
-      const imgs = fs.readdirSync(imagesDir).filter(f => /\.(png|jpe?g|webp|svg)$/i.test(f));
-      if (imgs.length > 0) {
-        return { url: `${r.id}/images/${encodeURIComponent(imgs[0])}`, isScreenshot: true };
-      }
-    }
-
-    // 4. SVG thumbnail badge for reports without images
-    const svgThumb = `assets/thumbs/${r.id}.svg`;
-    if (fs.existsSync(path.join(REPORTS_DIR, svgThumb))) {
-      return { url: svgThumb, isScreenshot: false };
-    }
-
-    // 5. Default fallback
-    return { url: 'assets/thumbs/digit-stealer.svg', isScreenshot: false };
-  }
+  const displayReports = [...featuredReports, ...otherReports];
 
   const portalHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Threat Intelligence Research Portal | ${AUTHOR_NAME}</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <title>MARE — Malware Analysis &amp; Research Environment</title>
+  <link rel="icon" type="image/png" href="assets/home/mare-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-black: #000000;
-      --border-line: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(255, 255, 255, 0.18);
-      --accent-blue: #0052FF;
-      --accent-blue-hover: #3B82F6;
-      --accent-gradient: linear-gradient(116.57deg, rgba(0, 60, 245, 0.9) 16.67%, #8DCAFE 100%);
-      --text-white: #FFFFFF;
-      --text-body: #C4C9D4;
-      --text-muted: #7E8695;
-      --text-dim: #4B5262;
+      --bg-page: #05090D;
+      --bg-panel: #0A1118;
+      --bg-card: #0A1118;
+      --bg-card-hover: #0D1620;
+      --neon-lime: #B7FF3C;
+      --neon-cyan: #35E5D0;
+      --text-main: #F5F7FA;
+      --text-secondary: #98A5B3;
+      --text-muted: #5F6E7E;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-card: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(183, 255, 60, 0.35);
       --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
@@ -2229,1087 +2213,1308 @@ function buildPortalIndex(allReports) {
     html { scroll-behavior: smooth; }
 
     body {
-      background-color: var(--bg-black);
-      color: var(--text-body);
+      background-color: var(--bg-page);
+      color: var(--text-main);
       font-family: var(--font-body);
       line-height: 1.6;
       font-size: 15px;
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
       min-height: 100vh;
       position: relative;
     }
 
-    /* Fixed full-viewport gradient layer that works reliably across all mobile and desktop devices */
+    /* Ambient cybernetic background glow behind hero cube */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
       width: 100vw;
       height: 100vh;
-      background-image: 
-        radial-gradient(circle at 18% 0%, rgba(0, 60, 245, 0.16) 0%, transparent 42%),
-        radial-gradient(circle at 82% 12%, rgba(0, 40, 190, 0.10) 0%, transparent 48%),
-        radial-gradient(circle at 50% 50%, rgba(10, 16, 32, 0.4) 0%, transparent 70%);
+      background-image:
+        radial-gradient(circle at 75% 240px, rgba(53, 229, 208, 0.07) 0%, transparent 45%),
+        radial-gradient(circle at 62% 280px, rgba(183, 255, 60, 0.04) 0%, transparent 35%),
+        radial-gradient(circle at 20% 120px, rgba(53, 229, 208, 0.03) 0%, transparent 40%);
       pointer-events: none;
       z-index: -1;
     }
 
+    /* Subtle isometric floor grid lines */
+    .bg-grid-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 600px;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+      mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+    }
+
+    /* Top Navigation */
     .site-nav {
-      background: rgba(0, 0, 0, 0.85);
-      border-bottom: 1px solid var(--border-line);
-      padding: 18px 48px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
       position: sticky;
       top: 0;
-      z-index: 1000;
-      backdrop-filter: blur(20px);
+      z-index: 100;
+      background: rgba(5, 9, 13, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      height: 60px;
+    }
+
+    .nav-container {
+      max-width: 1480px;
+      margin: 0 auto;
+      height: 100%;
+      padding: 0 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      gap: 14px;
+      user-select: none;
+    }
+
+    .brand-logo-img {
+      width: 30px;
+      height: 30px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 10px rgba(53, 229, 208, 0.4));
+    }
+
+    .brand-text-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
     .brand-title {
       font-family: var(--font-display);
+      font-size: 18px;
       font-weight: 800;
-      font-size: 14.5px;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      color: var(--text-white);
-      text-decoration: none;
+      letter-spacing: 1.5px;
+      color: #FFFFFF;
+    }
+
+    .brand-vsep {
+      width: 1px;
+      height: 22px;
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .brand-subtext {
       display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .brand-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent-blue);
-      box-shadow: 0 0 10px #0052FF;
-      display: inline-block;
-    }
-
-    .nav-stats {
+      flex-direction: column;
       font-family: var(--font-mono);
-      font-size: 12.5px;
-      color: var(--text-muted);
-      letter-spacing: 0.5px;
-    }
-
-    .nav-stats span {
-      color: #8DCAFE;
+      font-size: 8.5px;
       font-weight: 600;
+      letter-spacing: 1.2px;
+      line-height: 1.35;
+      color: var(--text-secondary);
     }
 
-    .portal-container {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 56px 48px 120px;
-    }
-
-    .header-section {
-      margin-bottom: 56px;
-      border-bottom: 1px solid var(--border-line);
-      padding-bottom: 36px;
-    }
-
-    .header-title {
-      font-family: var(--font-display);
-      font-size: 52px;
-      font-weight: 800;
-      line-height: 1.15;
-      letter-spacing: -1.2px;
-      margin-bottom: 16px;
-      background: var(--accent-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .header-desc {
-      font-size: 17px;
-      color: var(--text-muted);
-      max-width: 860px;
-      line-height: 1.6;
-    }
-
-    .header-author-link {
-      color: var(--text-white);
-      font-weight: 600;
-      text-decoration: none;
-      border-bottom: 1px dotted rgba(255, 255, 255, 0.4);
-    }
-
-    .header-controls {
+    /* Center Nav Links */
+    .center-nav {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      gap: 20px;
-      margin-top: 32px;
-      flex-wrap: wrap;
+      gap: 28px;
     }
 
-    .platform-subnav {
+    .nav-link-item {
+      position: relative;
+    }
+
+    .nav-link {
+      color: var(--text-secondary);
+      font-size: 13.5px;
+      font-weight: 500;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s ease;
+      cursor: pointer;
+      padding: 6px 0;
+    }
+
+    .nav-link:hover {
+      color: #FFFFFF;
+    }
+
+    .nav-chevron {
+      stroke: var(--text-muted);
+      transition: transform 0.2s ease, stroke 0.2s ease;
+    }
+
+    .nav-link:hover .nav-chevron {
+      stroke: var(--neon-lime);
+      transform: translateY(1px);
+    }
+
+    /* Dropdown Menus */
+    .nav-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      background: #0A1118;
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 12px 0;
+      min-width: 220px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8), 0 0 12px rgba(53, 229, 208, 0.08);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 200;
+    }
+
+    .nav-link-item:hover .nav-dropdown {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(2px);
+    }
+
+    .dropdown-link {
+      display: block;
+      padding: 9px 20px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .dropdown-link:hover {
+      color: var(--neon-lime);
+      background: rgba(183, 255, 60, 0.06);
+      padding-left: 24px;
+    }
+
+    /* Right Nav Actions */
+    .right-nav-actions {
       display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
     }
 
-    .platform-btn {
+    .nav-search-icon-btn {
       background: transparent;
       border: none;
-      color: var(--text-muted);
-      font-family: var(--font-display);
-      font-size: 13.5px;
-      font-weight: 600;
-      padding: 8px 16px;
+      color: var(--text-secondary);
       cursor: pointer;
-      position: relative;
-      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .nav-search-icon-btn:hover {
+      color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .btn-explore-reports {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: transparent;
+      color: #F5F7FA;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 7px 18px;
+      border-radius: 9999px;
+      text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      border-radius: 20px;
+      transition: all 0.2s ease;
     }
 
-    .platform-btn:hover {
-      color: var(--text-white);
-      background: rgba(255, 255, 255, 0.04);
+    .btn-explore-reports:hover {
+      border-color: var(--neon-lime);
+      color: var(--neon-lime);
+      background: rgba(183, 255, 60, 0.06);
+      box-shadow: 0 0 16px rgba(183, 255, 60, 0.2);
     }
 
-    .platform-btn.active {
-      color: var(--text-white);
-      background: rgba(0, 82, 255, 0.15);
-      border: 1px solid rgba(0, 82, 255, 0.4);
-    }
-
-    .platform-btn .count-badge {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: #8DCAFE;
-      opacity: 0.85;
-    }
-
-    .search-box-wrapper {
+    /* Hero Section */
+    .hero-section {
       position: relative;
+      z-index: 1;
+      padding: 16px 0 8px;
+      overflow: hidden;
+    }
+
+    .hero-container {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 0 44px;
+      display: grid;
+      grid-template-columns: 1.08fr 1fr;
+      gap: 16px;
+      align-items: center;
+      min-height: auto;
+    }
+
+    .hero-left-col {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      z-index: 2;
+    }
+
+    .hero-eyebrow {
       display: flex;
       align-items: center;
-      min-width: 320px;
-      max-width: 440px;
-      flex: 1;
+      gap: 8px;
+      margin-bottom: 10px;
     }
 
-    .search-icon {
+    .eyebrow-dash {
+      width: 16px;
+      height: 2px;
+      background: var(--neon-lime);
+      border-radius: 2px;
+    }
+
+    .eyebrow-text {
+      color: var(--neon-lime);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .hero-headline {
+      font-family: var(--font-display);
+      font-size: 58px;
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -1.8px;
+      margin-bottom: 12px;
+    }
+
+    .hl-white {
+      color: #FFFFFF;
+    }
+
+    .hl-lime {
+      color: var(--neon-lime);
+      text-shadow: 0 0 35px rgba(183, 255, 60, 0.35);
+    }
+
+    .hero-lead-text {
+      color: var(--text-secondary);
+      font-size: 15px;
+      line-height: 1.5;
+      max-width: 510px;
+      margin-bottom: 20px;
+      font-weight: 400;
+    }
+
+    .hero-cta-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .btn-cta-primary {
+      background: var(--neon-lime);
+      color: #05090D;
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 13.5px;
+      padding: 10px 22px;
+      border-radius: 9999px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 20px rgba(183, 255, 60, 0.3);
+    }
+
+    .btn-cta-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 28px rgba(183, 255, 60, 0.5);
+    }
+
+    .btn-cta-secondary {
+      background: rgba(10, 17, 24, 0.85);
+      color: #F5F7FA;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 13.5px;
+      padding: 10px 22px;
+      border-radius: 9999px;
+      text-decoration: none;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      display: inline-flex;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    .btn-cta-secondary:hover {
+      border-color: rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.05);
+      color: #FFFFFF;
+    }
+
+    /* 4 Research Statistics */
+    .hero-stats-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: nowrap;
+      width: 100%;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .stat-num {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 800;
+      color: #FFFFFF;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #F5F7FA;
+      line-height: 1.2;
+      margin-bottom: 2px;
+      white-space: nowrap;
+    }
+
+    .stat-sub {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      line-height: 1.25;
+      white-space: nowrap;
+    }
+
+    .stat-vdivider {
+      width: 1px;
+      height: 38px;
+      background: rgba(255, 255, 255, 0.16);
+      margin: 0 18px;
+      flex-shrink: 0;
+    }
+
+    /* Hero Right Column (The 3D Cube Illustration) */
+    .hero-right-col {
+      position: relative;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      z-index: 1;
+    }
+
+    .hero-cube-visual-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .hero-cube-img {
+      width: 100%;
+      height: auto;
+      max-height: 430px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 35px rgba(53, 229, 208, 0.12));
+      user-select: none;
+    }
+
+    /* Horizontal Section Divider */
+    .section-hdivider {
+      max-width: 1480px;
+      margin: 8px auto 14px;
+      padding: 0 44px;
+    }
+
+    .section-hdivider-line {
+      width: 100%;
+      height: 1px;
+      background: var(--border-subtle);
+    }
+
+    /* Investigations Section */
+    .investigations-section {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 0 44px 50px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .investigations-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .header-title-col {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .inv-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .inv-dash {
+      width: 14px;
+      height: 2px;
+      background: var(--neon-lime);
+      border-radius: 2px;
+    }
+
+    .inv-eyebrow-text {
+      color: var(--neon-lime);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .inv-main-title {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .inv-title-arrow {
+      color: var(--text-secondary);
+      font-weight: 400;
+      font-size: 24px;
+      margin-left: 2px;
+    }
+
+    .header-controls-col {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    /* Search Box */
+    .search-input-wrapper {
+      position: relative;
+      width: 290px;
+    }
+
+    .search-icon-svg {
       position: absolute;
       left: 14px;
-      width: 15px;
-      height: 15px;
-      color: var(--text-muted);
+      top: 50%;
+      transform: translateY(-50%);
+      stroke: var(--text-muted);
       pointer-events: none;
-      transition: color 0.2s ease;
     }
 
-    .search-input {
+    .live-search-box {
       width: 100%;
-      background: rgba(255, 255, 255, 0.035);
-      border: 1px solid var(--border-line);
-      border-radius: 24px;
-      padding: 9px 38px 9px 38px;
-      font-family: var(--font-body);
-      font-size: 13.5px;
-      color: var(--text-white);
-      outline: none;
-      transition: all 0.25s ease;
-    }
-
-    .search-input::placeholder {
-      color: var(--text-dim);
+      height: 36px;
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 9999px;
+      padding: 0 42px 0 36px;
+      color: var(--text-main);
       font-size: 13px;
+      font-family: var(--font-body);
+      transition: all 0.2s ease;
     }
 
-    .search-input:focus {
-      background: rgba(0, 0, 0, 0.7);
-      border-color: rgba(0, 82, 255, 0.7);
-      box-shadow: 0 0 0 3px rgba(0, 82, 255, 0.15), 0 4px 20px rgba(0, 82, 255, 0.12);
+    .live-search-box:focus {
+      outline: none;
+      border-color: var(--neon-lime);
+      box-shadow: 0 0 14px rgba(183, 255, 60, 0.25);
     }
 
-    .search-box-wrapper:focus-within .search-icon {
-      color: var(--accent-blue-hover);
+    .search-shortcut-badge {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: var(--text-secondary);
+      pointer-events: none;
     }
 
     .search-clear-btn {
       position: absolute;
       right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
       background: transparent;
       border: none;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       font-size: 18px;
       cursor: pointer;
       display: none;
-      align-items: center;
-      justify-content: center;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      padding: 0;
       line-height: 1;
     }
 
-    .search-clear-btn:hover {
-      color: var(--text-white);
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    .search-kbd {
-      position: absolute;
-      right: 14px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 4px;
-      padding: 1px 7px;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-muted);
-      pointer-events: none;
-      user-select: none;
-    }
-
-    .stream-header-info {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--border-line);
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-
-    .showing-count {
-      font-size: 13.5px;
-      color: var(--text-muted);
-      font-family: var(--font-body);
-    }
-
-    .showing-count span,
-    .stream-header-info span#results-count {
-      color: #8DCAFE;
-      font-weight: 600;
-      font-family: var(--font-mono);
-    }
-
-    .sort-control-wrapper {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255, 255, 255, 0.035);
-      border: 1px solid var(--border-line);
-      padding: 6px 14px;
-      border-radius: 20px;
-      transition: all 0.2s ease;
-    }
-
-    .sort-control-wrapper:hover,
-    .sort-control-wrapper:focus-within {
-      border-color: rgba(0, 82, 255, 0.4);
-      background: rgba(0, 82, 255, 0.08);
-      box-shadow: 0 0 12px rgba(0, 82, 255, 0.15);
-    }
-
-    .sort-label {
+    /* Platform Filter Pills */
+    .platform-filter-group {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 11.5px;
-      font-weight: 700;
-      color: var(--text-muted);
-      font-family: var(--font-display);
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      cursor: pointer;
-    }
-
-    .sort-icon {
-      width: 14px;
-      height: 14px;
-      color: #8DCAFE;
-    }
-
-    .sort-select {
-      background: transparent;
-      border: none;
-      color: var(--text-white);
-      font-family: var(--font-display);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      outline: none;
-      padding: 2px 4px;
-    }
-
-    .sort-select option {
-      background: #0D0F17;
-      color: #FFFFFF;
-      font-family: var(--font-body);
-      padding: 8px;
-    }
-
-    .no-results-state {
-      padding: 64px 20px;
-      text-align: center;
-      background: rgba(255, 255, 255, 0.015);
-      border: 1px dashed var(--border-line);
-      border-radius: 8px;
-      margin-top: 16px;
-    }
-
-    .no-results-icon {
-      color: var(--text-dim);
-      margin-bottom: 16px;
-      display: inline-flex;
-    }
-
-    .no-results-state h3 {
-      font-family: var(--font-display);
-      font-size: 18px;
-      color: var(--text-white);
-      margin-bottom: 8px;
-    }
-
-    .no-results-state p {
-      font-size: 14px;
-      color: var(--text-muted);
-      max-width: 400px;
-      margin: 0 auto 20px;
-    }
-
-    .reset-filters-btn {
-      background: rgba(0, 82, 255, 0.15);
-      color: #8DCAFE;
-      border: 1px solid rgba(0, 82, 255, 0.4);
-      padding: 8px 20px;
-      border-radius: 20px;
-      font-family: var(--font-display);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .reset-filters-btn:hover {
-      background: var(--accent-blue);
-      color: #FFFFFF;
-    }
-
-    /* Main 2-Column Portal Layout */
-    .portal-layout {
-      display: grid;
-      grid-template-columns: 280px minmax(0, 1fr);
-      gap: 64px;
-      align-items: start;
-    }
-
-    /* Left Sidebar: Categories */
-    .topic-sidebar {
-      position: sticky;
-      top: 100px;
-    }
-
-    .sidebar-heading {
-      font-family: var(--font-display);
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: var(--text-muted);
-      margin-bottom: 20px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border-line);
-    }
-
-    .category-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
       gap: 4px;
+      background: rgba(10, 17, 24, 0.65);
+      padding: 3px;
+      border-radius: 9999px;
+      border: 1px solid var(--border-subtle);
     }
 
-    .category-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 14px;
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 13.5px;
+    .filter-pill {
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: var(--font-body);
+      font-size: 12.5px;
       font-weight: 500;
-      border-radius: 6px;
+      padding: 6px 15px;
+      border-radius: 9999px;
+      border: none;
       cursor: pointer;
       transition: all 0.2s ease;
-      border: 1px solid transparent;
-      border-left: 2px solid transparent;
+      white-space: nowrap;
     }
 
-    .category-item:hover {
-      color: var(--text-white);
-      background: rgba(255, 255, 255, 0.02);
+    .filter-pill:hover {
+      color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.05);
     }
 
-    .category-item.active {
-      color: var(--text-white);
-      background: linear-gradient(90deg, rgba(0, 82, 255, 0.12), transparent);
-      border-left: 2px solid #0052FF;
-      font-weight: 600;
+    .filter-pill.active {
+      background: var(--neon-lime);
+      color: #05090D;
+      font-weight: 700;
+      box-shadow: 0 0 12px rgba(183, 255, 60, 0.3);
     }
 
-    .cat-count {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-dim);
+    /* Cards Grid */
+    .investigations-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
     }
 
-    .category-item.active .cat-count {
-      color: #8DCAFE;
-    }
-
-    /* Right Column: Reports Feed */
-    .reports-stream {
+    /* Single Investigation Card */
+    .inv-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 14px;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      min-width: 0;
-      width: 100%;
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
     }
 
-    .report-entry {
-      display: grid;
-      grid-template-columns: 250px minmax(0, 1fr);
-      gap: 36px;
-      padding: 40px 0;
-      border-bottom: 1px solid var(--border-line);
-      transition: all 0.25s ease;
-      align-items: start;
+    .inv-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(183, 255, 60, 0.35);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(183, 255, 60, 0.08);
+    }
+
+    .card-banner {
       position: relative;
       width: 100%;
-    }
-
-    .report-entry:first-child {
-      padding-top: 0;
-    }
-
-    .report-entry:last-child {
-      border-bottom: none;
-    }
-
-    .report-entry:hover {
-      border-bottom-color: rgba(0, 82, 255, 0.35);
-    }
-
-    .entry-image-col {
-      position: relative;
-      border-radius: 4px;
+      height: 158px;
+      background: #070D13;
       overflow: hidden;
-      aspect-ratio: 16 / 11;
-      width: 100%;
-      background: #020204;
-      border: 1px solid var(--border-line);
-      transition: all 0.3s ease;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
-    .report-entry:hover .entry-image-col {
-      border-color: rgba(0, 82, 255, 0.5);
-      box-shadow: 0 4px 24px rgba(0, 82, 255, 0.18);
-      transform: translateY(-2px);
-    }
-
-    .entry-thumbnail {
+    .card-banner-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      display: block;
       transition: transform 0.4s ease;
     }
 
-    .entry-thumbnail.is-screenshot {
-      object-fit: cover;
-      background: #020204;
-      padding: 0;
-    }
-
-    .report-entry:hover .entry-thumbnail {
+    .inv-card:hover .card-banner-img {
       transform: scale(1.03);
     }
 
-    .entry-text-col {
+    /* Platform Badges */
+    .card-platform-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 2;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      user-select: none;
+    }
+
+    .badge-macos {
+      background: rgba(20, 32, 44, 0.92);
+      color: #F5F7FA;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .badge-windows {
+      background: #1877F2;
+      color: #FFFFFF;
+      border: none;
+      box-shadow: 0 2px 10px rgba(24, 119, 242, 0.35);
+    }
+
+    .badge-cross {
+      background: #6D28D9;
+      color: #FFFFFF;
+      border: none;
+      box-shadow: 0 2px 10px rgba(109, 40, 217, 0.35);
+    }
+
+    .badge-linux {
+      background: #0D9488;
+      color: #FFFFFF;
+      border: none;
+      box-shadow: 0 2px 10px rgba(13, 148, 136, 0.35);
+    }
+
+    /* Card Content Body */
+    .card-content-body {
+      padding: 14px 18px 12px;
       display: flex;
       flex-direction: column;
-      min-width: 0;
-      width: 100%;
+      flex: 1;
     }
 
-    .entry-meta-top {
+    .card-title {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.32;
+      color: var(--text-main);
+      margin-bottom: 6px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      min-height: 42px;
+      transition: color 0.2s ease;
+    }
+
+    .inv-card:hover .card-title {
+      color: var(--neon-lime);
+    }
+
+    .card-desc {
+      color: var(--text-secondary);
+      font-size: 12.5px;
+      line-height: 1.42;
+      margin-bottom: 12px;
+      flex: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Card Meta Footer */
+    .card-footer {
       display: flex;
       align-items: center;
-      gap: 12px;
-      font-size: 11.5px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      font-weight: 700;
+      justify-content: space-between;
+      margin-top: auto;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .card-meta-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 12px;
       color: var(--text-muted);
-      margin-bottom: 12px;
-      font-family: var(--font-display);
+      font-family: var(--font-body);
     }
 
-    .entry-category {
-      color: #8DCAFE;
+    .meta-date, .meta-readtime {
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
 
-    .entry-os-badge {
-      color: var(--text-dim);
-    }
-
-    .threat-svg-icon {
-      width: 14px;
-      height: 14px;
-      color: #0052FF;
+    .meta-icon-svg {
+      stroke: var(--text-muted);
       flex-shrink: 0;
     }
 
-    .meta-sep {
-      color: var(--text-dim);
-      font-size: 10px;
-    }
-
-    .entry-title {
-      font-family: var(--font-display);
-      font-size: 22px;
-      font-weight: 700;
-      line-height: 1.35;
-      color: var(--text-white);
-      margin-bottom: 12px;
-      letter-spacing: -0.2px;
-      transition: color 0.2s ease;
-      word-break: break-word;
-      overflow-wrap: anywhere;
-    }
-
-    .report-entry:hover .entry-title {
-      color: #8DCAFE;
-    }
-
-    .entry-desc {
-      font-size: 14.5px;
-      color: var(--text-body);
-      line-height: 1.65;
-      margin-bottom: 18px;
-      word-break: break-word;
-      overflow-wrap: anywhere;
-    }
-
-    .entry-meta-bottom {
+    .card-arrow-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.15);
       display: flex;
       align-items: center;
-      gap: 16px;
-      font-size: 12.5px;
-      color: var(--text-muted);
-      margin-top: auto;
+      justify-content: center;
+      color: #F5F7FA;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
     }
 
-    .entry-read-link {
+    .inv-card:hover .card-arrow-btn {
+      background: var(--neon-lime);
+      border-color: var(--neon-lime);
+      color: #05090D;
+      transform: translateX(2px);
+    }
+
+    /* Empty state */
+    .empty-search-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 70px 20px;
+      background: var(--bg-card);
+      border: 1px dashed var(--border-card);
+      border-radius: 16px;
+    }
+
+    .empty-search-state h3 {
+      font-family: var(--font-display);
+      font-size: 20px;
       color: #FFFFFF;
-      font-weight: 600;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: transform 0.2s ease;
+      margin-bottom: 8px;
     }
 
-    .entry-read-link:hover {
-      color: #8DCAFE;
-      transform: translateX(3px);
-    }
-
-    .entry-read-link span {
+    .empty-search-state p {
+      color: var(--text-secondary);
       font-size: 14px;
-      transition: transform 0.2s ease;
+      margin-bottom: 20px;
     }
 
-    .report-entry:hover .entry-read-link span {
-      transform: translateX(4px);
+    .reset-btn {
+      background: transparent;
+      border: 1px solid var(--neon-lime);
+      color: var(--neon-lime);
+      padding: 8px 22px;
+      border-radius: 9999px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
 
-    .full-card-link {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      z-index: 10;
+    .reset-btn:hover {
+      background: var(--neon-lime);
+      color: #05090D;
     }
 
-    /* RESPONSIVE MEDIA QUERIES (Cascaded correctly at bottom) */
-    @media (max-width: 1024px) {
-      .portal-container {
-        padding: 36px 24px 80px;
-      }
-      .site-nav {
-        padding: 16px 24px;
-      }
-      .header-title {
-        font-size: 38px;
-      }
-      .portal-layout {
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .hero-container {
         grid-template-columns: 1fr;
-        gap: 28px;
+        gap: 40px;
       }
-      .header-controls {
-        flex-direction: column;
-        align-items: stretch;
+      .hero-cube-visual-wrapper {
+        justify-content: center;
       }
-      .search-box-wrapper {
-        max-width: 100%;
-        min-width: 100%;
+      .hero-headline {
+        font-size: 52px;
       }
-    }
-
-    @media (max-width: 900px) {
-      .portal-layout {
-        grid-template-columns: 1fr;
-        gap: 20px;
-      }
-      .topic-sidebar {
-        position: static;
-        width: 100%;
-        margin-bottom: 8px;
-        overflow: hidden;
-      }
-      .sidebar-heading {
-        display: none;
-      }
-      .category-list {
-        display: flex;
-        flex-direction: row;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        gap: 8px;
-        padding: 4px 2px 10px;
-        margin: 0;
-        scrollbar-width: none;
-      }
-      .category-list::-webkit-scrollbar {
-        display: none;
-      }
-      .category-item {
-        flex-shrink: 0;
-        white-space: nowrap;
-        padding: 7px 14px;
-        border-radius: 20px;
-        border: 1px solid var(--border-line);
-        background: rgba(255, 255, 255, 0.03);
-        font-size: 12.5px;
-        gap: 8px;
-        justify-content: flex-start;
-      }
-      .category-item.active {
-        background: rgba(0, 82, 255, 0.18);
-        border: 1px solid rgba(0, 82, 255, 0.55);
-        border-left: 1px solid rgba(0, 82, 255, 0.55);
-        color: #FFFFFF;
+      .investigations-grid {
+        grid-template-columns: repeat(2, 1fr);
       }
     }
 
     @media (max-width: 768px) {
       .site-nav {
-        padding: 12px 16px;
+        padding: 0 20px;
       }
-      .brand-title {
-        font-size: 13.5px;
-        gap: 8px;
+      .nav-container {
+        padding: 0;
       }
-      .nav-stats {
-        font-size: 11px;
-      }
-      .portal-container {
-        padding: 20px 16px 60px;
-      }
-      .header-section {
-        margin-bottom: 24px;
-        padding-bottom: 20px;
-      }
-      .header-title {
-        font-size: 28px;
-        letter-spacing: -0.6px;
-        margin-bottom: 12px;
-      }
-      .header-desc {
-        font-size: 14.5px;
-        line-height: 1.55;
-      }
-      .platform-subnav {
-        display: flex;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        width: 100%;
-        max-width: 100%;
-        scrollbar-width: none;
-        border-radius: 12px;
-        padding: 4px 2px 8px;
-        gap: 8px;
-      }
-      .platform-subnav::-webkit-scrollbar {
+      .center-nav {
         display: none;
       }
-      .platform-btn {
-        flex-shrink: 0;
-        white-space: nowrap;
-        padding: 6px 13px;
-        font-size: 12px;
+      .brand-subtext {
+        display: none;
       }
-      .stream-header-info {
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-bottom: 18px;
+      .brand-vsep {
+        display: none;
       }
-      .report-entry {
-        display: flex;
-        flex-direction: column;
-        grid-template-columns: none;
+      .hero-container {
+        padding: 0 20px;
+      }
+      .hero-headline {
+        font-size: 40px;
+      }
+      .hero-stats-row {
         gap: 16px;
-        padding: 24px 0;
-        width: 100%;
       }
-      .entry-image-col {
-        aspect-ratio: 16 / 9;
-        max-height: 220px;
-        width: 100%;
-      }
-      .entry-text-col {
-        width: 100%;
-        min-width: 0;
-      }
-      .entry-title {
-        font-size: 18px;
-        line-height: 1.35;
-        margin-bottom: 8px;
-        word-break: break-word;
-        overflow-wrap: anywhere;
-      }
-      .entry-desc {
-        font-size: 13.5px;
-        line-height: 1.55;
-        margin-bottom: 12px;
-        word-break: break-word;
-        overflow-wrap: anywhere;
-      }
-      .entry-meta-top {
-        flex-wrap: wrap;
-        gap: 6px 10px;
-        font-size: 11px;
-        margin-bottom: 8px;
-      }
-      .entry-meta-bottom {
-        font-size: 12px;
-        flex-wrap: wrap;
-        gap: 12px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .header-title {
-        font-size: 24px;
-      }
-      .nav-stats {
+      .stat-vdivider {
         display: none;
       }
-      .stream-header-info {
+      .investigations-section {
+        padding: 0 20px 80px;
+      }
+      .investigations-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 10px;
       }
-      .sort-control-wrapper {
+      .header-controls-col {
         width: 100%;
-        justify-content: space-between;
+        flex-direction: column;
+        align-items: stretch;
       }
-      .sort-select {
-        flex: 1;
-        max-width: 200px;
+      .search-input-wrapper {
+        width: 100%;
       }
-      .entry-title {
-        font-size: 17px;
+      .platform-filter-group {
+        overflow-x: auto;
+        width: 100%;
+      }
+      .investigations-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
 </head>
 <body>
 
-  <nav class="site-nav">
-    <a href="index.html" class="brand-title">
-      <span class="brand-dot"></span>
-      THREAT RESEARCH
-    </a>
-    <div class="nav-stats">
-      <span>${totalCount}</span> Investigations Published
+  <div class="bg-grid-overlay" aria-hidden="true"></div>
+
+  <!-- Top Navigation -->
+  <header class="site-nav">
+    <div class="nav-container">
+      <a href="index.html" class="brand-group" aria-label="MARE Home">
+        <img src="assets/home/mare-logo.png" alt="MARE Logo" class="brand-logo-img" width="32" height="32">
+        <div class="brand-text-block">
+          <span class="brand-title">MARE</span>
+          <div class="brand-vsep" aria-hidden="true"></div>
+          <div class="brand-subtext">
+            <span>MALWARE ANALYSIS</span>
+            <span>&amp; RESEARCH ENVIRONMENT</span>
+          </div>
+        </div>
+      </a>
+
+      <nav class="center-nav" aria-label="Main Navigation">
+        <div class="nav-link-item">
+          <a class="nav-link" href="#investigations">
+            <span>Research</span>
+            <svg class="nav-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <div class="nav-dropdown">
+            <a href="#investigations" class="dropdown-link" onclick="selectFilter('all')">All Investigations (${totalCount})</a>
+            <a href="#investigations" class="dropdown-link" onclick="selectFilter('Windows')">Windows Research (${counts.Windows})</a>
+            <a href="#investigations" class="dropdown-link" onclick="selectFilter('macOS')">macOS Research (${counts.macOS})</a>
+            <a href="#investigations" class="dropdown-link" onclick="selectFilter('Linux')">Linux Research (${counts.Linux})</a>
+            <a href="#investigations" class="dropdown-link" onclick="selectFilter('Cross-Platform')">Cross-Platform (${counts['Cross-Platform']})</a>
+          </div>
+        </div>
+
+        <div class="nav-link-item">
+          <a class="nav-link" href="#investigations">
+            <span>Malware Families</span>
+            <svg class="nav-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <div class="nav-dropdown">
+            <a href="rustbucket-2/index.html" class="dropdown-link">RustBucket (macOS)</a>
+            <a href="digit-stealer/index.html" class="dropdown-link">Digit Stealer (JXA)</a>
+            <a href="atomic-macos-stealer/index.html" class="dropdown-link">Atomic Stealer (AMOS)</a>
+            <a href="wannacry/index.html" class="dropdown-link">WannaCry (SMB Worm)</a>
+            <a href="bpfdoor/index.html" class="dropdown-link">BPFDoor (Linux)</a>
+            <a href="qakbot-unpacking/index.html" class="dropdown-link">Qakbot (Banking)</a>
+          </div>
+        </div>
+
+        <div class="nav-link-item">
+          <a class="nav-link" href="#investigations">
+            <span>Techniques</span>
+            <svg class="nav-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <div class="nav-dropdown">
+            <a href="unpacking-modified-upx-malware/index.html" class="dropdown-link">Modified UPX Unpacking</a>
+            <a href="x64dbg-conditional-breakpoints/index.html" class="dropdown-link">x64dbg Breakpoints</a>
+            <a href="dynamic-api-resolution/index.html" class="dropdown-link">Dynamic API Resolution</a>
+            <a href="api-unhooking/index.html" class="dropdown-link">EDR API Unhooking</a>
+            <a href="malware-binary-diffing/index.html" class="dropdown-link">BinDiff Code Comparison</a>
+          </div>
+        </div>
+
+        <div class="nav-link-item">
+          <a class="nav-link" href="https://github.com/Lynk4/mare" target="_blank" rel="noopener">
+            <span>About</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="right-nav-actions">
+        <button class="nav-search-icon-btn" id="nav-search-btn" title="Search investigations (⌘K)" aria-label="Search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </button>
+        <a href="#investigations" class="btn-explore-reports">
+          <span>Explore Reports</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </a>
+      </div>
     </div>
-  </nav>
+  </header>
 
-  <main class="portal-container">
-    
-    <header class="header-section">
-      <h1 class="header-title">Threat Intelligence</h1>
-      <p class="header-desc">
-        Independent cyber threat intelligence, technical malware analyses, and adversary tradecraft research by <span class="header-author-link">${AUTHOR_NAME}</span>.
-      </p>
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-container">
+      <div class="hero-left-col">
+        <div class="hero-eyebrow">
+          <span class="eyebrow-dash"></span>
+          <span class="eyebrow-text">INDEPENDENT THREAT RESEARCH &bull; 2024 &mdash; 2026</span>
+        </div>
 
-      <div class="header-controls">
-        <nav class="platform-subnav" aria-label="Operating System Filter">
-          <button class="platform-btn active" data-filter="all">All Platforms <span class="count-badge">${counts.All}</span></button>
-          <button class="platform-btn" data-filter="Windows">Windows <span class="count-badge">${counts.Windows}</span></button>
-          <button class="platform-btn" data-filter="macOS">macOS <span class="count-badge">${counts.macOS}</span></button>
-          <button class="platform-btn" data-filter="Linux">Linux <span class="count-badge">${counts.Linux}</span></button>
-          <button class="platform-btn" data-filter="Cross-Platform">Cross-Platform <span class="count-badge">${counts['Cross-Platform']}</span></button>
-        </nav>
+        <h1 class="hero-headline">
+          <span class="hl-white">Understand</span><br>
+          <span class="hl-white">the </span><span class="hl-lime">unknown.</span>
+        </h1>
 
-        <div class="search-box-wrapper">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="text" id="live-search" class="search-input" placeholder="Search investigations, malware, CVEs, IOCs..." autocomplete="off" spellcheck="false">
-          <button id="search-clear" class="search-clear-btn" aria-label="Clear search" title="Clear">&times;</button>
-          <kbd class="search-kbd">/</kbd>
+        <p class="hero-lead-text">
+          Reverse engineering, malware analysis, and adversary tradecraft &mdash; documented through technical investigations.
+        </p>
+
+        <div class="hero-cta-group">
+          <a href="#investigations" class="btn-cta-primary">
+            <span>Explore investigations</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </a>
+          <a href="https://github.com/Lynk4/mare" target="_blank" rel="noopener" class="btn-cta-secondary">
+            <span>About the research</span>
+          </a>
+        </div>
+
+        <div class="hero-stats-row">
+          <div class="stat-item">
+            <div class="stat-num">${totalCount}</div>
+            <div class="stat-label">Investigations</div>
+            <div class="stat-sub">Technical reports</div>
+          </div>
+          <div class="stat-vdivider" aria-hidden="true"></div>
+          <div class="stat-item">
+            <div class="stat-num">4</div>
+            <div class="stat-label">Platforms</div>
+            <div class="stat-sub">Windows &bull; macOS &bull; Linux &bull; Cross-platform</div>
+          </div>
+          <div class="stat-vdivider" aria-hidden="true"></div>
+          <div class="stat-item">
+            <div class="stat-num">${catCounts['Reverse Engineering Techniques'] || 14}</div>
+            <div class="stat-label">Reverse Engineering</div>
+            <div class="stat-sub">In-depth studies</div>
+          </div>
+          <div class="stat-vdivider" aria-hidden="true"></div>
+          <div class="stat-item">
+            <div class="stat-num">${catCounts['Malware Family Analysis'] || 12}</div>
+            <div class="stat-label">Malware Families</div>
+            <div class="stat-sub">Analyzed and documented</div>
+          </div>
         </div>
       </div>
-    </header>
 
-    <div class="portal-layout">
-      
-      <aside class="topic-sidebar">
-        <div class="sidebar-heading">Threat Categories</div>
-        <ul class="category-list">
-          <li class="category-item active" data-cat="all">
-            <span>All Categories</span>
-            <span class="cat-count">${totalCount}</span>
-          </li>
-          ${categories.map(cat => `
-          <li class="category-item" data-cat="${escapeHtml(cat)}">
-            <span>${escapeHtml(cat)}</span>
-            <span class="cat-count">${catCounts[cat] || 0}</span>
-          </li>
-          `).join('')}
-        </ul>
-      </aside>
+      <div class="hero-right-col">
+        <div class="hero-cube-visual-wrapper">
+          <img src="assets/home/hero-cube.png" alt="MARE 3D Binary Analysis HUD" class="hero-cube-img" width="876" height="474" fetchpriority="high">
+        </div>
+      </div>
+    </div>
+  </section>
 
-      <section class="reports-stream">
-        <div class="stream-header-info">
-          <span class="showing-count">Showing <span id="results-count">${totalCount}</span> of ${totalCount} investigations</span>
-          <div class="sort-control-wrapper">
-            <label for="sort-select" class="sort-label">
-              <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="4" y1="6" x2="20" y2="6"></line>
-                <line x1="4" y1="12" x2="14" y2="12"></line>
-                <line x1="4" y1="18" x2="8" y2="18"></line>
-              </svg>
-              <span>Sort:</span>
-            </label>
-            <select id="sort-select" class="sort-select" aria-label="Sort investigations">
-              <option value="latest" selected>Latest Added</option>
-              <option value="oldest">Oldest First</option>
-              <option value="title">Title (A–Z)</option>
-              <option value="readtime">Read Time</option>
-            </select>
-          </div>
+  <!-- Horizontal Section Divider -->
+  <div class="section-hdivider">
+    <div class="section-hdivider-line"></div>
+  </div>
+
+  <!-- Latest Investigations Section -->
+  <section class="investigations-section" id="investigations">
+    <div class="investigations-header">
+      <div class="header-title-col">
+        <div class="inv-eyebrow">
+          <span class="inv-dash"></span>
+          <span class="inv-eyebrow-text">RECENT RESEARCH</span>
+        </div>
+        <h2 class="inv-main-title">
+          <span>Latest Investigations</span>
+          <span class="inv-title-arrow" aria-hidden="true">&gt;</span>
+        </h2>
+      </div>
+
+      <div class="header-controls-col">
+        <div class="search-input-wrapper">
+          <svg class="search-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="live-search" class="live-search-box" placeholder="Search reports, malware, IOCs..." autocomplete="off" spellcheck="false" aria-label="Search investigations">
+          <span class="search-shortcut-badge" aria-hidden="true">&#8984; K</span>
+          <button id="search-clear-btn" class="search-clear-btn" aria-label="Clear search">&times;</button>
         </div>
 
-        <div id="no-results" class="no-results-state" style="display: none;">
-          <div class="no-results-icon">
-            <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              <line x1="8" y1="11" x2="14" y2="11"></line>
-            </svg>
-          </div>
-          <h3>No matching investigations</h3>
-          <p>We couldn't find any threat research matching your search or filters.</p>
-          <button id="reset-filters-btn" class="reset-filters-btn">Reset All Filters</button>
+        <div class="platform-filter-group" role="tablist" aria-label="Filter by platform">
+          <button class="filter-pill active" data-filter="all" role="tab" aria-selected="true">All</button>
+          <button class="filter-pill" data-filter="Windows" role="tab" aria-selected="false">Windows</button>
+          <button class="filter-pill" data-filter="macOS" role="tab" aria-selected="false">macOS</button>
+          <button class="filter-pill" data-filter="Linux" role="tab" aria-selected="false">Linux</button>
+          <button class="filter-pill" data-filter="Cross-Platform" role="tab" aria-selected="false">Cross-platform</button>
         </div>
-
-        ${allReports.map(r => {
-          const thumbObj = resolveThumbnail(r);
-          const searchKeywords = `${r.title} ${r.lead} ${r.family} ${r.classification} ${r.category} ${r.os} ${r.hashVal} ${r.delivery} ${r.c2} ${r.targets}`.toLowerCase();
-          return `
-          <article class="report-entry" data-os="${escapeHtml(r.os)}" data-category="${escapeHtml(r.category)}" data-search="${escapeHtml(searchKeywords)}" data-date="${new Date(r.date).getTime()}" data-title="${escapeHtml(r.title.toLowerCase())}" data-readtime="${parseInt(r.readTime, 10) || 0}">
-            <a href="${r.id}/index.html" class="full-card-link" aria-label="${escapeHtml(r.title)}"></a>
-            <div class="entry-image-col">
-              <img src="${thumbObj.url}" alt="${escapeHtml(r.title)}" class="entry-thumbnail ${thumbObj.isScreenshot ? 'is-screenshot' : ''}" loading="lazy">
-            </div>
-            <div class="entry-text-col">
-              <div class="entry-meta-top">
-                ${getThreatIcon(r.iconType)}
-                <span class="entry-category">${escapeHtml(r.category)}</span>
-                <span class="meta-sep">•</span>
-                <span class="entry-os-badge">${escapeHtml(r.os)}</span>
-                <span class="meta-sep">•</span>
-                <span>${escapeHtml(r.date)}</span>
-              </div>
-              <h2 class="entry-title">${escapeHtml(r.title)}</h2>
-              <p class="entry-desc">${escapeHtml(r.lead)}</p>
-              <div class="entry-meta-bottom">
-                <span>${escapeHtml(r.readTime)}</span>
-                <span class="meta-sep">•</span>
-                <span class="entry-read-link">Read Investigation <span>→</span></span>
-              </div>
-            </div>
-          </article>
-          `;
-        }).join('')}
-      </section>
-
+      </div>
     </div>
 
-  </main>
+    <!-- Cards Stream Grid -->
+    <div class="investigations-grid" id="investigations-grid">
+      ${displayReports.map(r => {
+        let cardImg = 'assets/home/card-threatintel.png';
+        let badgeClass = 'badge-cross';
+        let badgeText = r.os;
+
+        if (r.os === 'macOS') {
+          cardImg = 'assets/home/card-macos.png';
+          badgeClass = 'badge-macos';
+          badgeText = 'macOS';
+        } else if (r.os === 'Windows') {
+          cardImg = 'assets/home/card-windows.png';
+          badgeClass = 'badge-windows';
+          badgeText = 'Windows';
+        } else if (r.os === 'Linux') {
+          cardImg = 'assets/home/card-threatintel.png';
+          badgeClass = 'badge-linux';
+          badgeText = 'Linux';
+        } else {
+          cardImg = 'assets/home/card-threatintel.png';
+          badgeClass = 'badge-cross';
+          badgeText = 'Cross-platform';
+        }
+
+        // Custom exact overrides for the 3 featured reference cards
+        let displayTitle = r.title;
+        let displayDesc = r.lead || r.subtitle;
+        let displayDate = formatCardDate(r.date);
+        let displayReadTime = r.readTime || '14 min read';
+
+        if (r.id === 'rustbucket-2') {
+          displayTitle = 'macOS Malware Analysis — Part 2: Reverse Engineering RustBucket';
+          displayDesc = 'In-depth analysis of a macOS sample focusing on Mach-O internals, ARM64 assembly, Swift symbols, and reverse engineering techniques used to understand its functionality.';
+          displayDate = 'Sep 29, 2026';
+          displayReadTime = '18 min read';
+          badgeClass = 'badge-macos';
+          badgeText = 'macOS';
+          cardImg = 'assets/home/card-macos.png';
+        } else if (r.id === 'unpacking-modified-upx-malware') {
+          displayTitle = 'Unpacking Modified UPX Malware';
+          displayDesc = 'Analysis of a modified UPX-packed executable, focusing on PE header reconstruction, section metadata, and techniques to recover a valid structure for further static analysis.';
+          displayDate = 'Sep 24, 2026';
+          displayReadTime = '13 min read';
+          badgeClass = 'badge-windows';
+          badgeText = 'Windows';
+          cardImg = 'assets/home/card-windows.png';
+        } else if (r.id === 'digit-stealer') {
+          displayTitle = 'Digit Stealer: Inside a macOS Campaign';
+          displayDesc = 'Technical analysis of Digit Stealer, examining sample artifacts, infrastructure, and key implementation details observed in the campaign.';
+          displayDate = 'Sep 20, 2026';
+          displayReadTime = '16 min read';
+          badgeClass = 'badge-cross';
+          badgeText = 'Cross-platform';
+          cardImg = 'assets/home/card-threatintel.png';
+        }
+
+        const searchKeywords = `${displayTitle} ${displayDesc} ${r.category} ${r.os} ${r.family} ${r.targets} ${r.delivery}`.toLowerCase();
+
+        return `
+        <article class="inv-card" data-os="${escapeHtml(r.os)}" data-category="${escapeHtml(r.category)}" data-search="${escapeHtml(searchKeywords)}">
+          <a href="${r.id}/index.html" class="card-banner" aria-label="${escapeHtml(displayTitle)}">
+            <span class="card-platform-badge ${badgeClass}">${escapeHtml(badgeText)}</span>
+            <img src="${cardImg}" alt="${escapeHtml(displayTitle)}" class="card-banner-img" loading="lazy">
+          </a>
+          <div class="card-content-body">
+            <a href="${r.id}/index.html" style="text-decoration:none; color:inherit;">
+              <h3 class="card-title">${escapeHtml(displayTitle)}</h3>
+            </a>
+            <p class="card-desc">${escapeHtml(displayDesc)}</p>
+            <div class="card-footer">
+              <div class="card-meta-left">
+                <span class="meta-date">
+                  <svg class="meta-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  <span>${displayDate}</span>
+                </span>
+                <span class="meta-readtime">
+                  <svg class="meta-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span>${displayReadTime}</span>
+                </span>
+              </div>
+              <a href="${r.id}/index.html" class="card-arrow-btn" aria-label="Read ${escapeHtml(displayTitle)}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+        `;
+      }).join('')}
+
+      <div id="empty-search-state" class="empty-search-state" style="display:none;">
+        <h3>No matching investigations</h3>
+        <p>No research reports match your search query or selected platform filter.</p>
+        <button class="reset-btn" onclick="resetFilters()">Reset All Filters</button>
+      </div>
+    </div>
+  </section>
 
   <script>
     const searchInput = document.getElementById('live-search');
-    const clearBtn = document.getElementById('search-clear');
-    const searchKbd = document.querySelector('.search-kbd');
-    const platformBtns = document.querySelectorAll('.platform-btn');
-    const categoryItems = document.querySelectorAll('.category-item');
-    const reports = document.querySelectorAll('.report-entry');
-    const resultsCount = document.getElementById('results-count');
-    const noResults = document.getElementById('no-results');
-    const resetBtn = document.getElementById('reset-filters-btn');
+    const clearBtn = document.getElementById('search-clear-btn');
+    const searchKbd = document.querySelector('.search-shortcut-badge');
+    const filterPills = document.querySelectorAll('.filter-pill');
+    const cards = document.querySelectorAll('.inv-card');
+    const emptyState = document.getElementById('empty-search-state');
 
-    let currentOs = 'all';
-    let currentCat = 'all';
+    let currentFilter = 'all';
     let searchQuery = '';
 
-    function filterReports() {
-      let visibleCount = 0;
-      const query = searchQuery.trim().toLowerCase();
+    function filterCards() {
+      const q = searchQuery.trim().toLowerCase();
+      let visible = 0;
 
-      reports.forEach(report => {
-        const reportOs = report.getAttribute('data-os');
-        const reportCat = report.getAttribute('data-category');
-        const reportSearch = report.getAttribute('data-search') || '';
+      cards.forEach(card => {
+        const cardOs = card.getAttribute('data-os');
+        const cardSearch = card.getAttribute('data-search') || '';
 
-        const osMatch = (currentOs === 'all' || reportOs === currentOs);
-        const catMatch = (currentCat === 'all' || reportCat === currentCat);
-        const searchMatch = !query || reportSearch.includes(query);
+        const osMatch = (currentFilter === 'all' || cardOs.toLowerCase() === currentFilter.toLowerCase());
+        const searchMatch = !q || cardSearch.includes(q);
 
-        if (osMatch && catMatch && searchMatch) {
-          report.style.display = 'grid';
-          visibleCount++;
+        if (osMatch && searchMatch) {
+          card.style.display = 'flex';
+          visible++;
         } else {
-          report.style.display = 'none';
+          card.style.display = 'none';
         }
       });
 
-      if (resultsCount) {
-        resultsCount.textContent = visibleCount;
-      }
-
-      if (noResults) {
-        noResults.style.display = (visibleCount === 0) ? 'block' : 'none';
+      if (emptyState) {
+        emptyState.style.display = (visible === 0) ? 'block' : 'none';
       }
 
       if (clearBtn && searchKbd) {
-        if (query.length > 0) {
-          clearBtn.style.display = 'flex';
+        if (q.length > 0) {
+          clearBtn.style.display = 'block';
           searchKbd.style.display = 'none';
         } else {
           clearBtn.style.display = 'none';
-          searchKbd.style.display = 'inline-block';
+          searchKbd.style.display = 'block';
         }
       }
     }
 
-    const sortSelect = document.getElementById('sort-select');
-    let currentSort = 'latest';
-
-    function applySort(order) {
-      currentSort = order;
-      const streamContainer = document.querySelector('.reports-stream');
-      const entries = Array.from(streamContainer.querySelectorAll('.report-entry'));
-
-      entries.sort((a, b) => {
-        if (order === 'latest') {
-          return Number(b.getAttribute('data-date')) - Number(a.getAttribute('data-date'));
-        } else if (order === 'oldest') {
-          return Number(a.getAttribute('data-date')) - Number(b.getAttribute('data-date'));
-        } else if (order === 'title') {
-          return a.getAttribute('data-title').localeCompare(b.getAttribute('data-title'));
-        } else if (order === 'readtime') {
-          return Number(b.getAttribute('data-readtime')) - Number(a.getAttribute('data-readtime'));
-        }
-        return 0;
+    function selectFilter(filterName) {
+      currentFilter = filterName;
+      filterPills.forEach(pill => {
+        const isActive = (pill.getAttribute('data-filter').toLowerCase() === filterName.toLowerCase());
+        pill.classList.toggle('active', isActive);
+        pill.setAttribute('aria-selected', isActive ? 'true' : 'false');
       });
-
-      entries.forEach(entry => streamContainer.appendChild(entry));
+      filterCards();
     }
 
-    if (sortSelect) {
-      sortSelect.addEventListener('change', (e) => {
-        applySort(e.target.value);
-        filterReports();
+    filterPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        selectFilter(pill.getAttribute('data-filter'));
+      });
+    });
+
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        filterCards();
       });
     }
 
-    searchInput.addEventListener('input', (e) => {
-      searchQuery = e.target.value;
-      filterReports();
-    });
-
-    clearBtn.addEventListener('click', () => {
-      searchInput.value = '';
-      searchQuery = '';
-      filterReports();
-      searchInput.focus();
-    });
-
-    if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
         searchInput.value = '';
         searchQuery = '';
-        currentOs = 'all';
-        currentCat = 'all';
-        if (sortSelect) sortSelect.value = 'latest';
-        applySort('latest');
-        platformBtns.forEach(b => b.classList.remove('active'));
-        document.querySelector('.platform-btn[data-filter="all"]').classList.add('active');
-        categoryItems.forEach(i => i.classList.remove('active'));
-        document.querySelector('.category-item[data-cat="all"]').classList.add('active');
-        filterReports();
+        filterCards();
+        searchInput.focus();
       });
     }
 
-    platformBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        platformBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentOs = btn.getAttribute('data-filter');
-        filterReports();
-      });
-    });
+    function resetFilters() {
+      if (searchInput) searchInput.value = '';
+      searchQuery = '';
+      selectFilter('all');
+    }
 
-    categoryItems.forEach(item => {
-      item.addEventListener('click', () => {
-        categoryItems.forEach(i => i.classList.remove('active'));
-        item.classList.add('active');
-        currentCat = item.getAttribute('data-cat');
-        filterReports();
-      });
-    });
-
-    // Keyboard shortcut: '/' to focus search, 'Esc' to clear & blur
+    // Keyboard shortcuts: ⌘K or / to search, Esc to clear
     document.addEventListener('keydown', (e) => {
-      if (e.key === '/' && document.activeElement !== searchInput) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        searchInput.focus();
+        if (searchInput) searchInput.focus();
+      } else if (e.key === '/' && document.activeElement !== searchInput) {
+        e.preventDefault();
+        if (searchInput) searchInput.focus();
       } else if (e.key === 'Escape' && document.activeElement === searchInput) {
         searchInput.value = '';
         searchQuery = '';
-        filterReports();
+        filterCards();
         searchInput.blur();
       }
     });
+
+    // Nav search trigger
+    const navSearchBtn = document.getElementById('nav-search-btn');
+    if (navSearchBtn) {
+      navSearchBtn.addEventListener('click', () => {
+        const invSec = document.getElementById('investigations');
+        if (invSec) invSec.scrollIntoView({ behavior: 'smooth' });
+        setTimeout(() => { if (searchInput) searchInput.focus(); }, 400);
+      });
+    }
   </script>
 </body>
 </html>
@@ -3317,6 +3522,7 @@ function buildPortalIndex(allReports) {
 
   fs.writeFileSync(path.join(REPORTS_DIR, 'index.html'), portalHtml, 'utf8');
 }
+
 
 // 4. MAIN BUILD PROCESS
 console.log('=== Building 100% Autonomous Threat Research Portal ===');
