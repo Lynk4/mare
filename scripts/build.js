@@ -299,11 +299,7 @@ function buildReportPage(r) {
   if (!fs.existsSync(reportDir)) fs.mkdirSync(reportDir, { recursive: true });
   if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
 
-  // Keep handcrafted digit-stealer pristine
-  if (r.id === 'digit-stealer') {
-    console.log(`[Preserved] Handcrafted showcase report: ${r.id}`);
-    return;
-  }
+
 
   let mdContent = fs.readFileSync(r.mdPath, 'utf8');
 
