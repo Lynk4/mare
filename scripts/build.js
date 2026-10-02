@@ -2365,6 +2365,9 @@ function buildPortalIndex(allReports) {
     }
 
     .nav-link {
+      background: transparent;
+      border: none;
+      font-family: inherit;
       color: var(--text-secondary);
       font-size: 13.5px;
       font-weight: 500;
@@ -2410,7 +2413,8 @@ function buildPortalIndex(allReports) {
       z-index: 200;
     }
 
-    .nav-link-item:hover .nav-dropdown {
+    .nav-link-item:hover .nav-dropdown,
+    .nav-dropdown.open {
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
@@ -2431,6 +2435,155 @@ function buildPortalIndex(allReports) {
       color: var(--neon-lime);
       background: rgba(183, 255, 60, 0.06);
       padding-left: 24px;
+    }
+
+    /* About Me Dropdown & Social Links */
+    .about-dropdown {
+      min-width: 270px;
+      padding: 12px 10px;
+      left: 50%;
+      transform: translateX(-50%) translateY(8px);
+    }
+
+    .about-author-header {
+      padding: 4px 10px 8px;
+    }
+
+    .about-author-name {
+      font-family: var(--font-display);
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: -0.2px;
+    }
+
+    .about-author-role {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.35;
+      margin-top: 2px;
+    }
+
+    .about-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.08);
+      margin: 4px 6px 8px;
+    }
+
+    .social-dropdown-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .social-dropdown-link:hover {
+      color: #FFFFFF;
+      background: rgba(183, 255, 60, 0.08);
+      transform: translateX(2px);
+    }
+
+    .social-dropdown-link:hover .social-icon {
+      color: var(--neon-lime);
+    }
+
+    .social-dropdown-link:hover .social-ext-arrow {
+      color: var(--neon-lime);
+      transform: translate(1px, -1px);
+    }
+
+    .social-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .social-icon {
+      color: var(--text-muted);
+      transition: color 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .social-info {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+
+    .social-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .social-handle {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .social-ext-arrow {
+      color: var(--text-muted);
+      font-size: 11px;
+      transition: all 0.15s ease;
+    }
+
+    /* Mobile About Trigger */
+    .mobile-about-wrapper {
+      display: none;
+      position: relative;
+    }
+
+    .mobile-about-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: var(--font-body);
+    }
+
+    .mobile-about-btn:hover,
+    .mobile-about-btn.active {
+      color: var(--neon-lime);
+      border-color: var(--neon-lime);
+      background: rgba(183, 255, 60, 0.06);
+    }
+
+    .mobile-about-dropdown {
+      position: fixed;
+      top: 62px;
+      right: 16px;
+      left: auto;
+      min-width: 270px;
+      max-width: calc(100vw - 32px);
+      transform: translateY(8px);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 300;
+    }
+
+    .mobile-about-dropdown.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateY(0);
     }
 
     /* Right Nav Actions */
@@ -3164,6 +3317,9 @@ function buildPortalIndex(allReports) {
       .center-nav {
         display: none;
       }
+      .mobile-about-wrapper {
+        display: block;
+      }
       .brand-subtext {
         display: none;
       }
@@ -3414,12 +3570,99 @@ function buildPortalIndex(allReports) {
             <a href="malware-binary-diffing/index.html" class="dropdown-link">BinDiff Code Comparison</a>
           </div>
         </div>
+
+        <div class="nav-link-item">
+          <button class="nav-link nav-btn-about" id="desktop-about-btn" aria-haspopup="true" aria-expanded="false">
+            <span>About Me</span>
+            <svg class="nav-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="nav-dropdown about-dropdown" id="desktop-about-dropdown">
+            <div class="about-author-header">
+              <div class="about-author-name">Chandra Kant Bauri</div>
+              <div class="about-author-role">Security Researcher &amp; Reverse Engineer</div>
+            </div>
+            <div class="about-divider"></div>
+            <a href="https://github.com/Lynk4" target="_blank" rel="noopener noreferrer" class="social-dropdown-link">
+              <div class="social-left">
+                <svg class="social-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                <div class="social-info">
+                  <span class="social-name">GitHub</span>
+                  <span class="social-handle">@Lynk4</span>
+                </div>
+              </div>
+              <span class="social-ext-arrow">&#8599;</span>
+            </a>
+            <a href="https://www.linkedin.com/in/chandra-kant-bauri-b33114230/" target="_blank" rel="noopener noreferrer" class="social-dropdown-link">
+              <div class="social-left">
+                <svg class="social-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                <div class="social-info">
+                  <span class="social-name">LinkedIn</span>
+                  <span class="social-handle">chandra-kant-bauri</span>
+                </div>
+              </div>
+              <span class="social-ext-arrow">&#8599;</span>
+            </a>
+            <a href="https://x.com/c_kant_" target="_blank" rel="noopener noreferrer" class="social-dropdown-link">
+              <div class="social-left">
+                <svg class="social-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                <div class="social-info">
+                  <span class="social-name">X (Twitter)</span>
+                  <span class="social-handle">@c_kant_</span>
+                </div>
+              </div>
+              <span class="social-ext-arrow">&#8599;</span>
+            </a>
+          </div>
+        </div>
       </nav>
 
       <div class="right-nav-actions">
         <button class="nav-search-icon-btn" id="nav-search-btn" title="Search investigations (⌘K)" aria-label="Search">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         </button>
+        <div class="mobile-about-wrapper">
+          <button class="mobile-about-btn" id="mobile-about-btn" aria-label="About Me &amp; Social Links" title="About Chandra Kant Bauri">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>About</span>
+          </button>
+          <div class="nav-dropdown about-dropdown mobile-about-dropdown" id="mobile-about-dropdown">
+            <div class="about-author-header">
+              <div class="about-author-name">Chandra Kant Bauri</div>
+              <div class="about-author-role">Security Researcher &amp; Reverse Engineer</div>
+            </div>
+            <div class="about-divider"></div>
+            <a href="https://github.com/Lynk4" target="_blank" rel="noopener noreferrer" class="social-dropdown-link">
+              <div class="social-left">
+                <svg class="social-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                <div class="social-info">
+                  <span class="social-name">GitHub</span>
+                  <span class="social-handle">@Lynk4</span>
+                </div>
+              </div>
+              <span class="social-ext-arrow">&#8599;</span>
+            </a>
+            <a href="https://www.linkedin.com/in/chandra-kant-bauri-b33114230/" target="_blank" rel="noopener noreferrer" class="social-dropdown-link">
+              <div class="social-left">
+                <svg class="social-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                <div class="social-info">
+                  <span class="social-name">LinkedIn</span>
+                  <span class="social-handle">chandra-kant-bauri</span>
+                </div>
+              </div>
+              <span class="social-ext-arrow">&#8599;</span>
+            </a>
+            <a href="https://x.com/c_kant_" target="_blank" rel="noopener noreferrer" class="social-dropdown-link">
+              <div class="social-left">
+                <svg class="social-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                <div class="social-info">
+                  <span class="social-name">X (Twitter)</span>
+                  <span class="social-handle">@c_kant_</span>
+                </div>
+              </div>
+              <span class="social-ext-arrow">&#8599;</span>
+            </a>
+          </div>
+        </div>
         <a href="#investigations" class="btn-explore-reports">
           <span>Explore Reports</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
@@ -3728,6 +3971,38 @@ function buildPortalIndex(allReports) {
         setTimeout(() => { if (searchInput) searchInput.focus(); }, 400);
       });
     }
+
+    // About Me Dropdown click/toggle behavior
+    const mobileAboutBtn = document.getElementById('mobile-about-btn');
+    const mobileAboutDropdown = document.getElementById('mobile-about-dropdown');
+    if (mobileAboutBtn && mobileAboutDropdown) {
+      mobileAboutBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = mobileAboutDropdown.classList.toggle('open');
+        mobileAboutBtn.classList.toggle('active', isOpen);
+      });
+    }
+
+    const desktopAboutBtn = document.getElementById('desktop-about-btn');
+    const desktopAboutDropdown = document.getElementById('desktop-about-dropdown');
+    if (desktopAboutBtn && desktopAboutDropdown) {
+      desktopAboutBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = desktopAboutDropdown.classList.toggle('open');
+        desktopAboutBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      if (mobileAboutDropdown && !mobileAboutDropdown.contains(e.target) && e.target !== mobileAboutBtn) {
+        mobileAboutDropdown.classList.remove('open');
+        if (mobileAboutBtn) mobileAboutBtn.classList.remove('active');
+      }
+      if (desktopAboutDropdown && !desktopAboutDropdown.contains(e.target) && e.target !== desktopAboutBtn) {
+        desktopAboutDropdown.classList.remove('open');
+        if (desktopAboutBtn) desktopAboutBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
 
     // Support URL param e.g. ?platform=Linux
     try {
