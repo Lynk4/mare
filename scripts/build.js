@@ -789,6 +789,13 @@ function buildReportPage(r) {
 
   flushTable();
 
+  if (!r.firstImage && fs.existsSync(imagesDir)) {
+    const existingImages = fs.readdirSync(imagesDir).filter(f => !f.startsWith('.') && /\.(png|jpe?g|webp|gif|svg)$/i.test(f));
+    if (existingImages.length > 0) {
+      r.firstImage = `images/${encodeURIComponent(existingImages[0])}`;
+    }
+  }
+
   let bodyHtml = htmlBuffer.join('\n');
   if (!bodyHtml.startsWith('</section>')) {
     bodyHtml = `<section id="overview">${bodyHtml}</section>`;
@@ -2185,7 +2192,7 @@ function buildPortalIndex(allReports) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MARE — Malware Analysis &amp; Research Environment</title>
+  <title>MARE — Malware Analysis &amp; Reverse Engineering</title>
   <link rel="icon" type="image/png" href="assets/home/mare-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3141,7 +3148,7 @@ function buildPortalIndex(allReports) {
           <div class="brand-vsep" aria-hidden="true"></div>
           <div class="brand-subtext">
             <span>MALWARE ANALYSIS</span>
-            <span>&amp; RESEARCH ENVIRONMENT</span>
+            <span>&amp; REVERSE ENGINEERING</span>
           </div>
         </div>
       </a>
@@ -3189,12 +3196,6 @@ function buildPortalIndex(allReports) {
             <a href="malware-binary-diffing/index.html" class="dropdown-link">BinDiff Code Comparison</a>
           </div>
         </div>
-
-        <div class="nav-link-item">
-          <a class="nav-link" href="https://github.com/Lynk4/mare" target="_blank" rel="noopener">
-            <span>About</span>
-          </a>
-        </div>
       </nav>
 
       <div class="right-nav-actions">
@@ -3231,9 +3232,6 @@ function buildPortalIndex(allReports) {
           <a href="#investigations" class="btn-cta-primary">
             <span>Explore investigations</span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-          </a>
-          <a href="https://github.com/Lynk4/mare" target="_blank" rel="noopener" class="btn-cta-secondary">
-            <span>About the research</span>
           </a>
         </div>
 
@@ -3312,27 +3310,30 @@ function buildPortalIndex(allReports) {
     <!-- Cards Stream Grid -->
     <div class="investigations-grid" id="investigations-grid">
       ${displayReports.map(r => {
-        let cardImg = 'assets/home/card-threatintel.png';
+        let fallbackImg = 'assets/home/card-threatintel.png';
         let badgeClass = 'badge-cross';
-        let badgeText = r.os;
+        let badgeText = r.os || 'Cross-platform';
 
         if (r.os === 'macOS') {
-          cardImg = 'assets/home/card-macos.png';
+          fallbackImg = 'assets/home/card-macos.png';
           badgeClass = 'badge-macos';
           badgeText = 'macOS';
         } else if (r.os === 'Windows') {
-          cardImg = 'assets/home/card-windows.png';
+          fallbackImg = 'assets/home/card-windows.png';
           badgeClass = 'badge-windows';
           badgeText = 'Windows';
         } else if (r.os === 'Linux') {
-          cardImg = 'assets/home/card-threatintel.png';
+          fallbackImg = 'assets/home/card-threatintel.png';
           badgeClass = 'badge-linux';
           badgeText = 'Linux';
         } else {
-          cardImg = 'assets/home/card-threatintel.png';
+          fallbackImg = 'assets/home/card-threatintel.png';
           badgeClass = 'badge-cross';
           badgeText = 'Cross-platform';
         }
+
+        // Use first image from report if available, else clean platform banner
+        let cardImg = r.firstImage ? `${r.id}/${r.firstImage}` : fallbackImg;
 
         // Custom exact overrides for the 3 featured reference cards
         let displayTitle = r.title;
@@ -3347,7 +3348,6 @@ function buildPortalIndex(allReports) {
           displayReadTime = '18 min read';
           badgeClass = 'badge-macos';
           badgeText = 'macOS';
-          cardImg = 'assets/home/card-macos.png';
         } else if (r.id === 'unpacking-modified-upx-malware') {
           displayTitle = 'Unpacking Modified UPX Malware';
           displayDesc = 'Analysis of a modified UPX-packed executable, focusing on PE header reconstruction, section metadata, and techniques to recover a valid structure for further static analysis.';
@@ -3355,15 +3355,13 @@ function buildPortalIndex(allReports) {
           displayReadTime = '13 min read';
           badgeClass = 'badge-windows';
           badgeText = 'Windows';
-          cardImg = 'assets/home/card-windows.png';
         } else if (r.id === 'digit-stealer') {
           displayTitle = 'Digit Stealer: Inside a macOS Campaign';
           displayDesc = 'Technical analysis of Digit Stealer, examining sample artifacts, infrastructure, and key implementation details observed in the campaign.';
           displayDate = 'Sep 20, 2026';
           displayReadTime = '16 min read';
-          badgeClass = 'badge-cross';
-          badgeText = 'Cross-platform';
-          cardImg = 'assets/home/card-threatintel.png';
+          badgeClass = 'badge-macos';
+          badgeText = 'macOS';
         }
 
         const searchKeywords = `${displayTitle} ${displayDesc} ${r.category} ${r.os} ${r.family} ${r.targets} ${r.delivery}`.toLowerCase();
@@ -3515,6 +3513,13 @@ function buildPortalIndex(allReports) {
         setTimeout(() => { if (searchInput) searchInput.focus(); }, 400);
       });
     }
+
+    // Support URL param e.g. ?platform=Linux
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const p = urlParams.get('platform');
+      if (p) selectFilter(p);
+    } catch (e) {}
   </script>
 </body>
 </html>
