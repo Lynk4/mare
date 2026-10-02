@@ -9,43 +9,43 @@ const REPORTS_DIR = path.join(ROOT_DIR, 'reports');
 
 // Canonical authentic dates when reports were added to repository
 const CANONICAL_REPORT_DATES = {
-  'wannacry': 'January 16, 2026',
-  'unpacking-modified-upx-malware': 'September 24, 2026',
-  'rustbucket': 'September 06, 2026',
   'rustbucket-2': 'October 02, 2026',
+  'rustbucket': 'September 06, 2026',
   'digit-stealer': 'August 23, 2026',
-  'kittystealer': 'August 23, 2026',
-  'etherrat': 'August 09, 2026',
-  'x64dbg-conditional-breakpoints': 'July 28, 2026',
-  'payload-extraction': 'July 25, 2026',
-  'malware-binary-diffing': 'July 13, 2026',
-  'shellcode-triage-and-api-resolution': 'June 08, 2026',
-  'macho-static-analysis': 'June 05, 2026',
-  'bpfdoor': 'June 02, 2026',
-  'atomic-macos-stealer': 'May 31, 2026',
-  'dynamic-api-resolution': 'May 29, 2026',
-  'reversing-hash-based-api-resolution': 'May 27, 2026',
-  'reversing-a-packed-autoit-malware-sample': 'May 24, 2026',
+  'unpacking-modified-upx-malware': 'August 06, 2026',
+  'atomic-macos-stealer': 'July 15, 2026',
+  'kittystealer': 'June 10, 2026',
+  'reversing-a-packed-autoit-malware-sample': 'May 23, 2026',
   'bypassing-isdebuggerpresent': 'May 11, 2026',
-  'notpetya-ransomware': 'May 09, 2026',
-  'whispergate-mbr-wiper': 'May 08, 2026',
-  'api-unhooking': 'May 06, 2026',
-  'mirai-botnet': 'May 02, 2026',
-  'deconstructing-emotet': 'April 25, 2026',
-  'npm-axios': 'April 04, 2026',
+  'mirai-botnet': 'May 01, 2026',
+  'macho-static-analysis': 'April 22, 2026',
+  'bpfdoor': 'April 18, 2026',
   'debugging-malware': 'March 24, 2026',
-  'dll-malware-emotet': 'February 16, 2026',
+  'patching-a-malware': 'March 15, 2026',
+  'dll-malware-emotet': 'February 13, 2026',
   'automated-unpacking': 'February 12, 2026',
-  'shellcode-extraction': 'February 11, 2026',
-  'agent-tesla': 'February 07, 2026',
-  'notepad-chrysalis': 'February 04, 2026',
-  'qakbot-unpacking': 'February 01, 2026',
-  'reverse-engineering-a-packed-trojan': 'January 13, 2026',
-  'cobalt-strike-beacon': 'January 12, 2026',
-  'regin-malware': 'January 12, 2026',
-  'bangladesh-gpca': 'January 08, 2026',
-  'cyber-talents-ctf': 'October 15, 2025',
-  'patching-a-malware': 'November 29, 2024'
+  'shellcode-extraction': 'February 09, 2026',
+  'wannacry': 'January 15, 2026',
+  'cobalt-strike-beacon': 'November 14, 2025',
+  'regin-malware': 'October 28, 2025',
+  'whispergate-mbr-wiper': 'October 12, 2025',
+  'etherrat': 'September 20, 2025',
+  'notpetya-ransomware': 'August 29, 2025',
+  'reverse-engineering-a-packed-trojan': 'August 10, 2025',
+  'bangladesh-gpca': 'August 04, 2025',
+  'payload-extraction': 'July 25, 2025',
+  'notepad-chrysalis': 'July 18, 2025',
+  'agent-tesla': 'July 10, 2025',
+  'deconstructing-emotet': 'June 30, 2025',
+  'qakbot-unpacking': 'June 22, 2025',
+  'malware-binary-diffing': 'June 02, 2025',
+  'dynamic-api-resolution': 'May 18, 2025',
+  'reversing-hash-based-api-resolution': 'May 08, 2025',
+  'shellcode-triage-and-api-resolution': 'April 28, 2025',
+  'x64dbg-conditional-breakpoints': 'April 14, 2025',
+  'api-unhooking': 'March 22, 2025',
+  'npm-axios': 'March 11, 2025',
+  'cyber-talents-ctf': 'February 20, 2025'
 };
 
 // Helper to get authentic git added date for a file
@@ -243,7 +243,7 @@ function discoverReports() {
           if (meta.subtitle || meta.lead) lead = meta.subtitle || meta.lead;
           if (meta.thumbnail || meta.thumb || meta.image) thumbnail = meta.thumbnail || meta.thumb || meta.image;
           if (meta.category) category = meta.category;
-          // Note: Authentic git commit date is preserved; meta.date is skipped
+          if (meta.date) date = meta.date;
           if (meta.readTime) readTime = meta.readTime;
           if (meta.family) family = meta.family;
           if (meta.classification) classification = meta.classification;
@@ -822,7 +822,7 @@ function buildReportPage(r) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(r.title)} | ${AUTHOR_NAME}</title>
-  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="icon" type="image/png" href="../assets/home/mare-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1742,9 +1742,11 @@ function buildReportPage(r) {
 
   <nav class="site-nav">
     <div class="nav-breadcrumbs">
-      <a href="../index.html" class="brand-title">
-        <span class="brand-dot"></span>
-        THREAT RESEARCH
+      <a href="../index.html" class="brand-title" style="display:inline-flex;align-items:center;gap:8px;">
+        <img src="../assets/home/mare-logo.png" alt="MARE Logo" width="18" height="18" style="vertical-align:middle;border-radius:3px;">
+        <span>MARE</span>
+        <span style="opacity:0.4;font-size:11px;">/</span>
+        <span>THREAT RESEARCH</span>
       </a>
       <span class="meta-divider">/</span>
       <span>${escapeHtml(r.os.toUpperCase())} INVESTIGATIONS</span>
@@ -2237,8 +2239,8 @@ function buildPortalIndex(allReports) {
       content: '';
       position: fixed;
       inset: 0;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
       background-image:
         radial-gradient(circle at 75% 240px, rgba(53, 229, 208, 0.07) 0%, transparent 45%),
         radial-gradient(circle at 62% 280px, rgba(183, 255, 60, 0.04) 0%, transparent 35%),
@@ -3068,7 +3070,7 @@ function buildPortalIndex(allReports) {
     @media (max-width: 1200px) {
       .hero-container {
         grid-template-columns: 1fr;
-        gap: 40px;
+        gap: 36px;
       }
       .hero-cube-visual-wrapper {
         justify-content: center;
@@ -3078,6 +3080,39 @@ function buildPortalIndex(allReports) {
       }
       .investigations-grid {
         grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .hero-container {
+        grid-template-columns: 1fr;
+        gap: 28px;
+        padding: 0 24px;
+      }
+      .hero-stats-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px 20px;
+        width: 100%;
+        max-width: 480px;
+      }
+      .stat-vdivider {
+        display: none;
+      }
+      .stat-item {
+        flex-shrink: 1;
+        min-width: 0;
+      }
+      .stat-label, .stat-sub {
+        white-space: normal;
+        overflow-wrap: break-word;
+      }
+      .hero-cube-visual-wrapper {
+        max-width: 100%;
+        justify-content: center;
+      }
+      .hero-cube-img {
+        max-height: 320px;
       }
     }
 
@@ -3101,35 +3136,180 @@ function buildPortalIndex(allReports) {
         padding: 0 20px;
       }
       .hero-headline {
-        font-size: 40px;
+        font-size: clamp(36px, 8.5vw, 44px);
+        letter-spacing: -1.2px;
       }
-      .hero-stats-row {
-        gap: 16px;
+      .hero-lead-text {
+        font-size: 14.5px;
       }
-      .stat-vdivider {
-        display: none;
+      .section-hdivider {
+        padding: 0 20px;
       }
       .investigations-section {
-        padding: 0 20px 80px;
+        padding: 0 20px 60px;
       }
       .investigations-header {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
+        gap: 16px;
       }
       .header-controls-col {
         width: 100%;
         flex-direction: column;
         align-items: stretch;
+        gap: 12px;
       }
       .search-input-wrapper {
         width: 100%;
       }
+      .search-shortcut-badge {
+        display: none;
+      }
       .platform-filter-group {
         overflow-x: auto;
         width: 100%;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding: 4px;
+        gap: 6px;
+      }
+      .platform-filter-group::-webkit-scrollbar {
+        display: none;
+      }
+      .filter-pill {
+        flex-shrink: 0;
       }
       .investigations-grid {
         grid-template-columns: 1fr;
+        gap: 20px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .site-nav {
+        padding: 0 16px;
+        height: 56px;
+      }
+      .brand-group {
+        gap: 10px;
+      }
+      .brand-logo-img {
+        width: 26px;
+        height: 26px;
+      }
+      .brand-title {
+        font-size: 16px;
+        letter-spacing: 1px;
+      }
+      .right-nav-actions {
+        gap: 10px;
+      }
+      .nav-search-icon-btn {
+        width: 30px;
+        height: 30px;
+      }
+      .btn-explore-reports {
+        padding: 6px 12px;
+        font-size: 12px;
+        gap: 6px;
+      }
+      .btn-explore-reports svg {
+        width: 12px;
+        height: 12px;
+      }
+      .hero-section {
+        padding: 14px 0 8px;
+      }
+      .hero-container {
+        padding: 0 16px;
+        gap: 20px;
+      }
+      .hero-eyebrow {
+        margin-bottom: 8px;
+      }
+      .eyebrow-text {
+        font-size: 10px;
+        letter-spacing: 1px;
+        white-space: normal;
+        line-height: 1.35;
+      }
+      .hero-headline {
+        font-size: clamp(32px, 8.5vw, 40px);
+        letter-spacing: -1px;
+        margin-bottom: 10px;
+      }
+      .hero-lead-text {
+        font-size: 14px;
+        line-height: 1.45;
+        margin-bottom: 16px;
+      }
+      .hero-cta-group {
+        margin-bottom: 20px;
+      }
+      .btn-cta-primary {
+        width: 100%;
+        justify-content: center;
+        padding: 11px 20px;
+        font-size: 13.5px;
+      }
+      .hero-stats-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 14px 10px;
+        width: 100%;
+        max-width: 100%;
+      }
+      .stat-num {
+        font-size: 24px;
+      }
+      .stat-label {
+        font-size: 12px;
+        white-space: normal;
+      }
+      .stat-sub {
+        font-size: 10px;
+        white-space: normal;
+        line-height: 1.25;
+      }
+      .hero-cube-visual-wrapper {
+        max-width: 100%;
+        justify-content: center;
+      }
+      .hero-cube-img {
+        max-height: 240px;
+      }
+      .section-hdivider {
+        padding: 0 16px;
+        margin: 2px auto 12px;
+      }
+      .investigations-section {
+        padding: 0 16px 50px;
+      }
+      .inv-main-title {
+        font-size: 23px;
+      }
+      .card-banner {
+        height: 190px;
+      }
+      .card-content-body {
+        padding: 14px 14px 12px;
+      }
+      .card-title {
+        font-size: 15px;
+        min-height: auto;
+        margin-bottom: 6px;
+      }
+      .card-desc {
+        font-size: 12px;
+        margin-bottom: 10px;
+      }
+      .card-meta-left {
+        gap: 10px;
+        font-size: 11.5px;
+      }
+      .card-arrow-btn {
+        width: 30px;
+        height: 30px;
       }
     }
   </style>
@@ -3344,21 +3524,18 @@ function buildPortalIndex(allReports) {
         if (r.id === 'rustbucket-2') {
           displayTitle = 'macOS Malware Analysis — Part 2: Reverse Engineering RustBucket';
           displayDesc = 'In-depth analysis of a macOS sample focusing on Mach-O internals, ARM64 assembly, Swift symbols, and reverse engineering techniques used to understand its functionality.';
-          displayDate = 'Sep 29, 2026';
           displayReadTime = '18 min read';
           badgeClass = 'badge-macos';
           badgeText = 'macOS';
         } else if (r.id === 'unpacking-modified-upx-malware') {
           displayTitle = 'Unpacking Modified UPX Malware';
           displayDesc = 'Analysis of a modified UPX-packed executable, focusing on PE header reconstruction, section metadata, and techniques to recover a valid structure for further static analysis.';
-          displayDate = 'Sep 24, 2026';
           displayReadTime = '13 min read';
           badgeClass = 'badge-windows';
           badgeText = 'Windows';
         } else if (r.id === 'digit-stealer') {
           displayTitle = 'Digit Stealer: Inside a macOS Campaign';
           displayDesc = 'Technical analysis of Digit Stealer, examining sample artifacts, infrastructure, and key implementation details observed in the campaign.';
-          displayDate = 'Sep 20, 2026';
           displayReadTime = '16 min read';
           badgeClass = 'badge-macos';
           badgeText = 'macOS';
