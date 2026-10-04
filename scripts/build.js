@@ -45,7 +45,17 @@ const CANONICAL_REPORT_DATES = {
   'x64dbg-conditional-breakpoints': 'April 14, 2025',
   'api-unhooking': 'March 22, 2025',
   'npm-axios': 'March 11, 2025',
-  'cyber-talents-ctf': 'February 20, 2025'
+  'cyber-talents-ctf': 'February 20, 2025',
+  'singularity': 'February 17, 2026',
+  'equationdrug': 'February 19, 2026',
+  'kernel-shield': 'February 24, 2026',
+  'katz-stealer': 'February 28, 2026',
+  'rokrat-loader': 'March 02, 2026',
+  'simda': 'March 04, 2026',
+  'carbanak': 'March 06, 2026',
+  'aurawiper': 'March 08, 2026',
+  'shinyspider': 'March 10, 2026',
+  'valleyrat': 'March 12, 2026'
 };
 
 // Helper to get authentic git added date for a file
@@ -237,6 +247,10 @@ function discoverReports() {
       let navTitle = null;
       let navDropdown = null;
       let hideFromNav = false;
+      let source = null;
+      let difficulty = null;
+      let tools = null;
+      let challengeUrl = null;
 
       // Load optional 5-line meta.json if present in the folder
       const metaFile = path.join(fullDir, 'meta.json');
@@ -261,6 +275,10 @@ function discoverReports() {
           if (meta.pinned !== undefined) featured = Boolean(meta.pinned);
           if (meta.navHighlight !== undefined) featured = Boolean(meta.navHighlight);
           if (meta.navTitle || meta.shortTitle) navTitle = meta.navTitle || meta.shortTitle;
+          if (meta.source) source = meta.source;
+          if (meta.difficulty) difficulty = meta.difficulty;
+          if (meta.tools) tools = meta.tools;
+          if (meta.challengeUrl) challengeUrl = meta.challengeUrl;
           if (meta.navDropdown !== undefined) {
             if (typeof meta.navDropdown === 'string') navDropdown = meta.navDropdown.toLowerCase();
             else if (meta.navDropdown === false) hideFromNav = true;
@@ -295,6 +313,10 @@ function discoverReports() {
         navTitle,
         navDropdown,
         hideFromNav,
+        source,
+        difficulty,
+        tools,
+        challengeUrl,
         srcDir: fullDir,
         mdPath
       });
@@ -342,7 +364,17 @@ const KNOWN_NAV_TITLES = {
   'reverse-engineering-a-packed-trojan': 'Packed Trojan Analysis',
   'bangladesh-gpca': 'Bangladesh GPCA Espionage',
   'npm-axios': 'NPM Axios Typosquat',
-  'cyber-talents-ctf': 'Cyber Talents CTF'
+  'cyber-talents-ctf': 'Cyber Talents CTF',
+  'singularity': 'Singularity (Linux Rootkit)',
+  'kernel-shield': 'Kernel Shield (EDR Killer)',
+  'rokrat-loader': 'RokRat Loader (Lazarus)',
+  'equationdrug': 'EquationDrug (Kernel APC)',
+  'katz-stealer': 'Katz Stealer (Harvester)',
+  'simda': 'Simda (Multi-Stage Packer)',
+  'carbanak': 'Carbanak (Banking Trojan)',
+  'shinyspider': 'ShinySpider (Go Ransomware)',
+  'valleyrat': 'ValleyRAT (In-Memory PE)',
+  'aurawiper': 'AuraWiper (MBR Wiper)'
 };
 
 function getReportNavTitle(r) {
@@ -1680,6 +1712,107 @@ function buildReportPage(r) {
       transform: translateY(0);
     }
 
+    /* MalOps Challenge Banner & Badges */
+    .pill-malops {
+      background: rgba(53, 229, 208, 0.15) !important;
+      color: #35E5D0 !important;
+      border: 1px solid rgba(53, 229, 208, 0.45) !important;
+      font-weight: 700 !important;
+    }
+    .pill-difficulty {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+    .difficulty-easy {
+      background: rgba(183, 255, 60, 0.15);
+      color: #B7FF3C;
+      border: 1px solid rgba(183, 255, 60, 0.4);
+    }
+    .difficulty-medium {
+      background: rgba(255, 170, 0, 0.15);
+      color: #FFAA00;
+      border: 1px solid rgba(255, 170, 0, 0.4);
+    }
+    .difficulty-hard {
+      background: rgba(255, 60, 100, 0.15);
+      color: #FF3C64;
+      border: 1px solid rgba(255, 60, 100, 0.4);
+    }
+    .difficulty-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+    .malops-challenge-callout {
+      background: rgba(10, 20, 30, 0.7);
+      border: 1px solid rgba(53, 229, 208, 0.25);
+      border-left: 3px solid #35E5D0;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 30px;
+    }
+    .callout-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .callout-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .callout-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #35E5D0;
+    }
+    .btn-external-challenge {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: #05080C;
+      background: #35E5D0;
+      padding: 5px 12px;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-external-challenge:hover {
+      background: #B7FF3C;
+      transform: translateY(-1px);
+    }
+    .callout-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .callout-meta-row strong {
+      color: var(--text-primary);
+    }
+    .callout-meta-row a {
+      color: #35E5D0;
+      text-decoration: none;
+    }
+    .callout-meta-row a:hover {
+      text-decoration: underline;
+    }
+
     /* Responsive Breakpoints (Cascaded at bottom) */
     @media (max-width: 1024px) {
       .article-layout {
@@ -1847,7 +1980,7 @@ function buildReportPage(r) {
         <span>THREAT RESEARCH</span>
       </a>
       <span class="meta-divider">/</span>
-      <span>${escapeHtml(r.os.toUpperCase())} INVESTIGATIONS</span>
+      <span>${r.source === 'malops' ? 'MALOPS INVESTIGATIONS' : escapeHtml(r.os.toUpperCase()) + ' INVESTIGATIONS'}</span>
     </div>
 
     <div class="nav-actions">
@@ -1859,6 +1992,12 @@ function buildReportPage(r) {
 
     <header class="article-header">
       <div class="meta-pills">
+        ${r.source === 'malops' ? `
+        <span class="pill-category pill-malops">MALOPS</span>
+        <span class="meta-divider">•</span>
+        <span class="pill-difficulty difficulty-${(r.difficulty || 'medium').toLowerCase()}">${escapeHtml((r.difficulty || 'MEDIUM').toUpperCase())}</span>
+        <span class="meta-divider">•</span>
+        ` : ''}
         <span class="pill-category">${escapeHtml(r.category)}</span>
         <span class="meta-divider">•</span>
         <span class="pill-ref">${escapeHtml(r.os)}</span>
@@ -1880,6 +2019,22 @@ function buildReportPage(r) {
     <div class="article-layout">
       
       <div class="article-content">
+        ${r.source === 'malops' ? `
+        <div class="malops-challenge-callout">
+          <div class="callout-header">
+            <div class="callout-title-group">
+              <span class="callout-tag">MALOPS CHALLENGE</span>
+              <span class="difficulty-badge difficulty-${(r.difficulty || 'medium').toLowerCase()}">${escapeHtml(r.difficulty || 'Medium')}</span>
+            </div>
+            ${r.challengeUrl ? `<a href="${r.challengeUrl}" target="_blank" rel="noopener noreferrer" class="btn-external-challenge">Live Challenge &#8599;</a>` : ''}
+          </div>
+          <div class="callout-meta-row">
+            <span class="callout-meta-item"><strong>Platform:</strong> ${escapeHtml(r.os)}</span>
+            <span class="callout-meta-item"><strong>Tools:</strong> ${escapeHtml(r.tools || 'IDA Pro, x64dbg')}</span>
+            <span class="callout-meta-item"><strong>Source:</strong> <a href="https://github.com/Lynk4/malops.io" target="_blank" rel="noopener noreferrer">Lynk4/malops.io</a></span>
+          </div>
+        </div>
+        ` : ''}
         ${bodyHtml}
       </div>
 
@@ -2256,7 +2411,8 @@ function buildPortalIndex(allReports) {
     Windows: allReports.filter(r => r.os === 'Windows').length,
     macOS: allReports.filter(r => r.os === 'macOS').length,
     Linux: allReports.filter(r => r.os === 'Linux').length,
-    'Cross-Platform': allReports.filter(r => r.os === 'Cross-Platform').length
+    'Cross-Platform': allReports.filter(r => r.os === 'Cross-Platform').length,
+    MalOps: allReports.filter(r => r.source === 'malops').length
   };
 
   const catCounts = {
@@ -3242,6 +3398,25 @@ function buildPortalIndex(allReports) {
       box-shadow: 0 0 12px rgba(183, 255, 60, 0.3);
     }
 
+    .filter-pill.filter-pill-malops {
+      border: 1px solid rgba(53, 229, 208, 0.3);
+      color: var(--neon-cyan);
+    }
+
+    .filter-pill.filter-pill-malops:hover {
+      border-color: var(--neon-cyan);
+      background: rgba(53, 229, 208, 0.08);
+      color: #FFFFFF;
+    }
+
+    .filter-pill.filter-pill-malops.active {
+      background: var(--neon-cyan);
+      color: #05090D;
+      font-weight: 700;
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 14px rgba(53, 229, 208, 0.35);
+    }
+
     /* Cards Grid */
     .investigations-grid {
       display: grid;
@@ -3330,6 +3505,16 @@ function buildPortalIndex(allReports) {
       color: #FFFFFF;
       border: none;
       box-shadow: 0 2px 10px rgba(13, 148, 136, 0.35);
+    }
+
+    .badge-malops {
+      background: rgba(10, 25, 30, 0.94);
+      color: var(--neon-cyan);
+      border: 1px solid rgba(53, 229, 208, 0.5);
+      box-shadow: 0 2px 12px rgba(53, 229, 208, 0.22);
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.6px;
     }
 
     /* Card Content Body */
@@ -3743,6 +3928,11 @@ function buildPortalIndex(allReports) {
             <a href="#investigations" class="dropdown-link" onclick="selectFilter('macOS')">macOS Research (${counts.macOS})</a>
             <a href="#investigations" class="dropdown-link" onclick="selectFilter('Linux')">Linux Research (${counts.Linux})</a>
             <a href="#investigations" class="dropdown-link" onclick="selectFilter('Cross-Platform')">Cross-Platform (${counts['Cross-Platform']})</a>
+            <div class="dropdown-divider"></div>
+            <a href="#investigations" class="dropdown-link dropdown-view-all" onclick="selectFilter('malops')">
+              <span>MalOps Challenges</span>
+              <span class="dropdown-count-tag">(${counts.MalOps}) &rarr;</span>
+            </a>
           </div>
         </div>
 
@@ -3959,6 +4149,7 @@ ${techniquesDropdownHtml}
           <button class="filter-pill" data-filter="macOS" role="tab" aria-selected="false">macOS</button>
           <button class="filter-pill" data-filter="Linux" role="tab" aria-selected="false">Linux</button>
           <button class="filter-pill" data-filter="Cross-Platform" role="tab" aria-selected="false">Cross-platform</button>
+          <button class="filter-pill filter-pill-malops" data-filter="malops" role="tab" aria-selected="false">MalOps (${counts.MalOps})</button>
         </div>
       </div>
     </div>
@@ -3970,7 +4161,11 @@ ${techniquesDropdownHtml}
         let badgeClass = 'badge-cross';
         let badgeText = r.os || 'Cross-platform';
 
-        if (r.os === 'macOS') {
+        if (r.source === 'malops') {
+          badgeClass = 'badge-malops';
+          badgeText = `MALOPS • ${(r.difficulty || 'CHALLENGE').toUpperCase()}`;
+          fallbackImg = 'assets/home/card-threatintel.png';
+        } else if (r.os === 'macOS') {
           fallbackImg = 'assets/home/card-macos.png';
           badgeClass = 'badge-macos';
           badgeText = 'macOS';
@@ -4020,7 +4215,7 @@ ${techniquesDropdownHtml}
         const searchKeywords = `${displayTitle} ${displayDesc} ${r.category} ${r.os} ${r.family} ${r.targets} ${r.delivery}`.toLowerCase();
 
         return `
-        <article class="inv-card" data-os="${escapeHtml(r.os)}" data-category="${escapeHtml(r.category)}" data-search="${escapeHtml(searchKeywords)}">
+        <article class="inv-card" data-os="${escapeHtml(r.os)}" data-category="${escapeHtml(r.category)}" data-source="${escapeHtml(r.source || '')}" data-search="${escapeHtml(searchKeywords)}">
           <a href="${r.id}/index.html" class="card-banner" aria-label="${escapeHtml(displayTitle)}">
             <span class="card-platform-badge ${badgeClass}">${escapeHtml(badgeText)}</span>
             <img src="${cardImg}" alt="${escapeHtml(displayTitle)}" class="card-banner-img" loading="lazy">
@@ -4078,12 +4273,21 @@ ${techniquesDropdownHtml}
         const cardOs = card.getAttribute('data-os') || '';
         const cardCat = card.getAttribute('data-category') || '';
         const cardSearch = card.getAttribute('data-search') || '';
+        const cardSource = card.getAttribute('data-source') || '';
 
-        const osMatch = (currentFilter === 'all' || cardOs.toLowerCase() === currentFilter.toLowerCase());
+        let filterMatch = false;
+        if (currentFilter === 'all') {
+          filterMatch = true;
+        } else if (currentFilter.toLowerCase() === 'malops') {
+          filterMatch = (cardSource.toLowerCase() === 'malops');
+        } else {
+          filterMatch = (cardOs.toLowerCase() === currentFilter.toLowerCase());
+        }
+
         const catMatch = (currentCategory === 'all' || cardCat.toLowerCase() === currentCategory.toLowerCase());
         const searchMatch = !q || cardSearch.includes(q);
 
-        if (osMatch && catMatch && searchMatch) {
+        if (filterMatch && catMatch && searchMatch) {
           card.style.display = 'flex';
           visible++;
         } else {

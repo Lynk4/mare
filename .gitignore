@@ -9,3 +9,7 @@ reports/
 *.exe
 *.dll
 *.bin
+
+# External cloned source repos
+external/
+

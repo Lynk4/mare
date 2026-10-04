@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "Publication-grade Threat Intelligence and Malware Analysis Research Portal",
   "scripts": {
-    "build": "node scripts/build.js"
+    "build": "node scripts/build.js",
+    "sync:malops": "node scripts/sync-malops.js",
+    "build:all": "node scripts/sync-malops.js && node scripts/build.js"
   }
 }
