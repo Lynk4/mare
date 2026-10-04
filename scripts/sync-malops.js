@@ -209,6 +209,29 @@ function copyDirRecursive(src, dest) {
   }
 }
 
+function detectPlatform(mdContent, dirName) {
+  const text = (dirName + ' ' + mdContent).toLowerCase();
+
+  let linuxScore = 0;
+  let windowsScore = 0;
+  let macScore = 0;
+
+  // Linux signals
+  if (/\b(linux|elf|elf64|elf32|kernel module|\.ko|gdb|radare2|strace|\/proc\/|sys_call_table|insmod|dmesg)\b/i.test(text)) linuxScore += 3;
+  if (/\b(ubuntu|debian|centos|fedora|arch|kali|sysfs)\b/i.test(text)) linuxScore += 2;
+
+  // macOS signals
+  if (/\b(macos|mach-o|dylib|plist|launchdaemon|launchagent|keychain|swift|apple)\b/i.test(text)) macScore += 3;
+
+  // Windows signals
+  if (/\b(windows|pe32|pe64|\.exe|\.dll|\.sys|x64dbg|windbg|ntdll|kernel32|hkey_|registry|amsi|etw)\b/i.test(text)) windowsScore += 3;
+  if (/\b(powershell|cmd\.exe|svchost|explorer\.exe|ntstatus)\b/i.test(text)) windowsScore += 2;
+
+  if (linuxScore > windowsScore && linuxScore > macScore) return 'Linux';
+  if (macScore > windowsScore && macScore > linuxScore) return 'macOS';
+  return 'Windows';
+}
+
 async function syncMalOps() {
   console.log('=== Starting MalOps.io Repository Sync ===');
 
@@ -274,12 +297,24 @@ async function syncMalOps() {
       try { srcMeta = JSON.parse(fs.readFileSync(srcMetaPath, 'utf8')); } catch (e) {}
     }
 
-    // Look up preset metadata or determine sensible default
+    // Check if challenge is already placed in a platform folder in MARE
+    let existingPlatform = null;
+    let existingTargetDir = null;
+    for (const plat of ['Windows', 'Linux', 'macOS', 'Cross-Platform']) {
+      const candidateDir = path.join(ANALYSIS_DIR, plat, dirName);
+      if (fs.existsSync(candidateDir)) {
+        existingPlatform = plat;
+        existingTargetDir = candidateDir;
+        break;
+      }
+    }
+
+    // Platform priority: existing placement in MARE > srcMeta.platform > preset > auto-detected
     const preset = CHALLENGE_METADATA[dirName] || {};
-    const platform = srcMeta.platform || preset.platform || (dirName === 'Singularity' ? 'Linux' : 'Windows');
+    const platform = existingPlatform || srcMeta.platform || preset.platform || detectPlatform(mdRaw, dirName);
 
     const targetPlatformDir = path.join(ANALYSIS_DIR, platform);
-    const targetDir = path.join(targetPlatformDir, dirName);
+    const targetDir = existingTargetDir || path.join(targetPlatformDir, dirName);
 
     // Check if target already has an existing meta.json edited by user in MARE
     let existingMeta = {};
