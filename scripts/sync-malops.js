@@ -254,53 +254,73 @@ async function syncMalOps() {
     const mdPath = path.join(srcDir, 'README.md');
     if (!fs.existsSync(mdPath)) continue;
 
-    // Look up metadata or determine default
-    const meta = CHALLENGE_METADATA[dirName] || {
-      platform: dirName === 'Singularity' ? 'Linux' : 'Windows',
-      mareCategory: 'Reverse Engineering Techniques',
-      difficulty: 'Medium',
-      tools: 'IDA Pro, x64dbg',
-      date: 'March 01, 2026',
-      family: dirName,
-      title: `${dirName}: Reverse Engineering MalOps Challenge`,
-      classification: `${dirName} / MalOps Challenge`,
-      delivery: 'Staged Executable / Artifact',
-      c2: 'Dynamic Protocol / Telemetry',
-      targets: 'Memory & System Artefacts',
-      challengeUrl: `https://malops.io/challenges/${dirName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-      navTitle: dirName
-    };
+    const mdRaw = fs.readFileSync(mdPath, 'utf8');
 
-    const targetPlatformDir = path.join(ANALYSIS_DIR, meta.platform);
+    // Auto-extract scenario or first paragraph from README if available
+    let autoDesc = '';
+    const scenarioMatch = mdRaw.match(/##\s+Scenario[\s\S]*?\n\n([^\n#]+)/i);
+    if (scenarioMatch) {
+      autoDesc = scenarioMatch[1].replace(/^FICTIONAL SCENARIO\s*[-—:]\s*/i, '').replace(/[*_`]/g, '').trim();
+    } else {
+      const firstP = mdRaw.split('\n\n').find(p => p.trim() && !p.trim().startsWith('#') && !p.trim().startsWith('---') && !p.trim().startsWith('|'));
+      if (firstP) autoDesc = firstP.replace(/[*_`]/g, '').trim();
+    }
+    if (autoDesc.length > 280) autoDesc = autoDesc.substring(0, 277) + '...';
+
+    // Check if source repo already has a meta.json
+    let srcMeta = {};
+    const srcMetaPath = path.join(srcDir, 'meta.json');
+    if (fs.existsSync(srcMetaPath)) {
+      try { srcMeta = JSON.parse(fs.readFileSync(srcMetaPath, 'utf8')); } catch (e) {}
+    }
+
+    // Look up preset metadata or determine sensible default
+    const preset = CHALLENGE_METADATA[dirName] || {};
+    const platform = srcMeta.platform || preset.platform || (dirName === 'Singularity' ? 'Linux' : 'Windows');
+
+    const targetPlatformDir = path.join(ANALYSIS_DIR, platform);
     const targetDir = path.join(targetPlatformDir, dirName);
 
-    console.log(`- Ingesting [${meta.platform}] ${dirName} -> ${path.relative(ROOT_DIR, targetDir)}`);
+    // Check if target already has an existing meta.json edited by user in MARE
+    let existingMeta = {};
+    const targetMetaPath = path.join(targetDir, 'meta.json');
+    if (fs.existsSync(targetMetaPath)) {
+      try { existingMeta = JSON.parse(fs.readFileSync(targetMetaPath, 'utf8')); } catch (e) {}
+    }
+
+    console.log(`- Ingesting [${platform}] ${dirName} -> ${path.relative(ROOT_DIR, targetDir)}`);
     copyDirRecursive(srcDir, targetDir);
 
-    // Write enhanced meta.json
+    // Priority: existingMeta (user edit in MARE) > srcMeta (from malops.io) > preset (CHALLENGE_METADATA) > autoDesc / default
+    const desc = existingMeta.subtitle || existingMeta.lead || srcMeta.subtitle || srcMeta.lead || preset.subtitle || autoDesc || `Reverse engineering challenge writeup for ${dirName}.`;
+
     const metaPayload = {
-      title: meta.title,
-      subtitle: meta.subtitle,
-      lead: meta.subtitle,
-      category: meta.mareCategory,
+      title: existingMeta.title || srcMeta.title || preset.title || `${dirName}: Reverse Engineering MalOps Challenge`,
+      subtitle: desc,
+      lead: desc,
+      category: existingMeta.category || srcMeta.category || preset.mareCategory || 'Reverse Engineering Techniques',
       source: 'malops',
-      difficulty: meta.difficulty,
-      tools: meta.tools,
-      challengeUrl: meta.challengeUrl,
-      platform: meta.platform,
-      date: meta.date,
-      family: meta.family,
-      classification: meta.classification,
-      delivery: meta.delivery,
-      c2: meta.c2,
-      targets: meta.targets,
-      hashType: meta.hashType || 'N/A',
-      hashVal: meta.hashVal || '',
-      navTitle: meta.navTitle,
-      readTime: '15 min read'
+      difficulty: existingMeta.difficulty || srcMeta.difficulty || preset.difficulty || 'Medium',
+      tools: existingMeta.tools || srcMeta.tools || preset.tools || 'IDA Pro, x64dbg',
+      challengeUrl: existingMeta.challengeUrl || srcMeta.challengeUrl || preset.challengeUrl || `https://malops.io/challenges/${dirName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+      platform: platform,
+      date: existingMeta.date || srcMeta.date || preset.date || 'March 01, 2026',
+      family: existingMeta.family || srcMeta.family || preset.family || dirName,
+      classification: existingMeta.classification || srcMeta.classification || preset.classification || `${dirName} / MalOps Challenge`,
+      delivery: existingMeta.delivery || srcMeta.delivery || preset.delivery || 'Staged Executable / Artifact',
+      c2: existingMeta.c2 || srcMeta.c2 || preset.c2 || 'Dynamic Protocol / Telemetry',
+      targets: existingMeta.targets || srcMeta.targets || preset.targets || 'Memory & System Artefacts',
+      hashType: existingMeta.hashType || srcMeta.hashType || preset.hashType || 'N/A',
+      hashVal: existingMeta.hashVal || srcMeta.hashVal || preset.hashVal || '',
+      navTitle: existingMeta.navTitle || srcMeta.navTitle || preset.navTitle || dirName,
+      readTime: existingMeta.readTime || srcMeta.readTime || preset.readTime || '15 min read'
     };
 
-    fs.writeFileSync(path.join(targetDir, 'meta.json'), JSON.stringify(metaPayload, null, 2), 'utf8');
+    if (existingMeta.thumbnail || srcMeta.thumbnail) {
+      metaPayload.thumbnail = existingMeta.thumbnail || srcMeta.thumbnail;
+    }
+
+    fs.writeFileSync(targetMetaPath, JSON.stringify(metaPayload, null, 2), 'utf8');
     syncedCount++;
   }
 
