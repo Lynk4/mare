@@ -233,6 +233,10 @@ function discoverReports() {
       }
 
       let thumbnail = null;
+      let featured = false;
+      let navTitle = null;
+      let navDropdown = null;
+      let hideFromNav = false;
 
       // Load optional 5-line meta.json if present in the folder
       const metaFile = path.join(fullDir, 'meta.json');
@@ -252,6 +256,17 @@ function discoverReports() {
           if (meta.targets) targets = meta.targets;
           if (meta.hashType) hashType = meta.hashType;
           if (meta.hashVal || meta.hash) hashVal = meta.hashVal || meta.hash;
+          if (meta.featured !== undefined) featured = Boolean(meta.featured);
+          if (meta.highlight !== undefined) featured = Boolean(meta.highlight);
+          if (meta.pinned !== undefined) featured = Boolean(meta.pinned);
+          if (meta.navHighlight !== undefined) featured = Boolean(meta.navHighlight);
+          if (meta.navTitle || meta.shortTitle) navTitle = meta.navTitle || meta.shortTitle;
+          if (meta.navDropdown !== undefined) {
+            if (typeof meta.navDropdown === 'string') navDropdown = meta.navDropdown.toLowerCase();
+            else if (meta.navDropdown === false) hideFromNav = true;
+            else if (meta.navDropdown === true) featured = true;
+          }
+          if (meta.hideFromNav !== undefined) hideFromNav = Boolean(meta.hideFromNav);
         } catch (e) {
           console.warn(`[Warning] Could not parse meta.json in ${fullDir}:`, e.message);
         }
@@ -276,6 +291,10 @@ function discoverReports() {
         hashVal,
         firstImage,
         thumbnail,
+        featured,
+        navTitle,
+        navDropdown,
+        hideFromNav,
         srcDir: fullDir,
         mdPath
       });
@@ -283,6 +302,85 @@ function discoverReports() {
   });
 
   return discovered;
+}
+
+// Helper to determine concise, human-friendly titles for navigation dropdowns
+const KNOWN_NAV_TITLES = {
+  'rustbucket-2': 'RustBucket (macOS)',
+  'rustbucket': 'RustBucket Part 1',
+  'digit-stealer': 'Digit Stealer (JXA)',
+  'atomic-macos-stealer': 'Atomic Stealer (AMOS)',
+  'kittystealer': 'Kitty Stealer (macOS)',
+  'macho-static-analysis': 'Mach-O Static Analysis',
+  'bpfdoor': 'BPFDoor (Linux)',
+  'mirai-botnet': 'Mirai Botnet (Linux)',
+  'wannacry': 'WannaCry (SMB Worm)',
+  'qakbot-unpacking': 'Qakbot (Banking)',
+  'unpacking-modified-upx-malware': 'Modified UPX Unpacking',
+  'x64dbg-conditional-breakpoints': 'x64dbg Breakpoints',
+  'dynamic-api-resolution': 'Dynamic API Resolution',
+  'api-unhooking': 'EDR API Unhooking',
+  'malware-binary-diffing': 'BinDiff Code Comparison',
+  'bypassing-isdebuggerpresent': 'IsDebuggerPresent Evasion',
+  'automated-unpacking': 'Automated Unpacking',
+  'shellcode-extraction': 'Shellcode Extraction',
+  'cobalt-strike-beacon': 'Cobalt Strike Beacon',
+  'agent-tesla': 'Agent Tesla Harvester',
+  'deconstructing-emotet': 'Deconstructing Emotet',
+  'dll-malware-emotet': 'Emotet DLL Loader',
+  'etherrat': 'EtherRAT Ethereum C2',
+  'notpetya-ransomware': 'NotPetya Wiper',
+  'whispergate-mbr-wiper': 'WhisperGate MBR Wiper',
+  'notepad-chrysalis': 'Notepad++ Chrysalis',
+  'patching-a-malware': 'Binary Patching',
+  'debugging-malware': 'Manual CS Beacon Dump',
+  'payload-extraction': 'Payload Extraction',
+  'regin-malware': 'Regin Nation-State APT',
+  'reversing-hash-based-api-resolution': 'Hash-Based API Resolution',
+  'shellcode-triage-and-api-resolution': 'Shellcode CAPA & Binja',
+  'reversing-a-packed-autoit-malware-sample': 'AutoIt Malware Decompilation',
+  'reverse-engineering-a-packed-trojan': 'Packed Trojan Analysis',
+  'bangladesh-gpca': 'Bangladesh GPCA Espionage',
+  'npm-axios': 'NPM Axios Typosquat',
+  'cyber-talents-ctf': 'Cyber Talents CTF'
+};
+
+function getReportNavTitle(r) {
+  if (r.navTitle) return r.navTitle;
+  if (r.shortTitle) return r.shortTitle;
+  if (KNOWN_NAV_TITLES[r.id]) return KNOWN_NAV_TITLES[r.id];
+
+  // Automatic clean title for any new or unmapped report
+  if (r.family && r.family.length <= 22 && !r.family.toLowerCase().includes('sample')) {
+    return r.family;
+  }
+
+  let t = r.title || r.id;
+  t = t.replace(/part\s+\d+:\s*/gi, '');
+  if (t.includes(':')) {
+    const parts = t.split(':');
+    const p0 = parts[0].trim();
+    const p1 = parts[1].trim();
+    if (p0.toLowerCase().includes('malware analysis') || p0.toLowerCase().includes('reverse engineering')) {
+      t = p1;
+    } else if (p1.toLowerCase().includes('inside') || p1.toLowerCase().includes('analysis') || p1.length > 25) {
+      t = p0;
+    } else {
+      t = p0.length < p1.length ? p0 : p1;
+    }
+  }
+  if (t.includes(' — ')) {
+    t = t.split(' — ').pop().trim();
+  } else if (t.includes(' - ')) {
+    const parts = t.split(' - ');
+    t = parts[0].length >= 4 && parts[0].length <= 25 ? parts[0].trim() : parts.pop().trim();
+  }
+
+  t = t.replace(/\s+(malware|analysis|sample|report)$/gi, '').trim();
+  if (t.length > 26) {
+    t = t.substring(0, 24).trim() + '...';
+  }
+  return t;
 }
 
 // 2. CONVERT MARKDOWN AND BUNDLE ALL REFERENCED SCREENSHOTS LOCALLY
@@ -2168,6 +2266,63 @@ function buildPortalIndex(allReports) {
     'Ransomware & Wipers': allReports.filter(r => r.category === 'Ransomware & Wipers').length
   };
 
+  // Dynamic generation of navigation dropdowns
+  // 1. Malware Families Dropdown: reports with category 'Malware Family Analysis' or explicitly tagged with navDropdown: 'malware' or featured
+  const malwareFamilyReports = allReports.filter(r => {
+    if (r.hideFromNav) return false;
+    if (r.navDropdown === 'malware') return true;
+    if (r.navDropdown === 'techniques') return false;
+    if (r.category === 'Malware Family Analysis') return true;
+    if (r.featured && r.category !== 'Reverse Engineering Techniques') return true;
+    return false;
+  });
+
+  malwareFamilyReports.sort((a, b) => {
+    if (a.featured && !b.featured) return -1;
+    if (!a.featured && b.featured) return 1;
+    const diff = new Date(b.date).getTime() - new Date(a.date).getTime();
+    if (diff !== 0) return diff;
+    return a.title.localeCompare(b.title);
+  });
+
+  const topMalwareReports = malwareFamilyReports.slice(0, 6);
+  const malwareDropdownHtml = topMalwareReports.map(r => 
+    `            <a href="${r.id}/index.html" class="dropdown-link">${escapeHtml(getReportNavTitle(r))}</a>`
+  ).join('\n') + `
+            <div class="dropdown-divider"></div>
+            <a href="#investigations" class="dropdown-link dropdown-view-all" onclick="filterByCategory('Malware Family Analysis')">
+              <span>View all Malware Families</span>
+              <span class="dropdown-count-tag">(${catCounts['Malware Family Analysis'] || malwareFamilyReports.length}) &rarr;</span>
+            </a>`;
+
+  // 2. Techniques Dropdown: reports with category 'Reverse Engineering Techniques' or explicitly tagged with navDropdown: 'techniques'
+  const techniqueReports = allReports.filter(r => {
+    if (r.hideFromNav) return false;
+    if (r.navDropdown === 'techniques') return true;
+    if (r.navDropdown === 'malware') return false;
+    if (r.category === 'Reverse Engineering Techniques') return true;
+    if (r.featured && r.category === 'Reverse Engineering Techniques') return true;
+    return false;
+  });
+
+  techniqueReports.sort((a, b) => {
+    if (a.featured && !b.featured) return -1;
+    if (!a.featured && b.featured) return 1;
+    const diff = new Date(b.date).getTime() - new Date(a.date).getTime();
+    if (diff !== 0) return diff;
+    return a.title.localeCompare(b.title);
+  });
+
+  const topTechniqueReports = techniqueReports.slice(0, 6);
+  const techniquesDropdownHtml = topTechniqueReports.map(r => 
+    `            <a href="${r.id}/index.html" class="dropdown-link">${escapeHtml(getReportNavTitle(r))}</a>`
+  ).join('\n') + `
+            <div class="dropdown-divider"></div>
+            <a href="#investigations" class="dropdown-link dropdown-view-all" onclick="filterByCategory('Reverse Engineering Techniques')">
+              <span>View all Techniques</span>
+              <span class="dropdown-count-tag">(${catCounts['Reverse Engineering Techniques'] || techniqueReports.length}) &rarr;</span>
+            </a>`;
+
   function formatCardDate(dateStr) {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
@@ -2435,6 +2590,55 @@ function buildPortalIndex(allReports) {
       color: var(--neon-lime);
       background: rgba(183, 255, 60, 0.06);
       padding-left: 24px;
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: var(--border-card);
+      margin: 6px 12px;
+      opacity: 0.8;
+    }
+
+    .dropdown-view-all {
+      font-size: 12px;
+      color: var(--neon-cyan);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .dropdown-view-all:hover {
+      color: var(--neon-lime);
+      background: rgba(183, 255, 60, 0.08);
+      padding-left: 22px;
+    }
+
+    .dropdown-count-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      opacity: 0.85;
+    }
+
+    .stat-item.clickable-stat {
+      cursor: pointer;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .stat-item.clickable-stat:hover {
+      transform: translateY(-2px);
+    }
+
+    .stat-item.clickable-stat:hover .stat-num {
+      color: var(--neon-lime);
+    }
+
+    .stat-item.clickable-stat:hover .stat-label {
+      color: var(--neon-cyan);
     }
 
     /* About Me Dropdown & Social Links */
@@ -3543,31 +3747,22 @@ function buildPortalIndex(allReports) {
         </div>
 
         <div class="nav-link-item">
-          <a class="nav-link" href="#investigations">
+          <a class="nav-link" href="#investigations" onclick="filterByCategory('Malware Family Analysis')">
             <span>Malware Families</span>
             <svg class="nav-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </a>
           <div class="nav-dropdown">
-            <a href="rustbucket-2/index.html" class="dropdown-link">RustBucket (macOS)</a>
-            <a href="digit-stealer/index.html" class="dropdown-link">Digit Stealer (JXA)</a>
-            <a href="atomic-macos-stealer/index.html" class="dropdown-link">Atomic Stealer (AMOS)</a>
-            <a href="wannacry/index.html" class="dropdown-link">WannaCry (SMB Worm)</a>
-            <a href="bpfdoor/index.html" class="dropdown-link">BPFDoor (Linux)</a>
-            <a href="qakbot-unpacking/index.html" class="dropdown-link">Qakbot (Banking)</a>
+${malwareDropdownHtml}
           </div>
         </div>
 
         <div class="nav-link-item">
-          <a class="nav-link" href="#investigations">
+          <a class="nav-link" href="#investigations" onclick="filterByCategory('Reverse Engineering Techniques')">
             <span>Techniques</span>
             <svg class="nav-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </a>
           <div class="nav-dropdown">
-            <a href="unpacking-modified-upx-malware/index.html" class="dropdown-link">Modified UPX Unpacking</a>
-            <a href="x64dbg-conditional-breakpoints/index.html" class="dropdown-link">x64dbg Breakpoints</a>
-            <a href="dynamic-api-resolution/index.html" class="dropdown-link">Dynamic API Resolution</a>
-            <a href="api-unhooking/index.html" class="dropdown-link">EDR API Unhooking</a>
-            <a href="malware-binary-diffing/index.html" class="dropdown-link">BinDiff Code Comparison</a>
+${techniquesDropdownHtml}
           </div>
         </div>
 
@@ -3697,7 +3892,7 @@ function buildPortalIndex(allReports) {
         </div>
 
         <div class="hero-stats-row">
-          <div class="stat-item">
+          <div class="stat-item clickable-stat" onclick="filterByCategory('all')" title="View all investigations">
             <div class="stat-num">${totalCount}</div>
             <div class="stat-label">Investigations</div>
             <div class="stat-sub">Technical reports</div>
@@ -3709,14 +3904,14 @@ function buildPortalIndex(allReports) {
             <div class="stat-sub">Windows &bull; macOS &bull; Linux &bull; Cross-platform</div>
           </div>
           <div class="stat-vdivider" aria-hidden="true"></div>
-          <div class="stat-item">
-            <div class="stat-num">${catCounts['Reverse Engineering Techniques'] || 14}</div>
+          <div class="stat-item clickable-stat" onclick="filterByCategory('Reverse Engineering Techniques')" title="Filter by Reverse Engineering">
+            <div class="stat-num">${catCounts['Reverse Engineering Techniques'] || 13}</div>
             <div class="stat-label">Reverse Engineering</div>
             <div class="stat-sub">In-depth studies</div>
           </div>
           <div class="stat-vdivider" aria-hidden="true"></div>
-          <div class="stat-item">
-            <div class="stat-num">${catCounts['Malware Family Analysis'] || 12}</div>
+          <div class="stat-item clickable-stat" onclick="filterByCategory('Malware Family Analysis')" title="Filter by Malware Families">
+            <div class="stat-num">${catCounts['Malware Family Analysis'] || 13}</div>
             <div class="stat-label">Malware Families</div>
             <div class="stat-sub">Analyzed and documented</div>
           </div>
@@ -3872,6 +4067,7 @@ function buildPortalIndex(allReports) {
     const emptyState = document.getElementById('empty-search-state');
 
     let currentFilter = 'all';
+    let currentCategory = 'all';
     let searchQuery = '';
 
     function filterCards() {
@@ -3879,13 +4075,15 @@ function buildPortalIndex(allReports) {
       let visible = 0;
 
       cards.forEach(card => {
-        const cardOs = card.getAttribute('data-os');
+        const cardOs = card.getAttribute('data-os') || '';
+        const cardCat = card.getAttribute('data-category') || '';
         const cardSearch = card.getAttribute('data-search') || '';
 
         const osMatch = (currentFilter === 'all' || cardOs.toLowerCase() === currentFilter.toLowerCase());
+        const catMatch = (currentCategory === 'all' || cardCat.toLowerCase() === currentCategory.toLowerCase());
         const searchMatch = !q || cardSearch.includes(q);
 
-        if (osMatch && searchMatch) {
+        if (osMatch && catMatch && searchMatch) {
           card.style.display = 'flex';
           visible++;
         } else {
@@ -3908,8 +4106,22 @@ function buildPortalIndex(allReports) {
       }
     }
 
+    function filterByCategory(catName) {
+      currentCategory = catName;
+      currentFilter = 'all';
+      filterPills.forEach(pill => {
+        const isAll = (pill.getAttribute('data-filter') === 'all');
+        pill.classList.toggle('active', isAll);
+        pill.setAttribute('aria-selected', isAll ? 'true' : 'false');
+      });
+      filterCards();
+      const invSec = document.getElementById('investigations');
+      if (invSec) invSec.scrollIntoView({ behavior: 'smooth' });
+    }
+
     function selectFilter(filterName) {
       currentFilter = filterName;
+      currentCategory = 'all';
       filterPills.forEach(pill => {
         const isActive = (pill.getAttribute('data-filter').toLowerCase() === filterName.toLowerCase());
         pill.classList.toggle('active', isActive);
@@ -3943,6 +4155,7 @@ function buildPortalIndex(allReports) {
     function resetFilters() {
       if (searchInput) searchInput.value = '';
       searchQuery = '';
+      currentCategory = 'all';
       selectFilter('all');
     }
 
@@ -4004,11 +4217,13 @@ function buildPortalIndex(allReports) {
       }
     });
 
-    // Support URL param e.g. ?platform=Linux
+    // Support URL param e.g. ?platform=Linux or ?category=Malware+Family+Analysis
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const p = urlParams.get('platform');
+      const c = urlParams.get('category');
       if (p) selectFilter(p);
+      else if (c) filterByCategory(c);
     } catch (e) {}
   </script>
 </body>
