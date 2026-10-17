@@ -9,6 +9,7 @@ const REPORTS_DIR = path.join(ROOT_DIR, 'reports');
 
 // Canonical authentic dates when reports were added to repository
 const CANONICAL_REPORT_DATES = {
+  'hvnc-implant': 'October 17, 2026',
   'rustbucket-2': 'October 02, 2026',
   'rustbucket': 'September 06, 2026',
   'digit-stealer': 'August 23, 2026',
@@ -147,6 +148,7 @@ function discoverReports() {
       if (dirName === 'Atomic Macos Stealer') id = 'atomic-macos-stealer';
       if (dirName === 'Digit Stealer') id = 'digit-stealer';
       if (dirName === 'Linux Backdoor BPFDoor') id = 'bpfdoor';
+      if (dirName === 'Hvnc Implant') id = 'hvnc-implant';
 
       // 100% AUTOMATIC EXTRACTION FROM CONTENT
       // A. Extract Title from first # Heading
@@ -374,7 +376,8 @@ const KNOWN_NAV_TITLES = {
   'carbanak': 'Carbanak (Banking Trojan)',
   'shinyspider': 'ShinySpider (Go Ransomware)',
   'valleyrat': 'ValleyRAT (In-Memory PE)',
-  'aurawiper': 'AuraWiper (MBR Wiper)'
+  'aurawiper': 'AuraWiper (MBR Wiper)',
+  'hvnc-implant': 'macOS HVNC Implant'
 };
 
 function getReportNavTitle(r) {
@@ -2485,20 +2488,8 @@ function buildPortalIndex(allReports) {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  // Featured 3 investigations shown at top of the reference image
-  const featuredIds = ['rustbucket-2', 'unpacking-modified-upx-malware', 'digit-stealer'];
-  const featuredReports = [];
-  const otherReports = [];
-
-  featuredIds.forEach(fid => {
-    const found = allReports.find(r => r.id === fid);
-    if (found) featuredReports.push(found);
-  });
-  allReports.forEach(r => {
-    if (!featuredIds.includes(r.id)) otherReports.push(r);
-  });
-
-  const displayReports = [...featuredReports, ...otherReports];
+  // Sort order: display reports strictly by latest date descending
+  const displayReports = allReports;
 
   const portalHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -4184,7 +4175,12 @@ ${techniquesDropdownHtml}
         }
 
         // Use first image from report if available, else clean platform banner
-        let cardImg = r.firstImage ? `${r.id}/${r.firstImage}` : fallbackImg;
+        let cardImg = fallbackImg;
+        if (r.firstImage) {
+          cardImg = (r.firstImage.startsWith('http://') || r.firstImage.startsWith('https://'))
+            ? r.firstImage
+            : `${r.id}/${r.firstImage}`;
+        }
 
         // Custom exact overrides for the 3 featured reference cards
         let displayTitle = r.title;
