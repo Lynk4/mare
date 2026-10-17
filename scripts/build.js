@@ -638,6 +638,7 @@ function buildReportPage(r) {
     });
 
     processed = processed
+      .replace(/&lt;br\s*\/?&gt;/gi, '<br>')
       .replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>')
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/__([^_]+)__/g, '<strong>$1</strong>')
