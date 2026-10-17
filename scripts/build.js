@@ -638,7 +638,9 @@ function buildReportPage(r) {
     });
 
     processed = processed
+      .replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>')
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/__([^_]+)__/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>')
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 
@@ -825,6 +827,23 @@ function buildReportPage(r) {
       continue;
     }
 
+    // Helper to format figure captions and clean alt text
+    function parseImageCaption(rawAlt) {
+      if (!rawAlt) return { formattedCaption: '', cleanAlt: '' };
+      let captionText = rawAlt.trim();
+      // Unwrap outer bold/italic if the entire caption was wrapped in **...** or *...*
+      if (/^\*\*([^*]+)\*\*$/.test(captionText)) {
+        captionText = captionText.slice(2, -2).trim();
+      } else if (/^\*([^*]+)\*$/.test(captionText)) {
+        captionText = captionText.slice(1, -1).trim();
+      }
+      // Strip redundant "Figure:" prefix if author wrote it
+      captionText = captionText.replace(/^(?:<strong>)?Figure\s*(?:\d+)?\s*:\s*(?:<\/strong>)?\s*/i, '');
+      const formattedCaption = inlineFormat(escapeHtml(captionText));
+      const cleanAlt = rawAlt.replace(/[*_`]/g, '').trim();
+      return { formattedCaption, cleanAlt };
+    }
+
     // Images
     const mdImgMatch = line.match(/!\[([^\]]*)\]\(([^)]+)\)/);
     if (mdImgMatch) {
@@ -834,18 +853,32 @@ function buildReportPage(r) {
         firstEncounteredImage = localSrc;
         r.firstImage = localSrc;
       }
-      const captionHtml = alt ? `
+      const { formattedCaption, cleanAlt } = parseImageCaption(alt);
+      const captionHtml = formattedCaption ? `
           <div class="figure-caption">
-            <span><strong>Figure:</strong> ${escapeHtml(alt)}</span>
-            <span class="zoom-link" style="font-size: 11.5px; color: var(--accent-blue-hover); cursor: pointer;" onclick="openLightbox('${localSrc}', '${escapeHtml(alt)}')">Click to zoom ↗</span>
+            <span><strong>Figure:</strong> ${formattedCaption}</span>
+            <span class="zoom-link" style="font-size: 11.5px; color: var(--accent-blue-hover); cursor: pointer;">Click to zoom ↗</span>
           </div>` : '';
       htmlBuffer.push(`
         <div class="figure-wrapper">
-          <div class="figure-image-container" onclick="openLightbox(this.querySelector('img').src, '${escapeHtml(alt)}')">
-            <img src="${localSrc}" alt="${escapeHtml(alt)}" loading="lazy">
+          <div class="figure-image-container">
+            <img src="${localSrc}" alt="${escapeHtml(cleanAlt)}" loading="lazy">
           </div>${captionHtml}
         </div>
       `);
+
+      // Consume duplicate caption line if the markdown author repeated the caption immediately below the image
+      const normText = str => str.replace(/[*_`]/g, '').replace(/&[a-z]+;/gi, '').trim().toLowerCase();
+      const altNorm = normText(alt);
+      if (altNorm && altNorm.length > 3) {
+        let peek = i + 1;
+        while (peek < lines.length && lines[peek].trim() === '') {
+          peek++;
+        }
+        if (peek < lines.length && normText(lines[peek]) === altNorm) {
+          i = peek; // Skip the redundant duplicate paragraph
+        }
+      }
       continue;
     }
 
@@ -858,18 +891,31 @@ function buildReportPage(r) {
       }
       const altMatch = line.match(/alt=["']([^"']*)["']/i);
       const alt = (altMatch && altMatch[1]) ? altMatch[1].trim() : '';
-      const captionHtml = alt ? `
+      const { formattedCaption, cleanAlt } = parseImageCaption(alt);
+      const captionHtml = formattedCaption ? `
           <div class="figure-caption">
-            <span><strong>Figure:</strong> ${escapeHtml(alt)}</span>
-            <span class="zoom-link" style="font-size: 11.5px; color: var(--accent-blue-hover); cursor: pointer;" onclick="openLightbox('${localSrc}', '${escapeHtml(alt)}')">Click to zoom ↗</span>
+            <span><strong>Figure:</strong> ${formattedCaption}</span>
+            <span class="zoom-link" style="font-size: 11.5px; color: var(--accent-blue-hover); cursor: pointer;">Click to zoom ↗</span>
           </div>` : '';
       htmlBuffer.push(`
         <div class="figure-wrapper">
-          <div class="figure-image-container" onclick="openLightbox(this.querySelector('img').src, '${escapeHtml(alt)}')">
-            <img src="${localSrc}" alt="${escapeHtml(alt)}" loading="lazy">
+          <div class="figure-image-container">
+            <img src="${localSrc}" alt="${escapeHtml(cleanAlt)}" loading="lazy">
           </div>${captionHtml}
         </div>
       `);
+
+      const normText = str => str.replace(/[*_`]/g, '').replace(/&[a-z]+;/gi, '').trim().toLowerCase();
+      const altNorm = normText(alt);
+      if (altNorm && altNorm.length > 3) {
+        let peek = i + 1;
+        while (peek < lines.length && lines[peek].trim() === '') {
+          peek++;
+        }
+        if (peek < lines.length && normText(lines[peek]) === altNorm) {
+          i = peek;
+        }
+      }
       continue;
     }
 
@@ -2820,13 +2866,16 @@ function buildReportPage(r) {
 
     // Global click listener for images and copy elements
     document.addEventListener('click', (e) => {
-      // Image click
-      const img = e.target.closest('.figure-image-container img, .figure-wrapper img, .article-content img');
-      if (img && img.id !== 'lightbox-img') {
-        const wrapper = img.closest('.figure-wrapper');
-        const cap = wrapper ? (wrapper.querySelector('.figure-caption span')?.innerText || img.alt) : img.alt;
-        openLightbox(img.src, cap);
-        return;
+      // Image or image container click
+      const figTarget = e.target.closest('.figure-image-container, .figure-wrapper img, .article-content img');
+      if (figTarget && figTarget.id !== 'lightbox-img') {
+        const wrapper = figTarget.closest('.figure-wrapper');
+        const img = figTarget.tagName === 'IMG' ? figTarget : figTarget.querySelector('img');
+        if (img) {
+          const cap = wrapper ? (wrapper.querySelector('.figure-caption span')?.innerText || img.alt) : img.alt;
+          openLightbox(img.src, cap);
+          return;
+        }
       }
 
       // Click to zoom link
