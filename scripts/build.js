@@ -999,9 +999,6 @@ function buildReportPage(r) {
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html {
       scroll-behavior: smooth;
-      overflow-x: hidden;
-      width: 100%;
-      max-width: 100%;
     }
 
     body {
@@ -1011,9 +1008,6 @@ function buildReportPage(r) {
       line-height: 1.8;
       font-size: 16px;
       -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-      width: 100%;
-      max-width: 100%;
       min-height: 100vh;
       position: relative;
     }
@@ -1239,12 +1233,15 @@ function buildReportPage(r) {
       grid-template-columns: minmax(0, 1fr) 280px;
       gap: 64px;
       align-items: start;
+      position: relative;
     }
 
     /* Sticky Independently Scrollable Sidebar */
     .sidebar-sticky {
+      position: -webkit-sticky;
       position: sticky;
-      top: 80px;
+      top: 84px;
+      align-self: start;
       max-height: calc(100vh - 100px);
       overflow-y: auto;
       overflow-x: hidden;
@@ -1255,6 +1252,7 @@ function buildReportPage(r) {
       display: flex;
       flex-direction: column;
       gap: 36px;
+      z-index: 10;
     }
 
     .sidebar-sticky::-webkit-scrollbar {
@@ -2050,6 +2048,9 @@ function buildReportPage(r) {
 
     /* Responsive Breakpoints (Cascaded at bottom) */
     @media (max-width: 1024px) {
+      html, body {
+        overflow-x: hidden;
+      }
       .article-layout {
         grid-template-columns: 1fr;
         gap: 32px;
@@ -2541,20 +2542,33 @@ function buildReportPage(r) {
   </button>
 
   <script>
-    const navLinks = Array.from(document.querySelectorAll('.toc-nav a, .mobile-toc-nav a'));
-    const linkMap = navLinks.map(link => {
-      const href = link.getAttribute('href');
-      const targetId = href ? href.replace(/^#/, '') : '';
-      const targetEl = document.getElementById(targetId);
-      return { link, targetId, targetEl };
-    }).filter(item => item.targetEl);
+    // Smooth scroll and click handling for both Desktop and Mobile TOC links
+    document.querySelectorAll('.toc-nav a, .mobile-toc-nav a').forEach(link => {
+      link.addEventListener('click', (e) => {
+        const href = link.getAttribute('href');
+        if (!href || !href.startsWith('#')) return;
+        const targetId = href.substring(1);
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) {
+          e.preventDefault();
+          const isMobile = window.innerWidth <= 1024;
+          const navOffset = isMobile ? 65 : 84;
+          const targetTop = targetEl.getBoundingClientRect().top + window.pageYOffset - navOffset;
+          window.scrollTo({ top: targetTop, behavior: 'smooth' });
+          if (history.pushState) {
+            history.pushState(null, '', href);
+          } else {
+            location.hash = href;
+          }
 
-    // Auto-close mobile TOC drawer when a section is selected
-    document.querySelectorAll('.mobile-toc-nav a').forEach(a => {
-      a.addEventListener('click', () => {
-        const drawer = document.getElementById('mobile-toc-drawer');
-        if (drawer && drawer.hasAttribute('open')) {
-          drawer.removeAttribute('open');
+          document.querySelectorAll('.toc-nav a, .mobile-toc-nav a').forEach(l => {
+            l.classList.toggle('active', l.getAttribute('href') === href);
+          });
+
+          const drawer = document.getElementById('mobile-toc-drawer');
+          if (drawer && drawer.hasAttribute('open')) {
+            drawer.removeAttribute('open');
+          }
         }
       });
     });
@@ -2571,45 +2585,48 @@ function buildReportPage(r) {
       }, { passive: true });
     }
 
+    // Scroll spy for Table of Contents
+    const sectionEls = Array.from(document.querySelectorAll('.article-content section[id]'));
     let isTOCScrolling = false;
+
     function updateTOC() {
-      if (linkMap.length === 0) return;
+      if (sectionEls.length === 0) return;
 
       const winScroll = window.scrollY || document.documentElement.scrollTop;
       const scrollHeight = document.documentElement.scrollHeight;
       const clientHeight = document.documentElement.clientHeight;
       const atBottom = (winScroll + clientHeight >= scrollHeight - 60);
 
-      let activeItem = linkMap[0];
+      let activeId = sectionEls[0].id;
       if (atBottom) {
-        activeItem = linkMap[linkMap.length - 1];
+        activeId = sectionEls[sectionEls.length - 1].id;
       } else {
-        for (let i = 0; i < linkMap.length; i++) {
-          const rect = linkMap[i].targetEl.getBoundingClientRect();
-          if (rect.top <= 160) {
-            activeItem = linkMap[i];
+        for (let i = 0; i < sectionEls.length; i++) {
+          const rect = sectionEls[i].getBoundingClientRect();
+          if (rect.top <= 140) {
+            activeId = sectionEls[i].id;
           } else {
             break;
           }
         }
       }
 
-      let activeChanged = false;
-      linkMap.forEach(item => {
-        const isActive = (item === activeItem);
-        if (item.link.classList.contains('active') !== isActive) {
-          item.link.classList.toggle('active', isActive);
-          if (isActive) activeChanged = true;
-        }
+      document.querySelectorAll('.toc-nav a, .mobile-toc-nav a').forEach(link => {
+        const href = link.getAttribute('href');
+        const targetId = href ? href.replace(/^#/, '') : '';
+        link.classList.toggle('active', targetId === activeId);
       });
 
-      if (activeChanged && activeItem && activeItem.link) {
+      if (window.innerWidth > 1024) {
         const sidebar = document.querySelector('.sidebar-sticky');
-        if (sidebar && !sidebar.matches(':hover') && sidebar.scrollHeight > sidebar.clientHeight) {
-          const linkRect = activeItem.link.getBoundingClientRect();
+        const activeDesktopLink = document.querySelector('.sidebar-desktop-toc .toc-nav a[href="#' + activeId + '"]');
+        if (sidebar && activeDesktopLink && !sidebar.matches(':hover') && sidebar.scrollHeight > sidebar.clientHeight) {
+          const linkRect = activeDesktopLink.getBoundingClientRect();
           const sidebarRect = sidebar.getBoundingClientRect();
-          if (linkRect.top < sidebarRect.top + 30 || linkRect.bottom > sidebarRect.bottom - 30) {
-            activeItem.link.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          if (linkRect.top < sidebarRect.top + 20) {
+            sidebar.scrollBy({ top: linkRect.top - sidebarRect.top - 20, behavior: 'smooth' });
+          } else if (linkRect.bottom > sidebarRect.bottom - 20) {
+            sidebar.scrollBy({ top: linkRect.bottom - sidebarRect.bottom + 20, behavior: 'smooth' });
           }
         }
       }
@@ -2634,14 +2651,17 @@ function buildReportPage(r) {
     // Initial check on load
     updateTOC();
 
-    // Click handling for TOC links
-    navLinks.forEach(link => {
-      link.addEventListener('click', () => {
-        navLinks.forEach(l => l.classList.remove('active'));
-        link.classList.add('active');
-        setTimeout(updateTOC, 400);
-      });
-    });
+    if (window.location.hash) {
+      setTimeout(() => {
+        const initialEl = document.querySelector(window.location.hash);
+        if (initialEl) {
+          const isMobile = window.innerWidth <= 1024;
+          const navOffset = isMobile ? 65 : 84;
+          const targetTop = initialEl.getBoundingClientRect().top + window.pageYOffset - navOffset;
+          window.scrollTo({ top: targetTop, behavior: 'smooth' });
+        }
+      }, 100);
+    }
 
     function openLightbox(src, caption) {
       const modal = document.getElementById('lightbox');
