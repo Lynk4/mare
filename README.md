@@ -59,7 +59,7 @@
 | 4     | [Digit Stealer](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/macOS/Digit%20Stealer)  | multi-stage macOS malware campaign functions as a full-spectrum infostealer and crypto-hijacker (targeting browsers, keychains, Telegram, VPNs, and Ledger Live) that uses native AppleScript/JXA for credential phishing and data exfiltration. |
 | 5     | [RustBucket (Part 1)](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/macOS/RustBucket)  | PART-1 Mach-O internals, Universal Binary, ARM64/x86_64, static triage |
 | 6     | [RustBucket (Part 2)](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/macOS/RustBucket-2)  | PART-2 From Swift Symbols to ARM64 Assembly: Uncovering RustBucket's Execution Chain, runtime reversing, Ghidra decompilation, and detection rules |
-
+| 7     |[HVNC implant](https://github.com/Lynk4/mare/tree/main/Malware%20Analysis/macOS/Hvnc%20Implant) | macOS HVNC implant analysis, Mach-O universal binary, code signing & Gatekeeper evasion, C2 communication, APFS browser-profile cloning, CDP-based hidden browser control, persistence, reverse engineering, and YARA detection |
 
 
 ---
