@@ -943,7 +943,8 @@ function buildReportPage(r) {
   const tocListHtml = tocItems.map((item, idx) => {
     const num = String(idx + 1).padStart(2, '0');
     const activeClass = idx === 0 ? 'class="active"' : '';
-    return `<li><a href="#${item.id}" ${activeClass}>${num}. ${escapeHtml(item.title)}</a></li>`;
+    const cleanTitle = item.title.replace(/^(\d+[\.\)]|\b\d+\s*[-–—])\s*/, '');
+    return `<li><a href="#${item.id}" ${activeClass}>${num}. ${escapeHtml(cleanTitle)}</a></li>`;
   }).join('\n');
 
   const hashLabel = r.hashType === 'SHA-256' ? 'Sample SHA-256' : (r.hashType === 'MD5' ? 'Sample MD5' : 'Sample Hash');
