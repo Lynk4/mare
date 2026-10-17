@@ -947,6 +947,25 @@ function buildReportPage(r) {
     return `<li><a href="#${item.id}" ${activeClass}>${num}. ${escapeHtml(cleanTitle)}</a></li>`;
   }).join('\n');
 
+  const mobileTocHtml = `
+        <details class="mobile-toc-drawer" id="mobile-toc-drawer">
+          <summary class="mobile-toc-summary">
+            <div class="mobile-toc-summary-left">
+              <svg class="mobile-toc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="17" y2="12"></line><line x1="3" y1="18" x2="13" y2="18"></line></svg>
+              <span class="mobile-toc-label">Table of Contents</span>
+            </div>
+            <div class="mobile-toc-summary-right">
+              <span class="mobile-toc-pill">${tocItems.length} Sections</span>
+              <svg class="mobile-toc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </summary>
+          <div class="mobile-toc-content">
+            <ul class="mobile-toc-nav">
+              ${tocListHtml}
+            </ul>
+          </div>
+        </details>`;
+
   const hashLabel = r.hashType === 'SHA-256' ? 'Sample SHA-256' : (r.hashType === 'MD5' ? 'Sample MD5' : 'Sample Hash');
   const fullHash = r.hashVal;
 
@@ -954,7 +973,7 @@ function buildReportPage(r) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>${escapeHtml(r.title)} | ${AUTHOR_NAME}</title>
   <link rel="icon" type="image/png" href="../assets/home/mare-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -978,7 +997,12 @@ function buildReportPage(r) {
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    html {
+      scroll-behavior: smooth;
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100%;
+    }
 
     body {
       background-color: var(--bg-black);
@@ -988,6 +1012,8 @@ function buildReportPage(r) {
       font-size: 16px;
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
+      width: 100%;
+      max-width: 100%;
       min-height: 100vh;
       position: relative;
     }
@@ -996,8 +1022,8 @@ function buildReportPage(r) {
       content: '';
       position: fixed;
       inset: 0;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
       background-image: 
         radial-gradient(circle at 18% 0%, rgba(0, 60, 245, 0.16) 0%, transparent 42%),
         radial-gradient(circle at 82% 12%, rgba(0, 40, 190, 0.10) 0%, transparent 48%),
@@ -1028,6 +1054,41 @@ function buildReportPage(r) {
       top: 0;
       z-index: 1000;
       backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .nav-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #8DCAFE;
+      text-decoration: none;
+      font-size: 12.5px;
+      font-weight: 600;
+      font-family: var(--font-display);
+      background: rgba(0, 82, 255, 0.12);
+      border: 1px solid rgba(0, 82, 255, 0.3);
+      padding: 5px 12px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .nav-back-btn:hover {
+      background: var(--accent-blue);
+      border-color: #0052FF;
+      color: #FFFFFF;
+      box-shadow: 0 0 12px rgba(0, 82, 255, 0.4);
     }
 
     .nav-breadcrumbs {
@@ -1036,6 +1097,7 @@ function buildReportPage(r) {
       gap: 12px;
       font-size: 13.5px;
       color: var(--text-muted);
+      min-width: 0;
     }
 
     .brand-title {
@@ -1352,9 +1414,11 @@ function buildReportPage(r) {
       color: var(--text-body);
       font-size: 16px;
       line-height: 1.8;
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
 
-    p code, td code, li code {
+    p code, td code, th code, li code, a code, span code {
       background: rgba(255, 255, 255, 0.06);
       padding: 2px 7px;
       border-radius: 4px;
@@ -1362,6 +1426,9 @@ function buildReportPage(r) {
       font-size: 13.5px;
       color: #8DCAFE;
       border: 1px solid rgba(255, 255, 255, 0.08);
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: normal;
     }
 
     .callout-box {
@@ -1385,11 +1452,19 @@ function buildReportPage(r) {
       margin-bottom: 12px;
       font-size: 15.5px;
       line-height: 1.7;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .list-bullet-item > span:last-child {
+      flex: 1;
+      min-width: 0;
     }
 
     .bullet-dot {
       color: #0052FF;
       font-size: 12px;
+      flex-shrink: 0;
     }
 
     .bullet-num {
@@ -1397,6 +1472,7 @@ function buildReportPage(r) {
       font-weight: 700;
       font-family: var(--font-mono);
       font-size: 14px;
+      flex-shrink: 0;
     }
 
     .figure-wrapper {
@@ -1817,24 +1893,194 @@ function buildReportPage(r) {
       text-decoration: underline;
     }
 
+    /* Mobile Table of Contents Drawer */
+    .mobile-toc-drawer {
+      display: none;
+      background: rgba(10, 17, 24, 0.85);
+      border: 1px solid rgba(0, 82, 255, 0.28);
+      border-radius: 10px;
+      margin-bottom: 28px;
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+    }
+
+    .mobile-toc-summary {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 16px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s ease;
+    }
+
+    .mobile-toc-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .mobile-toc-summary:hover {
+      background: rgba(0, 82, 255, 0.08);
+    }
+
+    .mobile-toc-summary-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mobile-toc-icon {
+      color: #3B82F6;
+      flex-shrink: 0;
+    }
+
+    .mobile-toc-label {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--text-white);
+    }
+
+    .mobile-toc-summary-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mobile-toc-pill {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #8DCAFE;
+      background: rgba(0, 82, 255, 0.15);
+      border: 1px solid rgba(0, 82, 255, 0.3);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .mobile-toc-chevron {
+      color: var(--text-muted);
+      transition: transform 0.25s ease;
+      flex-shrink: 0;
+    }
+
+    .mobile-toc-drawer[open] .mobile-toc-chevron {
+      transform: rotate(180deg);
+      color: #8DCAFE;
+    }
+
+    .mobile-toc-content {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 10px 12px 14px;
+      max-height: 52vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .mobile-toc-nav {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .mobile-toc-nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      padding: 8px 10px;
+      display: block;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+      line-height: 1.45;
+    }
+
+    .mobile-toc-nav a:hover,
+    .mobile-toc-nav a:active {
+      color: var(--text-white);
+      background: rgba(0, 82, 255, 0.15);
+    }
+
+    .mobile-toc-nav a.active {
+      color: var(--text-white);
+      background: rgba(0, 82, 255, 0.2);
+      font-weight: 600;
+      border-left: 3px solid #0052FF;
+    }
+
+    /* Floating Back to Top Button */
+    .btn-floating-top {
+      position: fixed;
+      bottom: 24px;
+      right: 20px;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(10, 17, 24, 0.9);
+      border: 1px solid rgba(0, 82, 255, 0.4);
+      color: #8DCAFE;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 999;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(12px);
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+    .btn-floating-top.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .btn-floating-top:hover {
+      background: var(--accent-blue);
+      color: #FFFFFF;
+      border-color: #0052FF;
+      box-shadow: 0 0 15px rgba(0, 82, 255, 0.5);
+    }
+
     /* Responsive Breakpoints (Cascaded at bottom) */
     @media (max-width: 1024px) {
       .article-layout {
         grid-template-columns: 1fr;
-        gap: 40px;
+        gap: 32px;
       }
       .article-content {
         min-width: 0;
         max-width: 100%;
+        width: 100%;
+      }
+      .mobile-toc-drawer {
+        display: block;
+      }
+      .sidebar-desktop-toc {
+        display: none !important;
       }
       .sidebar-sticky {
         position: static;
         max-height: none;
         overflow-y: visible;
         padding-right: 0;
-        margin-top: 36px;
-        padding-top: 36px;
-        border-top: 1px solid var(--border-line);
+        margin-top: 24px;
+        padding-top: 0;
+        border-top: none;
+        display: block;
+      }
+      .sidebar-threat-profile {
+        background: rgba(10, 17, 24, 0.6);
+        border: 1px solid var(--border-line);
+        border-radius: 8px;
+        padding: 20px 22px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
       }
       h1.article-title {
         font-size: 32px;
@@ -1849,105 +2095,263 @@ function buildReportPage(r) {
 
     @media (max-width: 768px) {
       .site-nav {
-        padding: 12px 16px;
+        padding: 12px 14px;
+        gap: 8px;
       }
-      .nav-breadcrumbs {
-        font-size: 12px;
-        gap: 6px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+      .nav-back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 9px;
+        font-size: 11.5px;
+      }
+      .nav-section-title,
+      .nav-breadcrumbs .meta-divider {
+        display: none !important;
+      }
+      .nav-subtitle, .nav-slash {
+        display: none !important;
       }
       .brand-title {
         font-size: 13px;
         gap: 6px;
       }
+      .badge-tlp {
+        font-size: 10px;
+        padding: 3px 8px;
+      }
       .article-wrap {
-        padding: 24px 16px 60px;
+        padding: 20px 14px 60px;
+        width: 100%;
+        max-width: 100vw;
+        box-sizing: border-box;
       }
       .article-header {
-        margin-bottom: 32px;
-        padding-bottom: 24px;
+        margin-bottom: 24px;
+        padding-bottom: 20px;
       }
-      h1.article-title {
-        font-size: 24px;
-        line-height: 1.3;
-        letter-spacing: -0.3px;
-      }
-      .article-lead {
-        font-size: 15px;
-        line-height: 1.6;
-        margin-bottom: 18px;
-      }
-      .article-meta-info {
-        font-size: 12px;
-        gap: 8px 10px;
-      }
-      h2 {
-        font-size: 20px;
-        margin-top: 36px;
+      .meta-pills {
+        gap: 6px;
         margin-bottom: 14px;
       }
-      h3 {
-        font-size: 17px;
-        margin-top: 26px;
+      .pill-category {
+        font-size: 10px;
+        padding: 3px 9px;
+      }
+      .pill-ref {
+        font-size: 11px;
+      }
+      .pill-difficulty {
+        font-size: 10px;
+        padding: 2px 7px;
+      }
+      h1.article-title {
+        font-size: 23px;
+        line-height: 1.3;
+        letter-spacing: -0.3px;
+        word-break: break-word;
+        margin-bottom: 16px;
+      }
+      .article-lead {
+        font-size: 14.5px;
+        line-height: 1.6;
+        margin-bottom: 18px;
+        word-break: break-word;
+      }
+      .article-meta-info {
+        font-size: 11.5px;
+        gap: 6px 8px;
+      }
+      .article-content section {
+        margin-bottom: 40px;
+        scroll-margin-top: 75px;
+      }
+      h2 {
+        font-size: 19px;
+        margin-top: 32px;
         margin-bottom: 12px;
+        letter-spacing: -0.2px;
+        word-break: break-word;
+      }
+      h3 {
+        font-size: 16px;
+        margin-top: 24px;
+        margin-bottom: 10px;
+        word-break: break-word;
+      }
+      h4 {
+        font-size: 14.5px;
+        margin-top: 18px;
+        margin-bottom: 8px;
+        word-break: break-word;
       }
       p {
-        font-size: 15px;
+        font-size: 14.5px;
         line-height: 1.7;
+        margin-bottom: 18px;
+        word-break: break-word;
+      }
+      .list-bullet-item {
+        font-size: 14px;
+        line-height: 1.6;
+        gap: 8px;
+        margin-bottom: 10px;
+        word-break: break-word;
+      }
+      .callout-box {
+        padding: 14px 16px;
+        margin: 18px 0;
+        font-size: 13.5px;
       }
       .code-box {
         margin: 18px 0 24px;
         max-width: 100%;
-      }
-      pre {
-        padding: 14px 14px;
-        font-size: 12px;
-        max-width: 100%;
+        border-radius: 6px;
       }
       .code-box-header {
         padding: 8px 12px;
-        font-size: 10px;
+        font-size: 11px;
+        gap: 6px;
+      }
+      .code-box-header span:first-child {
+        max-width: calc(100% - 95px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .code-box pre {
+        padding: 12px 14px;
+        font-size: 11.5px;
+        line-height: 1.55;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+      }
+      .btn-copy {
+        padding: 3px 8px;
+        font-size: 10.5px;
       }
       .table-responsive {
         margin: 18px 0 24px;
         max-width: 100%;
+        border-radius: 6px;
+        border: 1px solid var(--border-line);
+        -webkit-overflow-scrolling: touch;
+      }
+      table {
+        font-size: 12px;
       }
       th {
-        padding: 10px 12px;
+        padding: 8px 10px;
         font-size: 11px;
+        word-break: break-word;
       }
       td {
-        padding: 10px 12px;
-        font-size: 13px;
+        padding: 8px 10px;
+        font-size: 12px;
+        word-break: break-word;
+      }
+      .table-metadata th:first-child,
+      .table-metadata td:first-child {
+        width: 105px;
+        min-width: 85px;
+        max-width: 120px;
+        font-size: 11.5px;
+        padding: 8px 8px;
+      }
+      .table-metadata th:last-child,
+      .table-metadata td:last-child {
+        padding: 8px 8px;
+        font-size: 12px;
+      }
+      .hash-cell-wrapper {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .hash-cell-wrapper code {
+        font-size: 10.5px;
+        padding: 3px 6px;
+        width: 100%;
+        word-break: break-all;
+      }
+      .hash-cell-wrapper .btn-copy {
+        width: 100%;
+        text-align: center;
+        padding: 4px 8px;
+        font-size: 10px;
       }
       .figure-wrapper {
-        margin: 24px 0;
+        margin: 20px 0;
         max-width: 100%;
+        border-radius: 6px;
       }
       .figure-image-container {
-        padding: 8px;
+        padding: 6px;
+      }
+      .figure-image-container img {
+        max-height: 380px;
       }
       .figure-caption {
-        padding: 10px 14px;
-        font-size: 12px;
+        padding: 8px 12px;
+        font-size: 11.5px;
         flex-wrap: wrap;
         gap: 6px;
       }
       .sidebar-block-title {
-        font-size: 13px;
+        font-size: 12.5px;
+        margin-bottom: 12px;
+        padding-bottom: 6px;
       }
-      .toc-nav a {
-        font-size: 13px;
-        padding: 7px 10px;
+      .threat-info-list {
+        gap: 12px;
+      }
+      .threat-k {
+        font-size: 9.5px;
       }
       .threat-v {
-        font-size: 12.5px;
+        font-size: 12px;
+      }
+      .threat-v.mono {
+        font-size: 10.5px;
       }
       .hash-interactive {
+        font-size: 10.5px;
+        padding: 6px 8px;
+      }
+      .malops-challenge-callout {
+        padding: 12px 14px;
+        margin-bottom: 22px;
+        border-radius: 6px;
+      }
+      .callout-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .btn-external-challenge {
+        width: 100%;
+        justify-content: center;
+        padding: 7px 12px;
         font-size: 11.5px;
-        padding: 6px 10px;
+      }
+      .callout-meta-row {
+        flex-direction: column;
+        gap: 6px;
+        font-size: 12px;
+      }
+      .lightbox-modal {
+        padding: 10px;
+      }
+      .lightbox-close {
+        top: max(12px, env(safe-area-inset-top));
+        right: max(12px, env(safe-area-inset-right));
+        width: 36px;
+        height: 36px;
+        font-size: 24px;
+      }
+      .lightbox-caption-text {
+        font-size: 11.5px;
+        padding: 6px 12px;
+        max-width: 92vw;
       }
       #toast-msg {
         bottom: 16px;
@@ -1959,14 +2363,43 @@ function buildReportPage(r) {
     }
 
     @media (max-width: 480px) {
-      .nav-breadcrumbs span:last-child {
-        display: none;
+      .site-nav {
+        padding: 10px 12px;
       }
-      .nav-breadcrumbs .meta-divider {
-        display: none;
+      .article-wrap {
+        padding: 16px 12px 50px;
       }
       h1.article-title {
-        font-size: 21px;
+        font-size: 20px;
+        line-height: 1.32;
+        letter-spacing: -0.3px;
+      }
+      .article-lead {
+        font-size: 13.5px;
+        line-height: 1.55;
+      }
+      h2 {
+        font-size: 17.5px;
+        margin-top: 26px;
+      }
+      h3 {
+        font-size: 15px;
+        margin-top: 20px;
+      }
+      .figure-image-container img {
+        max-height: 280px;
+      }
+      .code-box pre {
+        padding: 10px;
+        font-size: 11px;
+      }
+      .table-metadata th:first-child,
+      .table-metadata td:first-child {
+        width: 85px;
+        min-width: 75px;
+        max-width: 95px;
+        font-size: 11px;
+        padding: 6px 6px;
       }
     }
   </style>
@@ -1976,15 +2409,21 @@ function buildReportPage(r) {
   <div id="progress-bar"></div>
 
   <nav class="site-nav">
-    <div class="nav-breadcrumbs">
-      <a href="../index.html" class="brand-title" style="display:inline-flex;align-items:center;gap:8px;">
-        <img src="../assets/home/mare-logo.png" alt="MARE Logo" width="18" height="18" style="vertical-align:middle;border-radius:3px;">
-        <span>MARE</span>
-        <span style="opacity:0.4;font-size:11px;">/</span>
-        <span>THREAT RESEARCH</span>
+    <div class="nav-left">
+      <a href="../index.html" class="nav-back-btn" title="Back to all investigations">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        <span>Reports</span>
       </a>
-      <span class="meta-divider">/</span>
-      <span>${r.source === 'malops' ? 'MALOPS INVESTIGATIONS' : escapeHtml(r.os.toUpperCase()) + ' INVESTIGATIONS'}</span>
+      <div class="nav-breadcrumbs">
+        <a href="../index.html" class="brand-title" style="display:inline-flex;align-items:center;gap:8px;">
+          <img src="../assets/home/mare-logo.png" alt="MARE Logo" width="18" height="18" style="vertical-align:middle;border-radius:3px;">
+          <span>MARE</span>
+          <span class="nav-slash" style="opacity:0.4;font-size:11px;">/</span>
+          <span class="nav-subtitle">THREAT RESEARCH</span>
+        </a>
+        <span class="meta-divider">/</span>
+        <span class="nav-section-title">${r.source === 'malops' ? 'MALOPS INVESTIGATIONS' : escapeHtml(r.os.toUpperCase()) + ' INVESTIGATIONS'}</span>
+      </div>
     </div>
 
     <div class="nav-actions">
@@ -2023,6 +2462,7 @@ function buildReportPage(r) {
     <div class="article-layout">
       
       <div class="article-content">
+        ${mobileTocHtml}
         ${r.source === 'malops' ? `
         <div class="malops-challenge-callout">
           <div class="callout-header">
@@ -2043,14 +2483,14 @@ function buildReportPage(r) {
       </div>
 
       <aside class="sidebar-sticky">
-        <div>
+        <div class="sidebar-desktop-toc">
           <div class="sidebar-block-title">Table of Contents</div>
           <ul class="toc-nav">
             ${tocListHtml}
           </ul>
         </div>
 
-        <div>
+        <div class="sidebar-threat-profile">
           <div class="sidebar-block-title">Threat Profile</div>
           <div class="threat-info-list">
             <div class="threat-row">
@@ -2096,14 +2536,40 @@ function buildReportPage(r) {
 
   <div id="toast-msg">Copied</div>
 
+  <button id="btn-back-to-top" class="btn-floating-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" aria-label="Scroll to top" title="Back to top">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+  </button>
+
   <script>
-    const navLinks = Array.from(document.querySelectorAll('.toc-nav a'));
+    const navLinks = Array.from(document.querySelectorAll('.toc-nav a, .mobile-toc-nav a'));
     const linkMap = navLinks.map(link => {
       const href = link.getAttribute('href');
       const targetId = href ? href.replace(/^#/, '') : '';
       const targetEl = document.getElementById(targetId);
       return { link, targetId, targetEl };
     }).filter(item => item.targetEl);
+
+    // Auto-close mobile TOC drawer when a section is selected
+    document.querySelectorAll('.mobile-toc-nav a').forEach(a => {
+      a.addEventListener('click', () => {
+        const drawer = document.getElementById('mobile-toc-drawer');
+        if (drawer && drawer.hasAttribute('open')) {
+          drawer.removeAttribute('open');
+        }
+      });
+    });
+
+    // Floating Back to Top Button Visibility
+    const btnTop = document.getElementById('btn-back-to-top');
+    if (btnTop) {
+      window.addEventListener('scroll', () => {
+        if ((window.scrollY || document.documentElement.scrollTop) > 400) {
+          btnTop.classList.add('visible');
+        } else {
+          btnTop.classList.remove('visible');
+        }
+      }, { passive: true });
+    }
 
     let isTOCScrolling = false;
     function updateTOC() {
