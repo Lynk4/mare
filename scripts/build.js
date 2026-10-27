@@ -149,6 +149,7 @@ function discoverReports() {
       if (dirName === 'Digit Stealer') id = 'digit-stealer';
       if (dirName === 'Linux Backdoor BPFDoor') id = 'bpfdoor';
       if (dirName === 'Hvnc Implant') id = 'hvnc-implant';
+      if (dirName === 'macOS Malware Analysis The __c5cfg Enigma') id = 'c5-enigma';
 
       // 100% AUTOMATIC EXTRACTION FROM CONTENT
       // A. Extract Title from first # Heading
@@ -259,6 +260,7 @@ function discoverReports() {
       if (fs.existsSync(metaFile)) {
         try {
           const meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+          if (meta.id) id = meta.id;
           if (meta.title) title = meta.title;
           if (meta.subtitle || meta.lead) lead = meta.subtitle || meta.lead;
           if (meta.thumbnail || meta.thumb || meta.image) thumbnail = meta.thumbnail || meta.thumb || meta.image;
@@ -717,6 +719,7 @@ function buildReportPage(r) {
   }
 
   let firstEncounteredImage = null;
+  let firstH1Encountered = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -805,7 +808,17 @@ function buildReportPage(r) {
     const h3Match = line.match(/^###\s+(.+)$/);
     const h4Match = line.match(/^####\s+(.+)$/);
 
-    if (h1Match) continue;
+    if (h1Match) {
+      if (!firstH1Encountered) {
+        firstH1Encountered = true;
+        continue;
+      }
+      const title = h1Match[1].replace(/[*_`]/g, '').trim();
+      const id = slugify(title);
+      tocItems.push({ id, title });
+      htmlBuffer.push(`</section><section id="${id}"><h2>${escapeHtml(title)}</h2>`);
+      continue;
+    }
 
     if (h2Match) {
       const title = h2Match[1].replace(/[*_`]/g, '').trim();
