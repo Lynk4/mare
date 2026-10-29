@@ -4187,6 +4187,93 @@ function buildPortalIndex(allReports) {
       color: #05090D;
     }
 
+    /* Load More Button & Container */
+    .load-more-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-top: 36px;
+      padding-bottom: 24px;
+      gap: 12px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .btn-load-more {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 9999px;
+      padding: 12px 28px;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-load-more:hover {
+      background: rgba(183, 255, 60, 0.08);
+      border-color: rgba(183, 255, 60, 0.45);
+      color: #FFFFFF;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(183, 255, 60, 0.18);
+      transform: translateY(-2px);
+    }
+
+    .btn-load-more:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .btn-load-more:focus-visible {
+      outline: 2px solid var(--neon-lime);
+      outline-offset: 3px;
+    }
+
+    .btn-load-more-badge {
+      background: rgba(53, 229, 208, 0.12);
+      color: var(--neon-cyan);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 9999px;
+      letter-spacing: 0.2px;
+      transition: background 0.2s ease, color 0.2s ease;
+      border: 1px solid rgba(53, 229, 208, 0.2);
+    }
+
+    .btn-load-more:hover .btn-load-more-badge {
+      background: rgba(183, 255, 60, 0.15);
+      color: var(--neon-lime);
+      border-color: rgba(183, 255, 60, 0.3);
+    }
+
+    .btn-load-more-icon {
+      transition: transform 0.2s ease;
+      stroke: var(--text-secondary);
+    }
+
+    .btn-load-more:hover .btn-load-more-icon {
+      transform: translateY(2px);
+      stroke: var(--neon-lime);
+    }
+
+    .load-more-status {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.2px;
+    }
+
     /* Responsive */
     @media (max-width: 1200px) {
       .hero-container {
@@ -4434,6 +4521,16 @@ function buildPortalIndex(allReports) {
       .card-arrow-btn {
         width: 30px;
         height: 30px;
+      }
+      .load-more-container {
+        margin-top: 24px;
+        padding-bottom: 12px;
+      }
+      .btn-load-more {
+        width: 100%;
+        max-width: 320px;
+        font-size: 13.5px;
+        padding: 11px 20px;
       }
     }
   </style>
@@ -4697,7 +4794,7 @@ ${techniquesDropdownHtml}
 
     <!-- Cards Stream Grid -->
     <div class="investigations-grid" id="investigations-grid">
-      ${displayReports.map(r => {
+      ${displayReports.map((r, idx) => {
         let fallbackImg = 'assets/home/card-threatintel.png';
         let badgeClass = 'badge-cross';
         let badgeText = r.os || 'Cross-platform';
@@ -4761,7 +4858,7 @@ ${techniquesDropdownHtml}
         const searchKeywords = `${displayTitle} ${displayDesc} ${r.category} ${r.os} ${r.family} ${r.targets} ${r.delivery}`.toLowerCase();
 
         return `
-        <article class="inv-card" data-os="${escapeHtml(r.os)}" data-category="${escapeHtml(r.category)}" data-source="${escapeHtml(r.source || '')}" data-search="${escapeHtml(searchKeywords)}">
+        <article class="inv-card" data-os="${escapeHtml(r.os)}" data-category="${escapeHtml(r.category)}" data-source="${escapeHtml(r.source || '')}" data-search="${escapeHtml(searchKeywords)}"${idx >= 9 ? ' style="display:none;"' : ''}>
           <a href="${r.id}/index.html" class="card-banner" aria-label="${escapeHtml(displayTitle)}">
             <span class="card-platform-badge ${badgeClass}">${escapeHtml(badgeText)}</span>
             <img src="${cardImg}" alt="${escapeHtml(displayTitle)}" class="card-banner-img" loading="lazy">
@@ -4797,6 +4894,18 @@ ${techniquesDropdownHtml}
         <button class="reset-btn" onclick="resetFilters()">Reset All Filters</button>
       </div>
     </div>
+
+    <!-- Load More Container -->
+    <div class="load-more-container" id="load-more-container"${displayReports.length <= 9 ? ' style="display:none;"' : ''}>
+      <button type="button" id="btn-load-more" class="btn-load-more" aria-label="Load more threat research investigations">
+        <span>Load More Investigations</span>
+        <span class="btn-load-more-badge" id="load-more-badge">${Math.max(0, displayReports.length - 9)} remaining</span>
+        <svg class="btn-load-more-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      <div class="load-more-status" id="load-more-status">Showing ${Math.min(9, displayReports.length)} of ${displayReports.length} investigations</div>
+    </div>
   </section>
 
   <script>
@@ -4806,6 +4915,14 @@ ${techniquesDropdownHtml}
     const filterPills = document.querySelectorAll('.filter-pill');
     const cards = document.querySelectorAll('.inv-card');
     const emptyState = document.getElementById('empty-search-state');
+    const loadMoreContainer = document.getElementById('load-more-container');
+    const btnLoadMore = document.getElementById('btn-load-more');
+    const loadMoreBadge = document.getElementById('load-more-badge');
+    const loadMoreStatus = document.getElementById('load-more-status');
+
+    const INITIAL_PAGE_SIZE = 9;
+    const PAGE_STEP = 9;
+    let visibleLimit = INITIAL_PAGE_SIZE;
 
     let currentFilter = 'all';
     let currentCategory = 'all';
@@ -4813,7 +4930,10 @@ ${techniquesDropdownHtml}
 
     function filterCards() {
       const q = searchQuery.trim().toLowerCase();
-      let visible = 0;
+      const isDefaultView = (currentFilter === 'all' && currentCategory === 'all' && !q);
+
+      let matchingCount = 0;
+      let visibleCount = 0;
 
       cards.forEach(card => {
         const cardOs = card.getAttribute('data-os') || '';
@@ -4834,15 +4954,26 @@ ${techniquesDropdownHtml}
         const searchMatch = !q || cardSearch.includes(q);
 
         if (filterMatch && catMatch && searchMatch) {
-          card.style.display = 'flex';
-          visible++;
+          matchingCount++;
+          if (isDefaultView) {
+            if (matchingCount <= visibleLimit) {
+              card.style.display = 'flex';
+              visibleCount++;
+            } else {
+              card.style.display = 'none';
+            }
+          } else {
+            // Specific OS, category, or search: load all matching
+            card.style.display = 'flex';
+            visibleCount++;
+          }
         } else {
           card.style.display = 'none';
         }
       });
 
       if (emptyState) {
-        emptyState.style.display = (visible === 0) ? 'block' : 'none';
+        emptyState.style.display = (matchingCount === 0) ? 'block' : 'none';
       }
 
       if (clearBtn && searchKbd) {
@@ -4854,11 +4985,44 @@ ${techniquesDropdownHtml}
           searchKbd.style.display = 'block';
         }
       }
+
+      if (loadMoreContainer) {
+        if (isDefaultView && matchingCount > visibleCount) {
+          loadMoreContainer.style.display = 'flex';
+          if (btnLoadMore) btnLoadMore.style.display = 'inline-flex';
+          const remaining = matchingCount - visibleCount;
+          if (loadMoreBadge) {
+            loadMoreBadge.textContent = remaining + ' remaining';
+          }
+          if (loadMoreStatus) {
+            loadMoreStatus.textContent = 'Showing ' + visibleCount + ' of ' + matchingCount + ' investigations';
+          }
+        } else if (isDefaultView && matchingCount > 0 && matchingCount <= visibleCount && visibleCount > INITIAL_PAGE_SIZE) {
+          loadMoreContainer.style.display = 'flex';
+          if (btnLoadMore) btnLoadMore.style.display = 'none';
+          if (loadMoreStatus) {
+            loadMoreStatus.textContent = 'All ' + matchingCount + ' investigations loaded';
+          }
+        } else {
+          loadMoreContainer.style.display = 'none';
+          if (btnLoadMore) btnLoadMore.style.display = 'inline-flex';
+        }
+      }
+    }
+
+    if (btnLoadMore) {
+      btnLoadMore.addEventListener('click', () => {
+        visibleLimit += PAGE_STEP;
+        filterCards();
+      });
     }
 
     function filterByCategory(catName) {
       currentCategory = catName;
       currentFilter = 'all';
+      if (catName === 'all') {
+        visibleLimit = INITIAL_PAGE_SIZE;
+      }
       filterPills.forEach(pill => {
         const isAll = (pill.getAttribute('data-filter') === 'all');
         pill.classList.toggle('active', isAll);
@@ -4872,6 +5036,9 @@ ${techniquesDropdownHtml}
     function selectFilter(filterName) {
       currentFilter = filterName;
       currentCategory = 'all';
+      if (filterName.toLowerCase() === 'all') {
+        visibleLimit = INITIAL_PAGE_SIZE;
+      }
       filterPills.forEach(pill => {
         const isActive = (pill.getAttribute('data-filter').toLowerCase() === filterName.toLowerCase());
         pill.classList.toggle('active', isActive);
@@ -4897,6 +5064,9 @@ ${techniquesDropdownHtml}
       clearBtn.addEventListener('click', () => {
         searchInput.value = '';
         searchQuery = '';
+        if (currentFilter === 'all' && currentCategory === 'all') {
+          visibleLimit = INITIAL_PAGE_SIZE;
+        }
         filterCards();
         searchInput.focus();
       });
@@ -4906,6 +5076,7 @@ ${techniquesDropdownHtml}
       if (searchInput) searchInput.value = '';
       searchQuery = '';
       currentCategory = 'all';
+      visibleLimit = INITIAL_PAGE_SIZE;
       selectFilter('all');
     }
 
@@ -4920,6 +5091,9 @@ ${techniquesDropdownHtml}
       } else if (e.key === 'Escape' && document.activeElement === searchInput) {
         searchInput.value = '';
         searchQuery = '';
+        if (currentFilter === 'all' && currentCategory === 'all') {
+          visibleLimit = INITIAL_PAGE_SIZE;
+        }
         filterCards();
         searchInput.blur();
       }
@@ -4968,13 +5142,23 @@ ${techniquesDropdownHtml}
     });
 
     // Support URL param e.g. ?platform=Linux or ?category=Malware+Family+Analysis
+    let hasUrlFilter = false;
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const p = urlParams.get('platform');
       const c = urlParams.get('category');
-      if (p) selectFilter(p);
-      else if (c) filterByCategory(c);
+      if (p) {
+        selectFilter(p);
+        hasUrlFilter = true;
+      } else if (c) {
+        filterByCategory(c);
+        hasUrlFilter = true;
+      }
     } catch (e) {}
+
+    if (!hasUrlFilter) {
+      filterCards();
+    }
   </script>
 </body>
 </html>
