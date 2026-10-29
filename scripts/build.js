@@ -3535,130 +3535,239 @@ function buildPortalIndex(allReports) {
       box-shadow: 0 0 16px rgba(183, 255, 60, 0.2);
     }
 
-    /* Hero Section */
-    .hero-section {
-      position: relative;
+    /* Hero Section - 16:9 HD Studio Battlestation Cover */
+    .hero-full-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
       z-index: 1;
-      padding: 16px 0 8px;
-      overflow: hidden;
     }
 
-    .hero-container {
+    @keyframes heroFadeUp {
+      from { opacity: 0; transform: translateY(22px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero-immersive-section {
+      position: relative;
+      width: 100%;
+      min-height: 520px;
+      overflow: hidden;
+      padding: 24px 0 16px;
+    }
+
+    .immersive-bg-wrapper {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .immersive-bg-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 38%;
+      filter: contrast(1.1) brightness(0.92);
+      transform: scale(1.02);
+      animation: heroBgZoom 20s ease-in-out infinite alternate;
+    }
+
+    @keyframes heroBgZoom {
+      0% { transform: scale(1.02) translate(0, 0); }
+      100% { transform: scale(1.06) translate(-1%, -1%); }
+    }
+
+    .immersive-gradient-mask {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 75% 35%, rgba(5,9,13,0.15) 0%, rgba(5,9,13,0.7) 65%, #05090D 95%),
+                  linear-gradient(to right, #05090D 0%, rgba(5,9,13,0.92) 28%, rgba(5,9,13,0.65) 55%, rgba(5,9,13,0.2) 80%, rgba(5,9,13,0.7) 100%),
+                  linear-gradient(to bottom, rgba(5,9,13,0.7) 0%, transparent 40%, #05090D 100%);
+    }
+
+    .immersive-container {
+      position: relative;
+      z-index: 2;
       max-width: 1480px;
       margin: 0 auto;
-      padding: 0 44px;
-      display: grid;
-      grid-template-columns: 1.08fr 1fr;
-      gap: 16px;
-      align-items: center;
-      min-height: auto;
-    }
-
-    .hero-left-col {
+      padding: 44px 44px 36px;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      z-index: 2;
+      min-height: 480px;
     }
 
-    .hero-eyebrow {
-      display: flex;
+    .immersive-content-box-borderless {
+      max-width: 780px;
+      position: relative;
+      z-index: 3;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+    }
+
+    .cover-eyebrow {
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    .eyebrow-dash {
-      width: 16px;
-      height: 2px;
-      background: var(--neon-lime);
-      border-radius: 2px;
-    }
-
-    .eyebrow-text {
-      color: var(--neon-lime);
+      gap: 10px;
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
       letter-spacing: 2px;
+      color: var(--neon-cyan);
+      margin-bottom: 16px;
       text-transform: uppercase;
+      animation: heroFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s backwards;
     }
 
-    .hero-headline {
-      font-family: var(--font-display);
-      font-size: 58px;
-      font-weight: 800;
-      line-height: 1.05;
-      letter-spacing: -1.8px;
-      margin-bottom: 12px;
+    .cover-eyebrow-dash {
+      width: 20px;
+      height: 2px;
+      background: var(--neon-cyan);
+      display: inline-block;
     }
 
-    .hl-white {
+    .cover-headline {
+      font-size: clamp(38px, 4.8vw, 62px);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -1.5px;
       color: #FFFFFF;
+      margin: 0 0 18px;
+      font-family: var(--font-sans);
+      text-shadow: 0 4px 30px rgba(0, 0, 0, 0.85);
+      animation: heroFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s backwards;
     }
 
-    .hl-lime {
+    .cover-hl-lime {
       color: var(--neon-lime);
-      text-shadow: 0 0 35px rgba(183, 255, 60, 0.35);
+      text-shadow: 0 0 35px rgba(183, 255, 60, 0.45);
     }
 
-    .hero-lead-text {
-      color: var(--text-secondary);
-      font-size: 15px;
-      line-height: 1.5;
-      max-width: 510px;
-      margin-bottom: 20px;
-      font-weight: 400;
+    .cover-lead-text {
+      font-size: 16.5px;
+      line-height: 1.6;
+      color: #C0C8D4;
+      max-width: 640px;
+      margin: 0 0 26px;
+      text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
+      animation: heroFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.35s backwards;
     }
 
-    .hero-cta-group {
+    .cover-cta-row {
       display: flex;
-      align-items: center;
       gap: 14px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
+      margin-bottom: 34px;
+      animation: heroFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.4s backwards;
     }
 
-    .btn-cta-primary {
+    .btn-cover-explore {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
       background: var(--neon-lime);
       color: #05090D;
-      font-family: var(--font-body);
       font-weight: 700;
-      font-size: 13.5px;
-      padding: 10px 22px;
-      border-radius: 9999px;
+      font-size: 14px;
+      padding: 12px 24px;
+      border-radius: 8px;
       text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 9px;
-      transition: all 0.2s ease;
-      box-shadow: 0 0 20px rgba(183, 255, 60, 0.3);
+      transition: all 0.25s ease;
+      box-shadow: 0 0 24px rgba(183, 255, 60, 0.35);
     }
 
-    .btn-cta-primary:hover {
+    .btn-cover-explore:hover {
       transform: translateY(-2px);
-      box-shadow: 0 0 28px rgba(183, 255, 60, 0.5);
+      box-shadow: 0 0 32px rgba(183, 255, 60, 0.6);
+      background: #c3ff5c;
     }
 
-    .btn-cta-secondary {
-      background: rgba(10, 17, 24, 0.85);
-      color: #F5F7FA;
-      font-family: var(--font-body);
-      font-weight: 600;
-      font-size: 13.5px;
-      padding: 10px 22px;
-      border-radius: 9999px;
-      text-decoration: none;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      display: inline-flex;
+    /* Pure Text Borderless Floating Badge */
+    .cover-borderless-badge {
+      position: absolute;
+      top: 36px;
+      right: 44px;
+      z-index: 5;
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      backdrop-filter: none !important;
+      display: flex;
       align-items: center;
-      transition: all 0.2s ease;
+      gap: 10px;
+      animation: heroFadeUp 0.8s ease backwards;
+      pointer-events: none;
     }
 
-    .btn-cta-secondary:hover {
-      border-color: rgba(255, 255, 255, 0.35);
-      background: rgba(255, 255, 255, 0.05);
-      color: #FFFFFF;
+    .hud-pulsing-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--neon-lime);
+      box-shadow: 0 0 10px var(--neon-lime), 0 0 18px var(--neon-lime);
+      animation: pulseGlow 1.8s infinite ease-in-out;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.85); }
+    }
+
+    .bb-lime {
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: var(--neon-lime);
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95), 0 0 20px rgba(183, 255, 60, 0.45);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .bb-slash {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: rgba(53, 229, 208, 0.6);
+      font-weight: 400;
+      margin: 0 2px;
+    }
+
+    .bb-cyan {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      color: var(--neon-cyan);
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95), 0 0 16px rgba(53, 229, 208, 0.35);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .bb-cursor {
+      display: inline-block;
+      width: 7px;
+      height: 14px;
+      background: var(--neon-lime);
+      margin-left: 4px;
+      animation: blinkCursor 1s step-end infinite;
+      vertical-align: -1px;
+      box-shadow: 0 0 10px var(--neon-lime);
+      flex-shrink: 0;
+    }
+
+    @keyframes blinkCursor {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
     }
 
     /* 4 Research Statistics */
@@ -3709,50 +3818,11 @@ function buildPortalIndex(allReports) {
       flex-shrink: 0;
     }
 
-    /* Hero Right Column (The 3D Cube Illustration) */
-    .hero-right-col {
-      position: relative;
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      z-index: 1;
-    }
-
-    .hero-cube-visual-wrapper {
-      position: relative;
-      width: 100%;
-      max-width: 860px;
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-    }
-
-    @keyframes heroCubeFloat {
-      0%, 100% {
-        transform: translateY(0px);
-        filter: drop-shadow(0 0 35px rgba(53, 229, 208, 0.12));
-      }
-      50% {
-        transform: translateY(-8px);
-        filter: drop-shadow(0 0 45px rgba(53, 229, 208, 0.22)) drop-shadow(0 0 20px rgba(183, 255, 60, 0.12));
-      }
-    }
-
-    .hero-cube-img {
-      width: 100%;
-      height: auto;
-      max-height: 430px;
-      object-fit: contain;
-      filter: drop-shadow(0 0 35px rgba(53, 229, 208, 0.12));
-      user-select: none;
-      animation: heroCubeFloat 6s ease-in-out infinite;
-      will-change: transform, filter;
-      transform: translateZ(0);
-    }
-
     @media (prefers-reduced-motion: reduce) {
       .brand-logo-img,
-      .hero-cube-img {
+      .immersive-bg-img,
+      .hud-pulsing-dot,
+      .bb-cursor {
         animation: none !important;
       }
     }
@@ -3988,21 +4058,24 @@ function buildPortalIndex(allReports) {
     .card-banner {
       position: relative;
       width: 100%;
-      height: 158px;
+      height: 230px;
       background: #070D13;
       overflow: hidden;
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      contain: paint;
     }
 
     .card-banner-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transition: transform 0.4s ease;
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s ease;
+      will-change: transform;
     }
 
     .inv-card:hover .card-banner-img {
-      transform: scale(1.03);
+      transform: scale(1.05);
+      filter: contrast(1.08) brightness(1.05);
     }
 
     /* Platform Badges */
@@ -4276,15 +4349,8 @@ function buildPortalIndex(allReports) {
 
     /* Responsive */
     @media (max-width: 1200px) {
-      .hero-container {
-        grid-template-columns: 1fr;
-        gap: 36px;
-      }
-      .hero-cube-visual-wrapper {
-        justify-content: center;
-      }
-      .hero-headline {
-        font-size: 52px;
+      .cover-headline {
+        font-size: 50px;
       }
       .investigations-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -4292,10 +4358,25 @@ function buildPortalIndex(allReports) {
     }
 
     @media (max-width: 900px) {
-      .hero-container {
-        grid-template-columns: 1fr;
-        gap: 28px;
-        padding: 0 24px;
+      .hero-immersive-section {
+        min-height: auto;
+        padding: 20px 0 16px;
+      }
+      .immersive-container {
+        padding: 28px 24px 24px;
+        min-height: auto;
+      }
+      .cover-borderless-badge {
+        position: relative !important;
+        top: auto !important;
+        right: auto !important;
+        margin-bottom: 14px;
+        align-self: flex-start;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .bb-lime, .bb-cyan {
+        font-size: 12px;
       }
       .hero-stats-row {
         display: grid;
@@ -4314,13 +4395,6 @@ function buildPortalIndex(allReports) {
       .stat-label, .stat-sub {
         white-space: normal;
         overflow-wrap: break-word;
-      }
-      .hero-cube-visual-wrapper {
-        max-width: 100%;
-        justify-content: center;
-      }
-      .hero-cube-img {
-        max-height: 320px;
       }
     }
 
@@ -4343,15 +4417,15 @@ function buildPortalIndex(allReports) {
       .brand-vsep {
         display: none;
       }
-      .hero-container {
-        padding: 0 20px;
+      .immersive-container {
+        padding: 24px 20px 20px;
       }
-      .hero-headline {
-        font-size: clamp(36px, 8.5vw, 44px);
+      .cover-headline {
+        font-size: clamp(34px, 8vw, 44px);
         letter-spacing: -1.2px;
       }
-      .hero-lead-text {
-        font-size: 14.5px;
+      .cover-lead-text {
+        font-size: 15px;
       }
       .section-hdivider {
         padding: 0 20px;
@@ -4429,36 +4503,44 @@ function buildPortalIndex(allReports) {
         width: 12px;
         height: 12px;
       }
-      .hero-section {
-        padding: 14px 0 8px;
+      .hero-immersive-section {
+        padding: 16px 0 10px;
       }
-      .hero-container {
-        padding: 0 16px;
-        gap: 20px;
+      .immersive-container {
+        padding: 20px 16px 16px;
       }
-      .hero-eyebrow {
-        margin-bottom: 8px;
+      .cover-borderless-badge {
+        gap: 5px;
+        margin-bottom: 10px;
       }
-      .eyebrow-text {
+      .bb-lime, .bb-cyan {
+        font-size: 11px;
+        letter-spacing: 0.4px;
+        white-space: normal;
+      }
+      .cover-eyebrow {
+        margin-bottom: 10px;
+      }
+      .cover-eyebrow-text {
         font-size: 10px;
         letter-spacing: 1px;
         white-space: normal;
         line-height: 1.35;
       }
-      .hero-headline {
-        font-size: clamp(32px, 8.5vw, 40px);
+      .cover-headline {
+        font-size: clamp(28px, 8.5vw, 36px);
         letter-spacing: -1px;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
       }
-      .hero-lead-text {
+      .cover-lead-text {
         font-size: 14px;
         line-height: 1.45;
-        margin-bottom: 16px;
+        margin-bottom: 18px;
       }
-      .hero-cta-group {
-        margin-bottom: 20px;
+      .cover-cta-row {
+        margin-bottom: 22px;
       }
-      .btn-cta-primary {
+      .btn-cover-explore {
         width: 100%;
         justify-content: center;
         padding: 11px 20px;
@@ -4695,27 +4777,41 @@ ${techniquesDropdownHtml}
   </header>
 
   <!-- Hero Section -->
-  <section class="hero-section">
-    <div class="hero-container">
-      <div class="hero-left-col">
-        <div class="hero-eyebrow">
-          <span class="eyebrow-dash"></span>
-          <span class="eyebrow-text">INDEPENDENT THREAT RESEARCH</span>
+  <section class="hero-immersive-section">
+    <div class="immersive-bg-wrapper">
+      <img src="assets/home/re-battlestation-2.jpg" alt="16:9 HD Malware Analysis Studio" class="immersive-bg-img" loading="eager" fetchpriority="high">
+      <div class="immersive-gradient-mask"></div>
+    </div>
+
+    <canvas id="hero-sparks-canvas" class="hero-full-canvas"></canvas>
+
+    <div class="cover-borderless-badge" aria-label="Break the Binary - Intelligence Beyond Indicators">
+      <span class="hud-pulsing-dot" aria-hidden="true"></span>
+      <span class="bb-lime">Break the Binary.</span>
+      <span class="bb-slash" aria-hidden="true">//</span>
+      <span class="bb-cyan">Intelligence Beyond Indicators.</span>
+      <span class="bb-cursor" aria-hidden="true"></span>
+    </div>
+
+    <div class="immersive-container">
+      <div class="immersive-content-box-borderless">
+        <div class="cover-eyebrow">
+          <span class="cover-eyebrow-dash" aria-hidden="true"></span>
+          <span class="cover-eyebrow-text">INDEPENDENT THREAT RESEARCH</span>
         </div>
 
-        <h1 class="hero-headline">
-          <span class="hl-white">Tracing the</span><br>
-          <span class="hl-lime">unknown</span>
+        <h1 class="cover-headline">
+          Tracing the <span class="cover-hl-lime">unknown</span>
         </h1>
 
-        <p class="hero-lead-text">
-          Reverse engineering, malware analysis, and adversary tradecraft &mdash; documented through technical investigations.
+        <p class="cover-lead-text">
+          Reverse engineering, malware dissection, and adversary tradecraft &mdash; documented through real static and dynamic technical investigations.
         </p>
 
-        <div class="hero-cta-group">
-          <a href="#investigations" class="btn-cta-primary">
-            <span>Explore investigations</span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        <div class="cover-cta-row">
+          <a href="#investigations" class="btn-cover-explore">
+            <span>Explore ${totalCount} Investigations</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
           </a>
         </div>
 
@@ -4739,16 +4835,10 @@ ${techniquesDropdownHtml}
           </div>
           <div class="stat-vdivider" aria-hidden="true"></div>
           <div class="stat-item clickable-stat" onclick="filterByCategory('Malware Family Analysis')" title="Filter by Malware Families">
-            <div class="stat-num">${catCounts['Malware Family Analysis'] || 13}</div>
+            <div class="stat-num">${catCounts['Malware Family Analysis'] || 17}</div>
             <div class="stat-label">Malware Families</div>
             <div class="stat-sub">Analyzed and documented</div>
           </div>
-        </div>
-      </div>
-
-      <div class="hero-right-col">
-        <div class="hero-cube-visual-wrapper">
-          <img src="assets/home/hero-cube.png" alt="MARE 3D Binary Analysis HUD" class="hero-cube-img" width="876" height="474" fetchpriority="high">
         </div>
       </div>
     </div>
@@ -5155,6 +5245,97 @@ ${techniquesDropdownHtml}
         hasUrlFilter = true;
       }
     } catch (e) {}
+
+
+    // Ambient neon sparks for upper hero body
+    (function initAmbientSparks() {
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const canvas = document.getElementById("hero-sparks-canvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      let width, height;
+      let particles = [];
+      let isVisible = true;
+      let animId = null;
+
+      function resize() {
+        const section = canvas.closest(".hero-immersive-section");
+        if (!section) return;
+        width = canvas.width = section.offsetWidth;
+        height = canvas.height = section.offsetHeight;
+      }
+
+      class Spark {
+        constructor() { this.reset(true); }
+        reset(initial) {
+          this.x = Math.random() * (width || 800);
+          this.y = initial ? Math.random() * (height || 500) : (height || 500) + 10;
+          this.vx = (Math.random() - 0.45) * 0.45;
+          this.vy = -(Math.random() * 0.65 + 0.25);
+          this.size = Math.random() * 1.8 + 0.6;
+          this.alpha = Math.random() * 0.6 + 0.2;
+          this.color = Math.random() > 0.4 ? "183, 255, 60" : "53, 229, 208";
+        }
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          if (this.y < -10 || this.x < -10 || this.x > width + 10) {
+            this.reset(false);
+          }
+        }
+        draw() {
+          ctx.fillStyle = "rgba(" + this.color + ", " + this.alpha + ")";
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function init() {
+        resize();
+        particles = [];
+        const count = Math.min(36, Math.floor((width || 800) / 35));
+        for (let i = 0; i < count; i++) {
+          particles.push(new Spark());
+        }
+      }
+
+      function loop() {
+        if (!isVisible) return;
+        ctx.clearRect(0, 0, width, height);
+        for (let i = 0; i < particles.length; i++) {
+          particles[i].update();
+          particles[i].draw();
+        }
+        animId = requestAnimationFrame(loop);
+      }
+
+      window.addEventListener("resize", () => { resize(); });
+
+      if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              if (!isVisible) {
+                isVisible = true;
+                loop();
+              }
+            } else {
+              isVisible = false;
+              if (animId) cancelAnimationFrame(animId);
+            }
+          });
+        }, { threshold: 0.05 });
+
+        const sec = canvas.closest(".hero-immersive-section");
+        if (sec) observer.observe(sec);
+      }
+
+      init();
+      loop();
+    })();
 
     if (!hasUrlFilter) {
       filterCards();
