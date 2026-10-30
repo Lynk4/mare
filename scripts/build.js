@@ -1071,7 +1071,7 @@ function buildReportPage(r) {
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html {
-      scroll-behavior: smooth;
+      scroll-behavior: auto;
     }
 
     body {
@@ -1457,6 +1457,49 @@ function buildReportPage(r) {
       scroll-margin-top: 84px;
     }
 
+    /* Target Heading & Section Glow (Option 1) */
+    @keyframes headingGlow {
+      0% {
+        color: #8DCAFE;
+        text-shadow: 0 0 20px rgba(0, 82, 255, 0.85), 0 0 35px rgba(59, 130, 246, 0.65);
+        transform: translateX(4px);
+      }
+      40% {
+        color: #FFFFFF;
+        text-shadow: 0 0 16px rgba(0, 82, 255, 0.6);
+      }
+      100% {
+        color: var(--text-white);
+        text-shadow: none;
+        transform: translateX(0);
+      }
+    }
+
+    .heading-target-pulse {
+      animation: headingGlow 1.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      will-change: transform, text-shadow, color;
+    }
+
+    @keyframes sectionTargetFlash {
+      0% {
+        background: rgba(0, 82, 255, 0.12);
+        box-shadow: inset 3px 0 0 #0052FF, 0 0 24px rgba(0, 82, 255, 0.16);
+      }
+      60% {
+        background: rgba(0, 82, 255, 0.04);
+        box-shadow: inset 3px 0 0 rgba(0, 82, 255, 0.5);
+      }
+      100% {
+        background: transparent;
+        box-shadow: none;
+      }
+    }
+
+    section.section-targeted {
+      animation: sectionTargetFlash 1.4s ease-out forwards;
+      border-radius: 6px;
+    }
+
     h2 {
       font-family: var(--font-display);
       font-size: 27px;
@@ -1465,6 +1508,7 @@ function buildReportPage(r) {
       margin: 40px 0 20px;
       letter-spacing: -0.3px;
       padding-top: 8px;
+      transition: color 0.3s ease;
     }
 
     h3 {
@@ -2628,10 +2672,7 @@ function buildReportPage(r) {
   </button>
 
   <script>
-    // High-Performance Stutter-Free TOC Smooth Scroll Engine
-    let isClickScrolling = false;
-    let clickScrollTimer = null;
-
+    // Instant Jump + Target Heading Glow Engine (Option 1)
     function getNavOffset() {
       const nav = document.querySelector('.site-nav');
       if (!nav) return window.innerWidth <= 768 ? 56 : (window.innerWidth <= 1024 ? 68 : 80);
@@ -2654,51 +2695,55 @@ function buildReportPage(r) {
         const linkRect = activeLink.getBoundingClientRect();
         const sidebarRect = sidebar.getBoundingClientRect();
         if (linkRect.top < sidebarRect.top + 30) {
-          sidebar.scrollBy({ top: linkRect.top - sidebarRect.top - 30, behavior: 'smooth' });
+          sidebar.scrollTop = Math.max(0, sidebar.scrollTop + (linkRect.top - sidebarRect.top - 30));
         } else if (linkRect.bottom > sidebarRect.bottom - 30) {
-          sidebar.scrollBy({ top: linkRect.bottom - sidebarRect.bottom + 30, behavior: 'smooth' });
+          sidebar.scrollTop = sidebar.scrollTop + (linkRect.bottom - sidebarRect.bottom + 30);
         }
       }
     }
 
-    function smoothScrollToTarget(targetEl, href) {
+    function triggerTargetGlow(targetEl) {
       if (!targetEl) return;
+      document.querySelectorAll('.section-targeted').forEach(el => el.classList.remove('section-targeted'));
+      document.querySelectorAll('.heading-target-pulse').forEach(el => el.classList.remove('heading-target-pulse'));
 
-      // Lock scrollspy immediately so it never thrashes the DOM during smooth scroll
-      isClickScrolling = true;
-      clearTimeout(clickScrollTimer);
+      void targetEl.offsetWidth; // Force reflow to restart animation
+      targetEl.classList.add('section-targeted');
+
+      const heading = targetEl.querySelector('h1, h2, h3');
+      if (heading) {
+        void heading.offsetWidth;
+        heading.classList.add('heading-target-pulse');
+      }
+    }
+
+    function instantJumpToTarget(targetEl, href) {
+      if (!targetEl) return;
 
       const targetId = targetEl.id;
       setActiveTOCLink(targetId);
       syncSidebarScroll(targetId);
 
+      // 1. Native instant element alignment with CSS scroll-margin-top
+      targetEl.scrollIntoView({ behavior: 'auto', block: 'start' });
+
+      // 2. Micro-adjust for exact sticky nav offset across all device pixel densities
       const navOffset = getNavOffset();
-      const targetTop = Math.max(0, Math.round(targetEl.getBoundingClientRect().top + window.pageYOffset - navOffset));
+      const rect = targetEl.getBoundingClientRect();
+      if (Math.abs(rect.top - navOffset) > 2) {
+        window.scrollTo({
+          top: Math.max(0, Math.round(rect.top + window.pageYOffset - navOffset)),
+          behavior: 'auto'
+        });
+      }
 
-      window.scrollTo({
-        top: targetTop,
-        behavior: 'smooth'
-      });
-
+      // 3. Update history without jumping
       if (history.pushState) {
         history.pushState(null, '', href);
       }
 
-      const finishScroll = () => {
-        isClickScrolling = false;
-        updateTOC();
-      };
-
-      if ('onscrollend' in window) {
-        const handleScrollEnd = () => {
-          window.removeEventListener('scrollend', handleScrollEnd);
-          finishScroll();
-        };
-        window.addEventListener('scrollend', handleScrollEnd, { once: true });
-      }
-
-      // Safe fallback timer (650ms) to unlock scrollspy smoothly
-      clickScrollTimer = setTimeout(finishScroll, 650);
+      // 4. Trigger sleek pulse glow on target heading & section
+      triggerTargetGlow(targetEl);
     }
 
     // Click handling for Desktop & Mobile TOC links
@@ -2712,13 +2757,13 @@ function buildReportPage(r) {
           e.preventDefault();
           const drawer = document.getElementById('mobile-toc-drawer');
           if (drawer && drawer.hasAttribute('open')) {
-            // Close mobile drawer FIRST so height collapses before calculating coordinates
+            // Close mobile drawer FIRST so height collapses before jumping
             drawer.removeAttribute('open');
             requestAnimationFrame(() => {
-              smoothScrollToTarget(targetEl, href);
+              instantJumpToTarget(targetEl, href);
             });
           } else {
-            smoothScrollToTarget(targetEl, href);
+            instantJumpToTarget(targetEl, href);
           }
         }
       });
@@ -2729,7 +2774,7 @@ function buildReportPage(r) {
       if (window.location.hash) {
         const el = document.querySelector(window.location.hash);
         if (el) {
-          smoothScrollToTarget(el, window.location.hash);
+          instantJumpToTarget(el, window.location.hash);
         }
       }
     });
@@ -2746,12 +2791,12 @@ function buildReportPage(r) {
       }, { passive: true });
     }
 
-    // Scroll spy for Table of Contents
+    // Scroll spy for Table of Contents during normal reading
     const sectionEls = Array.from(document.querySelectorAll('.article-content section[id]'));
     let isTOCScrolling = false;
 
     function updateTOC() {
-      if (isClickScrolling || sectionEls.length === 0) return;
+      if (sectionEls.length === 0) return;
 
       const winScroll = window.scrollY || document.documentElement.scrollTop;
       const scrollHeight = document.documentElement.scrollHeight;
@@ -2784,7 +2829,7 @@ function buildReportPage(r) {
       const pb = document.getElementById('progress-bar');
       if (pb) pb.style.width = scrolled + '%';
 
-      if (!isClickScrolling && !isTOCScrolling) {
+      if (!isTOCScrolling) {
         window.requestAnimationFrame(() => {
           updateTOC();
           isTOCScrolling = false;
@@ -2800,9 +2845,9 @@ function buildReportPage(r) {
       setTimeout(() => {
         const initialEl = document.querySelector(window.location.hash);
         if (initialEl) {
-          smoothScrollToTarget(initialEl, window.location.hash);
+          instantJumpToTarget(initialEl, window.location.hash);
         }
-      }, 100);
+      }, 50);
     }
 
     function openLightbox(src, caption) {
