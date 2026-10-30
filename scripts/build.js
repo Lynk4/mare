@@ -3681,7 +3681,7 @@ function buildPortalIndex(allReports) {
     .hero-immersive-section {
       position: relative;
       width: 100%;
-      min-height: 520px;
+      min-height: clamp(520px, 48vh, 640px);
       overflow: hidden;
       padding: 24px 0 16px;
     }
@@ -3699,23 +3699,27 @@ function buildPortalIndex(allReports) {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: center 38%;
-      filter: contrast(1.1) brightness(0.92);
+      object-position: center 34%;
+      filter: contrast(1.04) brightness(1.12);
       transform: scale(1.02);
       animation: heroBgZoom 20s ease-in-out infinite alternate;
     }
 
     @keyframes heroBgZoom {
       0% { transform: scale(1.02) translate(0, 0); }
-      100% { transform: scale(1.06) translate(-1%, -1%); }
+      100% { transform: scale(1.05) translate(-0.8%, -0.8%); }
     }
 
     .immersive-gradient-mask {
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at 75% 35%, rgba(5,9,13,0.15) 0%, rgba(5,9,13,0.7) 65%, #05090D 95%),
-                  linear-gradient(to right, #05090D 0%, rgba(5,9,13,0.92) 28%, rgba(5,9,13,0.65) 55%, rgba(5,9,13,0.2) 80%, rgba(5,9,13,0.7) 100%),
-                  linear-gradient(to bottom, rgba(5,9,13,0.7) 0%, transparent 40%, #05090D 100%);
+      background:
+        /* Balanced translucent horizontal tint: protects text readability without blacking out the left monitor */
+        linear-gradient(to right, rgba(5, 9, 13, 0.66) 0%, rgba(5, 9, 13, 0.45) 36%, rgba(5, 9, 13, 0.16) 66%, rgba(5, 9, 13, 0.40) 100%),
+        /* Smooth top & bottom edge fade into site background */
+        linear-gradient(to bottom, rgba(5, 9, 13, 0.50) 0%, transparent 20%, transparent 72%, #05090D 100%),
+        /* Balanced ambient vignette centered across the entire workstation */
+        radial-gradient(ellipse at 50% 42%, transparent 48%, rgba(5, 9, 13, 0.52) 100%);
     }
 
     .immersive-container {
@@ -3781,10 +3785,10 @@ function buildPortalIndex(allReports) {
     .cover-lead-text {
       font-size: 16.5px;
       line-height: 1.6;
-      color: #C0C8D4;
+      color: #DCE3ED;
       max-width: 640px;
       margin: 0 0 26px;
-      text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
+      text-shadow: 0 2px 16px rgba(0, 0, 0, 0.95), 0 1px 4px rgba(0, 0, 0, 0.9);
       animation: heroFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.35s backwards;
     }
 
@@ -4912,15 +4916,15 @@ ${techniquesDropdownHtml}
 
     <canvas id="hero-sparks-canvas" class="hero-full-canvas"></canvas>
 
-    <div class="cover-borderless-badge" aria-label="Break the Binary - Intelligence Beyond Indicators">
-      <span class="hud-pulsing-dot" aria-hidden="true"></span>
-      <span class="bb-lime">Break the Binary.</span>
-      <span class="bb-slash" aria-hidden="true">//</span>
-      <span class="bb-cyan">Intelligence Beyond Indicators.</span>
-      <span class="bb-cursor" aria-hidden="true"></span>
-    </div>
-
     <div class="immersive-container">
+      <div class="cover-borderless-badge" aria-label="Break the Binary - Intelligence Beyond Indicators">
+        <span class="hud-pulsing-dot" aria-hidden="true"></span>
+        <span class="bb-lime">Break the Binary.</span>
+        <span class="bb-slash" aria-hidden="true">//</span>
+        <span class="bb-cyan">Intelligence Beyond Indicators.</span>
+        <span class="bb-cursor" aria-hidden="true"></span>
+      </div>
+
       <div class="immersive-content-box-borderless">
         <div class="cover-eyebrow">
           <span class="cover-eyebrow-dash" aria-hidden="true"></span>
