@@ -538,6 +538,18 @@ function buildReportPage(r) {
   const lines = mdContent.split('\n');
   const tocItems = [];
   const htmlBuffer = [];
+  const seenHeadingIds = new Set();
+  const getUniqueHeadingId = (title) => {
+    let baseId = slugify(title) || 'section';
+    let id = baseId;
+    let counter = 2;
+    while (seenHeadingIds.has(id)) {
+      id = `${baseId}-${counter}`;
+      counter++;
+    }
+    seenHeadingIds.add(id);
+    return id;
+  };
 
   let inCodeBlock = false;
   let codeBlockLang = '';
@@ -814,7 +826,7 @@ function buildReportPage(r) {
         continue;
       }
       const title = h1Match[1].replace(/[*_`]/g, '').trim();
-      const id = slugify(title);
+      const id = getUniqueHeadingId(title);
       tocItems.push({ id, title });
       htmlBuffer.push(`</section><section id="${id}"><h2>${escapeHtml(title)}</h2>`);
       continue;
@@ -822,7 +834,7 @@ function buildReportPage(r) {
 
     if (h2Match) {
       const title = h2Match[1].replace(/[*_`]/g, '').trim();
-      const id = slugify(title);
+      const id = getUniqueHeadingId(title);
       tocItems.push({ id, title });
       htmlBuffer.push(`</section><section id="${id}"><h2>${escapeHtml(title)}</h2>`);
       continue;
@@ -830,7 +842,7 @@ function buildReportPage(r) {
 
     if (h3Match) {
       const title = h3Match[1].replace(/[*_`]/g, '').trim();
-      const id = slugify(title);
+      const id = getUniqueHeadingId(title);
       htmlBuffer.push(`<h3 id="${id}">${escapeHtml(title)}</h3>`);
       continue;
     }
@@ -876,7 +888,7 @@ function buildReportPage(r) {
       htmlBuffer.push(`
         <div class="figure-wrapper">
           <div class="figure-image-container">
-            <img src="${localSrc}" alt="${escapeHtml(cleanAlt)}" loading="lazy">
+            <img src="${localSrc}" alt="${escapeHtml(cleanAlt)}" loading="lazy" decoding="async">
           </div>${captionHtml}
         </div>
       `);
@@ -914,7 +926,7 @@ function buildReportPage(r) {
       htmlBuffer.push(`
         <div class="figure-wrapper">
           <div class="figure-image-container">
-            <img src="${localSrc}" alt="${escapeHtml(cleanAlt)}" loading="lazy">
+            <img src="${localSrc}" alt="${escapeHtml(cleanAlt)}" loading="lazy" decoding="async">
           </div>${captionHtml}
         </div>
       `);
@@ -991,6 +1003,7 @@ function buildReportPage(r) {
 
   let bodyHtml = htmlBuffer.join('\n');
   if (!bodyHtml.startsWith('</section>')) {
+    seenHeadingIds.add('overview');
     bodyHtml = `<section id="overview">${bodyHtml}</section>`;
   } else {
     bodyHtml = bodyHtml.replace(/^<\/section>/, '') + '</section>';
@@ -1084,6 +1097,8 @@ function buildReportPage(r) {
         radial-gradient(circle at 50% 50%, rgba(10, 16, 32, 0.4) 0%, transparent 70%);
       pointer-events: none;
       z-index: -1;
+      transform: translateZ(0);
+      will-change: transform;
     }
 
     #progress-bar {
@@ -1107,10 +1122,11 @@ function buildReportPage(r) {
       position: sticky;
       top: 0;
       z-index: 1000;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       width: 100%;
       box-sizing: border-box;
+      transform: translateZ(0);
     }
 
     .nav-left {
@@ -1438,7 +1454,7 @@ function buildReportPage(r) {
 
     .article-content section {
       margin-bottom: 56px;
-      scroll-margin-top: 100px;
+      scroll-margin-top: 84px;
     }
 
     h2 {
@@ -1545,6 +1561,11 @@ function buildReportPage(r) {
       padding: 12px;
       text-align: center;
       cursor: zoom-in;
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(5, 9, 15, 0.4);
     }
 
     .figure-image-container img,
@@ -1959,9 +1980,10 @@ function buildReportPage(r) {
       border-radius: 10px;
       margin-bottom: 28px;
       overflow: hidden;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+      contain: paint;
     }
 
     .mobile-toc-summary {
@@ -2120,6 +2142,10 @@ function buildReportPage(r) {
         max-width: 100%;
         width: 100%;
       }
+      .article-content section {
+        margin-bottom: 48px;
+        scroll-margin-top: 72px;
+      }
       .mobile-toc-drawer {
         display: block;
       }
@@ -2225,7 +2251,7 @@ function buildReportPage(r) {
       }
       .article-content section {
         margin-bottom: 40px;
-        scroll-margin-top: 75px;
+        scroll-margin-top: 60px;
       }
       h2 {
         font-size: 19px;
@@ -2602,7 +2628,80 @@ function buildReportPage(r) {
   </button>
 
   <script>
-    // Smooth scroll and click handling for both Desktop and Mobile TOC links
+    // High-Performance Stutter-Free TOC Smooth Scroll Engine
+    let isClickScrolling = false;
+    let clickScrollTimer = null;
+
+    function getNavOffset() {
+      const nav = document.querySelector('.site-nav');
+      if (!nav) return window.innerWidth <= 768 ? 56 : (window.innerWidth <= 1024 ? 68 : 80);
+      return Math.round(nav.getBoundingClientRect().height) + 14;
+    }
+
+    function setActiveTOCLink(activeId) {
+      document.querySelectorAll('.toc-nav a, .mobile-toc-nav a').forEach(link => {
+        const href = link.getAttribute('href');
+        const targetId = href ? href.replace(/^#/, '') : '';
+        link.classList.toggle('active', targetId === activeId);
+      });
+    }
+
+    function syncSidebarScroll(activeId) {
+      if (window.innerWidth <= 1024) return;
+      const sidebar = document.querySelector('.sidebar-sticky');
+      const activeLink = document.querySelector('.sidebar-desktop-toc .toc-nav a[href="#' + activeId + '"]');
+      if (sidebar && activeLink && !sidebar.matches(':hover') && sidebar.scrollHeight > sidebar.clientHeight) {
+        const linkRect = activeLink.getBoundingClientRect();
+        const sidebarRect = sidebar.getBoundingClientRect();
+        if (linkRect.top < sidebarRect.top + 30) {
+          sidebar.scrollBy({ top: linkRect.top - sidebarRect.top - 30, behavior: 'smooth' });
+        } else if (linkRect.bottom > sidebarRect.bottom - 30) {
+          sidebar.scrollBy({ top: linkRect.bottom - sidebarRect.bottom + 30, behavior: 'smooth' });
+        }
+      }
+    }
+
+    function smoothScrollToTarget(targetEl, href) {
+      if (!targetEl) return;
+
+      // Lock scrollspy immediately so it never thrashes the DOM during smooth scroll
+      isClickScrolling = true;
+      clearTimeout(clickScrollTimer);
+
+      const targetId = targetEl.id;
+      setActiveTOCLink(targetId);
+      syncSidebarScroll(targetId);
+
+      const navOffset = getNavOffset();
+      const targetTop = Math.max(0, Math.round(targetEl.getBoundingClientRect().top + window.pageYOffset - navOffset));
+
+      window.scrollTo({
+        top: targetTop,
+        behavior: 'smooth'
+      });
+
+      if (history.pushState) {
+        history.pushState(null, '', href);
+      }
+
+      const finishScroll = () => {
+        isClickScrolling = false;
+        updateTOC();
+      };
+
+      if ('onscrollend' in window) {
+        const handleScrollEnd = () => {
+          window.removeEventListener('scrollend', handleScrollEnd);
+          finishScroll();
+        };
+        window.addEventListener('scrollend', handleScrollEnd, { once: true });
+      }
+
+      // Safe fallback timer (650ms) to unlock scrollspy smoothly
+      clickScrollTimer = setTimeout(finishScroll, 650);
+    }
+
+    // Click handling for Desktop & Mobile TOC links
     document.querySelectorAll('.toc-nav a, .mobile-toc-nav a').forEach(link => {
       link.addEventListener('click', (e) => {
         const href = link.getAttribute('href');
@@ -2611,26 +2710,28 @@ function buildReportPage(r) {
         const targetEl = document.getElementById(targetId);
         if (targetEl) {
           e.preventDefault();
-          const isMobile = window.innerWidth <= 1024;
-          const navOffset = isMobile ? 65 : 84;
-          const targetTop = targetEl.getBoundingClientRect().top + window.pageYOffset - navOffset;
-          window.scrollTo({ top: targetTop, behavior: 'smooth' });
-          if (history.pushState) {
-            history.pushState(null, '', href);
-          } else {
-            location.hash = href;
-          }
-
-          document.querySelectorAll('.toc-nav a, .mobile-toc-nav a').forEach(l => {
-            l.classList.toggle('active', l.getAttribute('href') === href);
-          });
-
           const drawer = document.getElementById('mobile-toc-drawer');
           if (drawer && drawer.hasAttribute('open')) {
+            // Close mobile drawer FIRST so height collapses before calculating coordinates
             drawer.removeAttribute('open');
+            requestAnimationFrame(() => {
+              smoothScrollToTarget(targetEl, href);
+            });
+          } else {
+            smoothScrollToTarget(targetEl, href);
           }
         }
       });
+    });
+
+    // Support browser back/forward buttons (hash navigation)
+    window.addEventListener('popstate', () => {
+      if (window.location.hash) {
+        const el = document.querySelector(window.location.hash);
+        if (el) {
+          smoothScrollToTarget(el, window.location.hash);
+        }
+      }
     });
 
     // Floating Back to Top Button Visibility
@@ -2650,7 +2751,7 @@ function buildReportPage(r) {
     let isTOCScrolling = false;
 
     function updateTOC() {
-      if (sectionEls.length === 0) return;
+      if (isClickScrolling || sectionEls.length === 0) return;
 
       const winScroll = window.scrollY || document.documentElement.scrollTop;
       const scrollHeight = document.documentElement.scrollHeight;
@@ -2661,9 +2762,10 @@ function buildReportPage(r) {
       if (atBottom) {
         activeId = sectionEls[sectionEls.length - 1].id;
       } else {
+        const threshold = getNavOffset() + 24;
         for (let i = 0; i < sectionEls.length; i++) {
           const rect = sectionEls[i].getBoundingClientRect();
-          if (rect.top <= 140) {
+          if (rect.top <= threshold) {
             activeId = sectionEls[i].id;
           } else {
             break;
@@ -2671,25 +2773,8 @@ function buildReportPage(r) {
         }
       }
 
-      document.querySelectorAll('.toc-nav a, .mobile-toc-nav a').forEach(link => {
-        const href = link.getAttribute('href');
-        const targetId = href ? href.replace(/^#/, '') : '';
-        link.classList.toggle('active', targetId === activeId);
-      });
-
-      if (window.innerWidth > 1024) {
-        const sidebar = document.querySelector('.sidebar-sticky');
-        const activeDesktopLink = document.querySelector('.sidebar-desktop-toc .toc-nav a[href="#' + activeId + '"]');
-        if (sidebar && activeDesktopLink && !sidebar.matches(':hover') && sidebar.scrollHeight > sidebar.clientHeight) {
-          const linkRect = activeDesktopLink.getBoundingClientRect();
-          const sidebarRect = sidebar.getBoundingClientRect();
-          if (linkRect.top < sidebarRect.top + 20) {
-            sidebar.scrollBy({ top: linkRect.top - sidebarRect.top - 20, behavior: 'smooth' });
-          } else if (linkRect.bottom > sidebarRect.bottom - 20) {
-            sidebar.scrollBy({ top: linkRect.bottom - sidebarRect.bottom + 20, behavior: 'smooth' });
-          }
-        }
-      }
+      setActiveTOCLink(activeId);
+      syncSidebarScroll(activeId);
     }
 
     window.addEventListener('scroll', () => {
@@ -2699,7 +2784,7 @@ function buildReportPage(r) {
       const pb = document.getElementById('progress-bar');
       if (pb) pb.style.width = scrolled + '%';
 
-      if (!isTOCScrolling) {
+      if (!isClickScrolling && !isTOCScrolling) {
         window.requestAnimationFrame(() => {
           updateTOC();
           isTOCScrolling = false;
@@ -2715,10 +2800,7 @@ function buildReportPage(r) {
       setTimeout(() => {
         const initialEl = document.querySelector(window.location.hash);
         if (initialEl) {
-          const isMobile = window.innerWidth <= 1024;
-          const navOffset = isMobile ? 65 : 84;
-          const targetTop = initialEl.getBoundingClientRect().top + window.pageYOffset - navOffset;
-          window.scrollTo({ top: targetTop, behavior: 'smooth' });
+          smoothScrollToTarget(initialEl, window.location.hash);
         }
       }, 100);
     }
