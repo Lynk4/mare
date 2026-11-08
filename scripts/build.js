@@ -117,6 +117,131 @@ function getThreatIcon(type) {
   }
 }
 
+// Intelligent Content-Aware Code Block Language Classifier
+function formatCodeBlockHeader(declared, codeText) {
+  const d = (declared || '').trim().toLowerCase();
+  const c = (codeText || '').trim();
+  const lines = c.split('\n').map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return 'TELEMETRY';
+
+  const firstLine = lines[0];
+  const sample = lines.slice(0, 15).join('\n');
+
+  // 1. YARA Detection Rules
+  if (/\brule\s+[A-Za-z0-9_]+\s*[:{]/.test(c) && /\b(?:strings|condition)\s*:/i.test(c)) {
+    return 'YARA RULE';
+  }
+
+  // 2. Terminal Prompts or CLI Tool Invocations
+  const isCliPrompt = /^(?:[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+.*?[%#\$>]|┌──\(|PS\s+[A-Z]:\\|[A-Z]:\\[^\n>]*>|\$\s+|#\s+|>\s*)/.test(firstLine);
+  const isCliCmd = /^(?:python3?\s+-[cm]|codesign\s+|otool\s+|objdump\s+|strings\s+|nm\s+|xxd\s+|hexdump\s+|curl\s+|wget\s+|sudo\s+|chmod\s+|file\s+|grep\s+|find\s+|cat\s+|sysctl\s+|volatility\s+|gcc\s+|g\+\+\s+|make\s+|npm\s+|git\s+|upx\s+|xattr\s+)/.test(firstLine);
+  if (isCliPrompt || isCliCmd) {
+    return 'TERMINAL / COMMAND';
+  }
+
+  // 3. Architecture & ASCII Diagrams
+  const boxChars = (c.match(/[┌└├│─┬┴┼▼►▲◄]/g) || []).length;
+  if (boxChars >= 6) {
+    return 'ARCHITECTURE / DIAGRAM';
+  }
+  if (/^\+[-+]+\+\s*$/.test(firstLine) && /\|.*\|/.test(sample)) {
+    if (!/\b(?:mov|push|pop|call|add|sub)\b/i.test(sample)) {
+      return 'ARCHITECTURE / DIAGRAM';
+    }
+  }
+
+  // 4. Hex Byte Dumps
+  if (/^[0-9a-fA-F]{4,8}[:\s]+(?:[0-9a-fA-F]{2}\s+){4,}/m.test(sample)) {
+    return 'HEX DUMP';
+  }
+
+  // 5. JSON Documents
+  if ((c.startsWith('{') && c.endsWith('}')) || (c.startsWith('[') && c.endsWith(']'))) {
+    if (/"[a-zA-Z0-9_.-]+"\s*:/i.test(sample)) {
+      return 'JSON';
+    }
+  }
+
+  // 6. Python Scripts & Modules
+  if (c.startsWith('#!/usr/bin/env python') || c.startsWith('#!/usr/bin/python')) {
+    return 'PYTHON';
+  }
+  if (/\b(?:import\s+[a-zA-Z0-9_]+|from\s+[a-zA-Z0-9_.]+\s+import)\b/.test(sample)) {
+    if (!/(?:#include|using\s+namespace|#define|int\s+main)/.test(sample)) {
+      return 'PYTHON';
+    }
+  }
+  if (/\bdef\s+[a-zA-Z0-9_]+\s*\([^)]*\)\s*:/.test(sample)) {
+    return 'PYTHON';
+  }
+
+  // 7. PowerShell Commands & Scripts
+  if (/\b(?:Get-[A-Za-z]+|Set-[A-Za-z]+|Invoke-[A-Za-z]+|Start-Process|Write-Host|\$env:[A-Za-z]+)\b/.test(sample)) {
+    return 'POWERSHELL';
+  }
+
+  // 8. Assembly & Disassembly (ARM64 vs x86/x64 vs Generic)
+  const arm64Matches = (sample.match(/\b(?:ldr|str|stp|ldp|bl|adr|adrp|cbnz|cbz|w[0-9]{1,2}|x[0-9]{1,2})\b/gi) || []).length;
+  const x86Matches = (sample.match(/\b(?:eax|ebx|ecx|edx|rax|rbx|rcx|rdx|rsi|rdi|rbp|rsp|r[89]|r1[0-5]|qword|dword|byte ptr|syscall)\b/gi) || []).length;
+  const genericAsm = (sample.match(/\b(?:mov|push|pop|call|lea|xor|cmp|test|sub|add|jmp|jne|je|ret|nop)\b/gi) || []).length;
+  const hasHexOffsets = (sample.match(/^(?:0x[0-9a-fA-F]+|[0-9a-fA-F]{8,16})\b/gm) || []).length;
+
+  if (arm64Matches >= 2 || (arm64Matches >= 1 && genericAsm >= 1)) {
+    if (!/(?:#include|int\s+main|void\s+[a-zA-Z0-9_]+\s*\(|return\s+[^;]+;)/.test(sample)) {
+      return 'ARM64 DISASSEMBLY';
+    }
+  }
+
+  if (x86Matches >= 2 || (x86Matches >= 1 && genericAsm >= 1)) {
+    if (!/(?:#include|int\s+main|void\s+[a-zA-Z0-9_]+\s*\(|return\s+[^;]+;)/.test(sample)) {
+      return 'X86_64 DISASSEMBLY';
+    }
+  }
+
+  if (genericAsm >= 3 || (hasHexOffsets >= 2 && genericAsm >= 1)) {
+    if (!/(?:#include|int\s+main|void\s+[a-zA-Z0-9_]+\s*\(|return\s+[^;]+;)/.test(sample)) {
+      return 'DISASSEMBLY';
+    }
+  }
+
+  // 9. Native C / C++ / Decompiled Source
+  if (/(?:#include\s*<|int\s+main\s*\(|NTSTATUS|PVOID|HANDLE|DWORD|WINAPI|typedef\s+struct|std::|__stdcall|__fastcall|\bvoid\s*\*)/.test(sample)) {
+    return 'C / C++';
+  }
+
+  // 10. Filter out bogus tags and map valid declared tags
+  const bogusTags = new Set(['jsx', 'passw0rd1337', '001a1287', '006813b4', 'mruprac', 'mal', 'malware-report']);
+  const cleanDeclared = bogusTags.has(d) ? '' : d;
+
+  const declaredMap = {
+    c: 'C',
+    cpp: 'C++',
+    python: 'PYTHON',
+    python3: 'PYTHON',
+    py: 'PYTHON',
+    bash: 'TERMINAL / BASH',
+    sh: 'SHELL',
+    zsh: 'SHELL',
+    powershell: 'POWERSHELL',
+    ps1: 'POWERSHELL',
+    nasm: 'ASSEMBLY (ASM)',
+    asm: 'ASSEMBLY (ASM)',
+    json: 'JSON',
+    swift: 'SWIFT',
+    objectivec: 'OBJECTIVE-C',
+    objc: 'OBJECTIVE-C',
+    yara: 'YARA RULE',
+    text: 'TELEMETRY / OUTPUT',
+    txt: 'TELEMETRY / OUTPUT'
+  };
+
+  if (cleanDeclared && declaredMap[cleanDeclared]) {
+    return declaredMap[cleanDeclared];
+  }
+
+  return 'TELEMETRY / DISASSEMBLY';
+}
+
 // 1. DISCOVER ALL REPORTS FROM DISK DYNAMICALLY
 function discoverReports() {
   const discovered = [];
@@ -748,10 +873,11 @@ function buildReportPage(r) {
         const content = line.trim().slice(3, -3).trim();
         codeSnippetCounter++;
         const snippetId = `code-block-${codeSnippetCounter}`;
+        const label = formatCodeBlockHeader('', content);
         htmlBuffer.push(`
           <div class="code-box">
             <div class="code-box-header">
-              <span>TELEMETRY / INSTRUCTION</span>
+              <span>${label}</span>
               <button class="btn-copy" onclick="copySnippet('${snippetId}', this)">Copy Snippet</button>
             </div>
             <pre><code id="${snippetId}">${escapeHtml(content)}</code></pre>
@@ -767,8 +893,9 @@ function buildReportPage(r) {
         inCodeBlock = false;
         codeSnippetCounter++;
         const snippetId = `code-block-${codeSnippetCounter}`;
-        const escaped = escapeHtml(codeBlockBuffer.join('\n'));
-        const label = codeBlockLang ? codeBlockLang.toUpperCase() : 'TELEMETRY / DISASSEMBLY';
+        const rawCode = codeBlockBuffer.join('\n');
+        const escaped = escapeHtml(rawCode);
+        const label = formatCodeBlockHeader(codeBlockLang, rawCode);
         htmlBuffer.push(`
           <div class="code-box">
             <div class="code-box-header">
@@ -982,8 +1109,9 @@ function buildReportPage(r) {
   if (inCodeBlock && codeBlockBuffer.length > 0) {
     codeSnippetCounter++;
     const snippetId = `code-block-${codeSnippetCounter}`;
-    const escaped = escapeHtml(codeBlockBuffer.join('\n'));
-    const label = codeBlockLang ? codeBlockLang.toUpperCase() : 'TELEMETRY / DISASSEMBLY';
+    const rawCode = codeBlockBuffer.join('\n');
+    const escaped = escapeHtml(rawCode);
+    const label = formatCodeBlockHeader(codeBlockLang, rawCode);
     htmlBuffer.push(`
       <div class="code-box">
         <div class="code-box-header">
