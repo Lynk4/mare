@@ -9,6 +9,7 @@ const REPORTS_DIR = path.join(ROOT_DIR, 'reports');
 
 // Canonical authentic dates when reports were added to repository
 const CANONICAL_REPORT_DATES = {
+  'dissecting-avenger-stealer': 'November 09, 2026',
   'hvnc-implant': 'October 17, 2026',
   'rustbucket-2': 'October 02, 2026',
   'rustbucket': 'September 06, 2026',
@@ -263,7 +264,10 @@ function discoverReports() {
           if (meta.id) id = meta.id;
           if (meta.title) title = meta.title;
           if (meta.subtitle || meta.lead) lead = meta.subtitle || meta.lead;
-          if (meta.thumbnail || meta.thumb || meta.image) thumbnail = meta.thumbnail || meta.thumb || meta.image;
+          if (meta.thumbnail || meta.thumb || meta.image) {
+            thumbnail = meta.thumbnail || meta.thumb || meta.image;
+            firstImage = thumbnail;
+          }
           if (meta.category) category = meta.category;
           if (meta.date) date = meta.date;
           if (meta.readTime) readTime = meta.readTime;
@@ -379,7 +383,8 @@ const KNOWN_NAV_TITLES = {
   'shinyspider': 'ShinySpider (Go Ransomware)',
   'valleyrat': 'ValleyRAT (In-Memory PE)',
   'aurawiper': 'AuraWiper (MBR Wiper)',
-  'hvnc-implant': 'macOS HVNC Implant'
+  'hvnc-implant': 'macOS HVNC Implant',
+  'dissecting-avenger-stealer': 'Avenger Stealer'
 };
 
 function getReportNavTitle(r) {
@@ -871,7 +876,7 @@ function buildReportPage(r) {
     }
 
     // Images
-    const mdImgMatch = line.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+    const mdImgMatch = line.match(/!\[([^\]]*)\]\((.+)\)/);
     if (mdImgMatch) {
       const alt = mdImgMatch[1] ? mdImgMatch[1].trim() : '';
       const localSrc = bundleImageLocally(mdImgMatch[2]);
