@@ -1,11 +1,60 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { execSync } = require('child_process');
 
 const AUTHOR_NAME = 'Chandra Kant Bauri';
 const ROOT_DIR = path.resolve(__dirname, '..');
 const BASE_ANALYSIS_DIR = path.join(ROOT_DIR, 'Malware Analysis');
 const REPORTS_DIR = path.join(ROOT_DIR, 'reports');
+const CACHE_DIR = path.join(ROOT_DIR, '.cache');
+const CACHE_FILE = path.join(CACHE_DIR, 'build-manifest.json');
+
+function loadBuildCache() {
+  if (process.argv.includes('--force') || process.env.FORCE_BUILD === '1') {
+    return {};
+  }
+  try {
+    if (fs.existsSync(CACHE_FILE)) {
+      return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+    }
+  } catch (e) {}
+  return {};
+}
+
+function saveBuildCache(cache) {
+  try {
+    if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), 'utf8');
+  } catch (e) {}
+}
+
+function computeReportSourceHash(r) {
+  const hash = crypto.createHash('sha256');
+  if (fs.existsSync(r.mdPath)) {
+    hash.update(fs.readFileSync(r.mdPath));
+  }
+  const metaPath = path.join(r.srcDir, 'meta.json');
+  if (fs.existsSync(metaPath)) {
+    hash.update(fs.readFileSync(metaPath));
+  }
+  try {
+    const files = fs.readdirSync(r.srcDir);
+    files.forEach(f => {
+      const p = path.join(r.srcDir, f);
+      const stat = fs.statSync(p);
+      if (stat.isDirectory()) {
+        const sub = fs.readdirSync(p);
+        sub.forEach(sf => {
+          hash.update(sf + fs.statSync(path.join(p, sf)).mtimeMs);
+        });
+      } else {
+        hash.update(f + stat.mtimeMs);
+      }
+    });
+  } catch (e) {}
+  return hash.digest('hex');
+}
 
 // Canonical authentic dates when reports were added to repository
 const CANONICAL_REPORT_DATES = {
@@ -5610,6 +5659,77 @@ ${techniquesDropdownHtml}
 `;
 
   fs.writeFileSync(path.join(REPORTS_DIR, 'index.html'), portalHtml, 'utf8');
+
+  // Generate lightweight JSON catalog for fast search, virtual pagination & external APIs
+  const dataDir = path.join(REPORTS_DIR, 'data');
+  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+  const catalog = allReports.map(r => ({
+    id: r.id,
+    title: r.title,
+    subtitle: r.lead || r.subtitle || '',
+    os: r.os,
+    category: r.category,
+    date: r.date,
+    readTime: r.readTime,
+    family: r.family,
+    classification: r.classification,
+    delivery: r.delivery,
+    c2: r.c2,
+    targets: r.targets,
+    hashType: r.hashType,
+    hashVal: r.hashVal,
+    image: r.firstImage || '',
+    navTitle: getReportNavTitle(r),
+    featured: Boolean(r.featured)
+  }));
+  fs.writeFileSync(path.join(dataDir, 'catalog.json'), JSON.stringify(catalog, null, 2), 'utf8');
+
+  // Generate SEO-friendly XML Sitemap
+  const siteUrl = 'https://lynk4.github.io/mare';
+  const sitemapUrls = [
+    `  <url>\n    <loc>${siteUrl}/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>`,
+    ...allReports.map(r => {
+      let isoDate = new Date().toISOString().split('T')[0];
+      try {
+        const d = new Date(r.date);
+        if (!isNaN(d.getTime())) isoDate = d.toISOString().split('T')[0];
+      } catch (e) {}
+      return `  <url>\n    <loc>${siteUrl}/${r.id}/index.html</loc>\n    <lastmod>${isoDate}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>`;
+    })
+  ];
+  const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapUrls.join('\n')}\n</urlset>\n`;
+  fs.writeFileSync(path.join(REPORTS_DIR, 'sitemap.xml'), sitemapXml, 'utf8');
+
+  // Generate Autonomous RSS 2.0 Feed for threat researchers and aggregators
+  const rssItems = allReports.slice(0, 30).map(r => {
+    let pubDate = new Date().toUTCString();
+    try {
+      const d = new Date(r.date);
+      if (!isNaN(d.getTime())) pubDate = d.toUTCString();
+    } catch (e) {}
+    return `    <item>
+      <title>${escapeHtml(r.title)}</title>
+      <link>${siteUrl}/${r.id}/index.html</link>
+      <guid>${siteUrl}/${r.id}/index.html</guid>
+      <pubDate>${pubDate}</pubDate>
+      <description>${escapeHtml(r.lead || r.subtitle || '')}</description>
+      <category>${escapeHtml(r.category)}</category>
+    </item>`;
+  }).join('\n');
+
+  const rssFeed = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>MARE — Malware Analysis &amp; Reverse Engineering</title>
+    <link>${siteUrl}/</link>
+    <description>Publication-grade threat intelligence and binary dissection portal.</description>
+    <language>en-us</language>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <atom:link href="${siteUrl}/feed.xml" rel="self" type="application/rss+xml"/>
+${rssItems}
+  </channel>
+</rss>\n`;
+  fs.writeFileSync(path.join(REPORTS_DIR, 'feed.xml'), rssFeed, 'utf8');
 }
 
 
@@ -5629,9 +5749,33 @@ allReports.forEach(r => {
 });
 console.log('Platform Breakdown:', platformStats);
 
+const buildCache = loadBuildCache();
+let builtCount = 0;
+let cachedCount = 0;
+
 allReports.forEach(r => {
-  buildReportPage(r);
+  const sourceHash = computeReportSourceHash(r);
+  const reportHtml = path.join(REPORTS_DIR, r.id, 'index.html');
+  const cachedEntry = buildCache[r.id];
+
+  if (cachedEntry && cachedEntry.sourceHash === sourceHash && fs.existsSync(reportHtml)) {
+    if (!r.firstImage && cachedEntry.firstImage) {
+      r.firstImage = cachedEntry.firstImage;
+    }
+    cachedCount++;
+  } else {
+    buildReportPage(r);
+    buildCache[r.id] = {
+      sourceHash,
+      firstImage: r.firstImage || null,
+      updatedAt: new Date().toISOString()
+    };
+    builtCount++;
+  }
 });
+
+saveBuildCache(buildCache);
+console.log(`Compilation: ${builtCount} built, ${cachedCount} unchanged (cached).`);
 
 buildPortalIndex(allReports);
 console.log('=== Build complete! All reports self-contained and live in reports/ ===');

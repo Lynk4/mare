@@ -4,6 +4,9 @@
   "description": "Publication-grade Threat Intelligence and Malware Analysis Research Portal",
   "scripts": {
     "build": "node scripts/build.js",
+    "lint": "node scripts/lint-reports.js",
+    "validate": "node scripts/lint-reports.js",
+    "new": "node scripts/new-report.js",
     "sync:malops": "node scripts/sync-malops.js",
     "build:all": "node scripts/sync-malops.js && node scripts/build.js"
   }
