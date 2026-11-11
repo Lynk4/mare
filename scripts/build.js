@@ -4341,6 +4341,46 @@ function buildPortalIndex(allReports) {
       box-shadow: 0 0 14px rgba(53, 229, 208, 0.35);
     }
 
+    /* Active Filter Indicator Badge */
+    .active-filter-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 22px;
+      background: rgba(183, 255, 60, 0.08);
+      border: 1px solid rgba(183, 255, 60, 0.3);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 13px;
+      color: var(--neon-lime);
+      animation: fadeIn 0.2s ease;
+    }
+
+    .active-filter-indicator strong {
+      color: #FFFFFF;
+    }
+
+    .btn-clear-active-filter {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: var(--text-main);
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .btn-clear-active-filter:hover {
+      background: rgba(255, 75, 75, 0.2);
+      color: #FF6B6B;
+    }
+
     /* Cards Grid */
     .investigations-grid {
       display: grid;
@@ -5185,14 +5225,23 @@ ${techniquesDropdownHtml}
         </div>
 
         <div class="platform-filter-group" role="tablist" aria-label="Filter by platform">
-          <button class="filter-pill active" data-filter="all" role="tab" aria-selected="true">All</button>
-          <button class="filter-pill" data-filter="Windows" role="tab" aria-selected="false">Windows</button>
-          <button class="filter-pill" data-filter="macOS" role="tab" aria-selected="false">macOS</button>
-          <button class="filter-pill" data-filter="Linux" role="tab" aria-selected="false">Linux</button>
-          <button class="filter-pill" data-filter="Cross-Platform" role="tab" aria-selected="false">Cross-platform</button>
+          <button class="filter-pill active" data-filter="all" role="tab" aria-selected="true">All (${counts.All})</button>
+          <button class="filter-pill" data-filter="Windows" role="tab" aria-selected="false">Windows (${counts.Windows})</button>
+          <button class="filter-pill" data-filter="macOS" role="tab" aria-selected="false">macOS (${counts.macOS})</button>
+          <button class="filter-pill" data-filter="Linux" role="tab" aria-selected="false">Linux (${counts.Linux})</button>
+          <button class="filter-pill" data-filter="Cross-Platform" role="tab" aria-selected="false">Cross-platform (${counts['Cross-Platform']})</button>
           <button class="filter-pill filter-pill-malops" data-filter="malops" role="tab" aria-selected="false">MalOps (${counts.MalOps})</button>
         </div>
       </div>
+    </div>
+
+    <!-- Active Filter Indicator -->
+    <div id="active-filter-indicator" class="active-filter-indicator" style="display:none;">
+      <span id="active-filter-label"></span>
+      <button type="button" class="btn-clear-active-filter" onclick="resetFilters()" aria-label="Clear active filter">
+        <span>Clear filter</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
     </div>
 
     <!-- Cards Stream Grid -->
@@ -5377,6 +5426,20 @@ ${techniquesDropdownHtml}
 
       if (emptyState) {
         emptyState.style.display = (matchingCount === 0) ? 'block' : 'none';
+      }
+
+      const activeFilterIndicator = document.getElementById('active-filter-indicator');
+      const activeFilterLabel = document.getElementById('active-filter-label');
+      if (activeFilterIndicator && activeFilterLabel) {
+        if (currentCategory !== 'all') {
+          activeFilterIndicator.style.display = 'inline-flex';
+          activeFilterLabel.innerHTML = 'Category: <strong>' + currentCategory + '</strong> &bull; ' + matchingCount + ' report' + (matchingCount === 1 ? '' : 's');
+        } else if (q) {
+          activeFilterIndicator.style.display = 'inline-flex';
+          activeFilterLabel.innerHTML = 'Search: &ldquo;<strong>' + q + '</strong>&rdquo; &bull; ' + matchingCount + ' match' + (matchingCount === 1 ? '' : 'es');
+        } else {
+          activeFilterIndicator.style.display = 'none';
+        }
       }
 
       if (clearBtn && searchKbd) {
