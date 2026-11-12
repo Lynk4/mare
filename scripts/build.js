@@ -29,8 +29,11 @@ function saveBuildCache(cache) {
   } catch (e) {}
 }
 
+const BUILD_GENERATOR_VERSION = 'v2.3-cmd-palette';
+
 function computeReportSourceHash(r) {
   const hash = crypto.createHash('sha256');
+  hash.update(BUILD_GENERATOR_VERSION);
   if (fs.existsSync(r.mdPath)) {
     hash.update(fs.readFileSync(r.mdPath));
   }
@@ -597,6 +600,820 @@ function getReportNavTitle(r) {
     t = t.substring(0, 24).trim() + '...';
   }
   return t;
+}
+
+function generateCatalogData(allReports) {
+  const dataDir = path.join(REPORTS_DIR, 'data');
+  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+  const catalog = allReports.map(r => ({
+    id: r.id,
+    title: r.title,
+    subtitle: r.lead || r.subtitle || '',
+    os: r.os,
+    category: r.category,
+    date: r.date,
+    readTime: r.readTime,
+    family: r.family,
+    classification: r.classification,
+    delivery: r.delivery,
+    c2: r.c2,
+    targets: r.targets,
+    hashType: r.hashType,
+    hashVal: r.hashVal,
+    image: r.firstImage || '',
+    navTitle: getReportNavTitle(r),
+    featured: Boolean(r.featured),
+    source: r.source || ''
+  }));
+  fs.writeFileSync(path.join(dataDir, 'catalog.json'), JSON.stringify(catalog, null, 2), 'utf8');
+  fs.writeFileSync(path.join(dataDir, 'catalog.js'), 'window.__MARE_CATALOG__ = ' + JSON.stringify(catalog) + ';\n', 'utf8');
+  return catalog;
+}
+
+function renderCommandPaletteModal() {
+  return [
+    '<!-- MARE Global Command Palette Modal (⌘K / /) -->',
+    '<div id="mare-cmd-palette-backdrop" class="cmd-palette-backdrop" style="display:none;" aria-hidden="true">',
+    '  <div class="cmd-palette-modal" role="dialog" aria-modal="true" aria-label="Global Threat Research Search">',
+    '    <div class="cmd-palette-header">',
+    '      <svg class="cmd-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">',
+    '        <circle cx="11" cy="11" r="8"></circle>',
+    '        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>',
+    '      </svg>',
+    '      <input type="text" id="mare-cmd-input" class="cmd-palette-input" placeholder="Search investigations, malware families, hashes, C2s, platforms..." autocomplete="off" spellcheck="false" aria-label="Search threat investigations" />',
+    '      <span class="cmd-palette-esc-badge" id="mare-cmd-close-btn" title="Close search (Esc)">ESC</span>',
+    '    </div>',
+    '    <div class="cmd-palette-filters" id="mare-cmd-filters">',
+    '      <button type="button" class="cmd-filter-pill active" data-filter="all">All</button>',
+    '      <button type="button" class="cmd-filter-pill" data-filter="Windows">Windows</button>',
+    '      <button type="button" class="cmd-filter-pill" data-filter="macOS">macOS</button>',
+    '      <button type="button" class="cmd-filter-pill" data-filter="Linux">Linux</button>',
+    '      <button type="button" class="cmd-filter-pill" data-filter="Cross-Platform">Cross-Platform</button>',
+    '      <button type="button" class="cmd-filter-pill" data-filter="MalOps">MalOps</button>',
+    '    </div>',
+    '    <div class="cmd-palette-results" id="mare-cmd-results" role="listbox"></div>',
+    '    <div class="cmd-palette-footer">',
+    '      <div class="cmd-footer-stats" id="mare-cmd-stats">Ready</div>',
+    '      <div class="cmd-footer-shortcuts">',
+    '        <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>',
+    '        <span><kbd>↵</kbd> open</span>',
+    '        <span><kbd>tab</kbd> filter</span>',
+    '        <span><kbd>esc</kbd> close</span>',
+    '      </div>',
+    '    </div>',
+    '  </div>',
+    '</div>'
+  ].join('\n');
+}
+
+function getCommandPaletteCss() {
+  return `
+    /* ==========================================================================
+       MARE GLOBAL COMMAND PALETTE MODAL (⌘K / /)
+       ========================================================================== */
+    .cmd-palette-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(5, 8, 12, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 8vh 16px 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .cmd-palette-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .cmd-palette-modal {
+      width: 100%;
+      max-width: 680px;
+      background: #0D1117;
+      border: 1px solid rgba(53, 229, 208, 0.28);
+      border-radius: 12px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 25px rgba(53, 229, 208, 0.12);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: 80vh;
+      transform: translateY(-8px) scale(0.98);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .cmd-palette-backdrop.open .cmd-palette-modal {
+      transform: translateY(0) scale(1);
+    }
+    .cmd-palette-header {
+      display: flex;
+      align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 12px;
+      background: #0A0D12;
+    }
+    .cmd-search-icon {
+      color: var(--neon-cyan, #35E5D0);
+      flex-shrink: 0;
+    }
+    .cmd-palette-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #F0F6FC;
+      font-size: 15px;
+      font-family: inherit;
+    }
+    .cmd-palette-input::placeholder {
+      color: #6E7681;
+    }
+    .cmd-palette-esc-badge {
+      font-family: var(--font-mono, monospace);
+      font-size: 11px;
+      color: #8B949E;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .cmd-palette-esc-badge:hover {
+      color: #FFF;
+      border-color: rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .cmd-palette-filters {
+      display: flex;
+      gap: 6px;
+      padding: 10px 18px;
+      background: #0E131A;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .cmd-filter-pill {
+      background: rgba(255, 255, 255, 0.04);
+      color: #8B949E;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 9999px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .cmd-filter-pill:hover {
+      color: #E6EDF3;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .cmd-filter-pill.active {
+      background: rgba(183, 255, 60, 0.12);
+      color: #B7FF3C;
+      border-color: rgba(183, 255, 60, 0.35);
+    }
+    .cmd-palette-results {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      max-height: 52vh;
+    }
+    .cmd-palette-results::-webkit-scrollbar {
+      width: 6px;
+    }
+    .cmd-palette-results::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .cmd-palette-results::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+    }
+    .cmd-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.12s ease, border-color 0.12s ease;
+      border-left: 2px solid transparent;
+      cursor: pointer;
+      margin-bottom: 2px;
+    }
+    .cmd-item:hover, .cmd-item.selected {
+      background: rgba(53, 229, 208, 0.07);
+      border-left-color: #35E5D0;
+    }
+    .cmd-item-platform {
+      font-family: var(--font-mono, monospace);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .platform-macos {
+      color: #35E5D0;
+      background: rgba(53, 229, 208, 0.12);
+      border: 1px solid rgba(53, 229, 208, 0.25);
+    }
+    .platform-windows {
+      color: #58a6ff;
+      background: rgba(88, 166, 255, 0.12);
+      border: 1px solid rgba(88, 166, 255, 0.25);
+    }
+    .platform-linux {
+      color: #f0883e;
+      background: rgba(240, 136, 62, 0.12);
+      border: 1px solid rgba(240, 136, 62, 0.25);
+    }
+    .platform-cross-platform {
+      color: #B7FF3C;
+      background: rgba(183, 255, 60, 0.12);
+      border: 1px solid rgba(183, 255, 60, 0.25);
+    }
+    .platform-malops {
+      color: #bc8cff;
+      background: rgba(188, 140, 255, 0.12);
+      border: 1px solid rgba(188, 140, 255, 0.25);
+    }
+    .cmd-item-main {
+      flex: 1;
+      min-width: 0;
+    }
+    .cmd-item-title {
+      color: #F0F6FC;
+      font-size: 13.5px;
+      font-weight: 600;
+      line-height: 1.35;
+      margin-bottom: 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cmd-item:hover .cmd-item-title, .cmd-item.selected .cmd-item-title {
+      color: #FFF;
+    }
+    .cmd-item-snippet {
+      color: #8B949E;
+      font-size: 12px;
+      line-height: 1.4;
+      margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cmd-item-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #6E7681;
+    }
+    .cmd-meta-dot {
+      opacity: 0.5;
+    }
+    .cmd-meta-family {
+      color: #8B949E;
+      font-weight: 500;
+    }
+    .cmd-match-tag {
+      font-family: var(--font-mono, monospace);
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: rgba(183, 255, 60, 0.15);
+      color: #B7FF3C;
+      border: 1px solid rgba(183, 255, 60, 0.3);
+      margin-right: 4px;
+    }
+    .cmd-match-code {
+      font-family: var(--font-mono, monospace);
+      font-size: 11px;
+      color: #C9D1D9;
+    }
+    .cmd-highlight {
+      background: rgba(183, 255, 60, 0.22);
+      color: #B7FF3C;
+      padding: 0 2px;
+      border-radius: 2px;
+      font-weight: 600;
+    }
+    .cmd-item-action {
+      align-self: center;
+      flex-shrink: 0;
+      opacity: 0;
+      transform: translateX(-4px);
+      transition: all 0.15s ease;
+    }
+    .cmd-item:hover .cmd-item-action, .cmd-item.selected .cmd-item-action {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    .cmd-item-enter {
+      font-family: var(--font-mono, monospace);
+      font-size: 13px;
+      color: #B7FF3C;
+      background: rgba(183, 255, 60, 0.1);
+      border: 1px solid rgba(183, 255, 60, 0.25);
+      padding: 3px 6px;
+      border-radius: 4px;
+      line-height: 1;
+    }
+    .cmd-palette-empty {
+      padding: 36px 20px;
+      text-align: center;
+      color: #8B949E;
+    }
+    .cmd-palette-empty h4 {
+      font-size: 14px;
+      color: #E6EDF3;
+      margin: 0 0 6px 0;
+      font-weight: 600;
+    }
+    .cmd-palette-empty p {
+      font-size: 12px;
+      color: #6E7681;
+      margin: 0;
+      line-height: 1.5;
+    }
+    .cmd-palette-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 18px;
+      background: #0A0D12;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 11px;
+      color: #6E7681;
+    }
+    .cmd-footer-shortcuts {
+      display: flex;
+      gap: 12px;
+    }
+    .cmd-footer-shortcuts span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .cmd-footer-shortcuts kbd {
+      font-family: var(--font-mono, monospace);
+      font-size: 10px;
+      padding: 1px 4px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 3px;
+      color: #8B949E;
+    }
+    .cmd-section-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6E7681;
+      padding: 8px 12px 4px;
+      font-family: var(--font-mono, monospace);
+    }
+    .nav-search-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      color: #8B949E;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: inherit;
+      transition: all 0.2s ease;
+      line-height: 1;
+    }
+    .nav-search-btn:hover {
+      background: rgba(53, 229, 208, 0.08);
+      border-color: rgba(53, 229, 208, 0.35);
+      color: #E6EDF3;
+    }
+    .nav-search-btn kbd {
+      font-size: 10px;
+      font-family: var(--font-mono, monospace);
+      padding: 1px 5px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 3px;
+      color: #C9D1D9;
+    }
+    @media (max-width: 640px) {
+      .cmd-palette-backdrop {
+        padding: 10px;
+      }
+      .cmd-palette-modal {
+        max-height: 90vh;
+      }
+      .cmd-footer-shortcuts {
+        display: none;
+      }
+      .nav-search-btn kbd {
+        display: none;
+      }
+    }
+  `;
+}
+
+function getCommandPaletteJs(basePath) {
+  return `
+  (function() {
+    var basePath = ${JSON.stringify(basePath)};
+    var catalog = Array.isArray(window.__MARE_CATALOG__) ? window.__MARE_CATALOG__ : [];
+    var backdrop = document.getElementById('mare-cmd-palette-backdrop');
+    var input = document.getElementById('mare-cmd-input');
+    var resultsContainer = document.getElementById('mare-cmd-results');
+    var statsEl = document.getElementById('mare-cmd-stats');
+    var filterPills = document.querySelectorAll('.cmd-filter-pill');
+    var closeBtn = document.getElementById('mare-cmd-close-btn');
+    var navSearchBtn = document.getElementById('nav-search-btn');
+    
+    var isOpen = false;
+    var activeFilter = 'all';
+    var selectedIndex = 0;
+    var currentResults = [];
+
+    function loadCatalogFallback() {
+      if (catalog && catalog.length > 0) return;
+      try {
+        fetch(basePath + 'data/catalog.json')
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (Array.isArray(data)) {
+              catalog = data;
+              window.__MARE_CATALOG__ = data;
+              if (isOpen) render();
+            }
+          })
+          .catch(function() {});
+      } catch (e) {}
+    }
+    loadCatalogFallback();
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeRegex(str) {
+      return str.replace(/[-\\\\/\\\\^$*+?.()|[\\]{}]/g, '\\\\\\\\$&');
+    }
+
+    function highlightTokens(text, tokens) {
+      if (!text) return '';
+      var escaped = escapeHtml(text);
+      if (!tokens || tokens.length === 0) return escaped;
+      tokens.forEach(function(t) {
+        if (!t) return;
+        var cleanToken = escapeRegex(t);
+        var regex = new RegExp('(' + cleanToken + ')', 'gi');
+        escaped = escaped.replace(regex, '<mark class="cmd-highlight">$1</mark>');
+      });
+      return escaped;
+    }
+
+    function getPlatformClass(os, source) {
+      if (source === 'malops') return 'malops';
+      var o = (os || '').toLowerCase();
+      if (o.indexOf('mac') !== -1) return 'macos';
+      if (o.indexOf('win') !== -1) return 'windows';
+      if (o.indexOf('linux') !== -1) return 'linux';
+      return 'cross-platform';
+    }
+
+    function openPalette(initialQuery) {
+      if (!backdrop || !input) return;
+      loadCatalogFallback();
+      backdrop.style.display = 'flex';
+      void backdrop.offsetWidth;
+      backdrop.classList.add('open');
+      isOpen = true;
+      document.body.style.overflow = 'hidden';
+      if (typeof initialQuery === 'string') {
+        input.value = initialQuery;
+      }
+      input.focus();
+      input.select();
+      selectedIndex = 0;
+      render();
+    }
+
+    function closePalette() {
+      if (!backdrop) return;
+      backdrop.classList.remove('open');
+      isOpen = false;
+      document.body.style.overflow = '';
+      setTimeout(function() {
+        if (!isOpen) backdrop.style.display = 'none';
+      }, 200);
+    }
+
+    function filterAndScore(query, filter) {
+      if (!catalog || !catalog.length) return [];
+      var q = (query || '').trim().toLowerCase();
+      var tokens = q ? q.split(/\\\\s+/).filter(Boolean) : [];
+
+      var filtered = catalog.filter(function(item) {
+        if (filter === 'MalOps') {
+          return item.source === 'malops';
+        } else if (filter !== 'all') {
+          return (item.os || '').toLowerCase() === filter.toLowerCase();
+        }
+        return true;
+      });
+
+      if (!tokens.length) {
+        return filtered.slice(0, 10).map(function(item) {
+          return {
+            item: item,
+            matchType: 'recent',
+            snippet: item.subtitle || '',
+            score: 10
+          };
+        });
+      }
+
+      var matches = [];
+      filtered.forEach(function(item) {
+        var title = (item.title || '').toLowerCase();
+        var subtitle = (item.subtitle || '').toLowerCase();
+        var family = (item.family || '').toLowerCase();
+        var classification = (item.classification || '').toLowerCase();
+        var os = (item.os || '').toLowerCase();
+        var category = (item.category || '').toLowerCase();
+        var hashVal = (item.hashVal || '').toLowerCase();
+        var c2 = (item.c2 || '').toLowerCase();
+        var delivery = (item.delivery || '').toLowerCase();
+        var targets = (item.targets || '').toLowerCase();
+
+        var haystack = title + ' ' + subtitle + ' ' + family + ' ' + classification + ' ' + os + ' ' + category + ' ' + hashVal + ' ' + c2 + ' ' + delivery + ' ' + targets;
+
+        var allMatched = tokens.every(function(t) {
+          return haystack.indexOf(t) !== -1;
+        });
+
+        if (!allMatched) return;
+
+        var score = 0;
+        var matchType = 'text';
+        var snippet = item.subtitle || '';
+
+        if (hashVal && tokens.some(function(t) { return hashVal.indexOf(t) !== -1; })) {
+          score += 200;
+          matchType = 'hash';
+          snippet = item.hashVal;
+        } else if (c2 && tokens.some(function(t) { return c2.indexOf(t) !== -1; })) {
+          score += 120;
+          matchType = 'c2';
+          snippet = item.c2;
+        } else if (family && tokens.some(function(t) { return family.indexOf(t) !== -1; })) {
+          score += 80;
+          matchType = 'family';
+          snippet = 'Malware Family: ' + item.family + ' — ' + (item.classification || '');
+        } else if (delivery && tokens.some(function(t) { return delivery.indexOf(t) !== -1; })) {
+          score += 60;
+          matchType = 'delivery';
+          snippet = 'Delivery: ' + item.delivery;
+        } else if (title && tokens.some(function(t) { return title.indexOf(t) !== -1; })) {
+          score += 50;
+          matchType = 'title';
+        } else {
+          score += 20;
+        }
+
+        if (item.featured) score += 5;
+
+        matches.push({
+          item: item,
+          matchType: matchType,
+          snippet: snippet,
+          score: score
+        });
+      });
+
+      matches.sort(function(a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        return new Date(b.item.date).getTime() - new Date(a.item.date).getTime();
+      });
+
+      return matches.slice(0, 30);
+    }
+
+    function render() {
+      if (!resultsContainer || !input) return;
+      var q = input.value.trim();
+      var tokens = q ? q.toLowerCase().split(/\\\\s+/).filter(Boolean) : [];
+      var results = filterAndScore(q, activeFilter);
+      currentResults = results;
+
+      if (selectedIndex >= results.length) selectedIndex = Math.max(0, results.length - 1);
+
+      if (statsEl) {
+        var total = catalog ? catalog.length : 0;
+        if (!q && activeFilter === 'all') {
+          statsEl.textContent = total + ' investigations cataloged';
+        } else {
+          statsEl.textContent = results.length + ' result' + (results.length === 1 ? '' : 's') + ' found (' + total + ' total)';
+        }
+      }
+
+      if (results.length === 0) {
+        resultsContainer.innerHTML = '<div class="cmd-palette-empty">' +
+          '<h4>No threat research found</h4>' +
+          '<p>No investigations matched "' + escapeHtml(q) + '".<br>Try searching for a platform (e.g. macOS), malware family, hash, or C2 domain.</p>' +
+          '</div>';
+        return;
+      }
+
+      var html = '';
+      if (!q) {
+        html += '<div class="cmd-section-label">Featured &amp; Recent Research</div>';
+      }
+
+      results.forEach(function(res, idx) {
+        var r = res.item;
+        var isSelected = idx === selectedIndex;
+        var pClass = getPlatformClass(r.os, r.source);
+        var pLabel = r.source === 'malops' ? 'MALOPS' : (r.os || 'RESEARCH');
+
+        var titleHtml = highlightTokens(r.title, tokens);
+        var snippetHtml = '';
+
+        if (res.matchType === 'hash') {
+          snippetHtml = '<span class="cmd-match-tag">HASH</span> <code class="cmd-match-code">' + highlightTokens(res.snippet, tokens) + '</code>';
+        } else if (res.matchType === 'c2') {
+          snippetHtml = '<span class="cmd-match-tag">C2</span> <code class="cmd-match-code">' + highlightTokens(res.snippet, tokens) + '</code>';
+        } else if (res.matchType === 'family' || res.matchType === 'delivery') {
+          snippetHtml = '<span class="cmd-match-tag">' + res.matchType.toUpperCase() + '</span> ' + highlightTokens(res.snippet, tokens);
+        } else {
+          var snip = res.snippet || r.subtitle || '';
+          if (snip.length > 130) snip = snip.substring(0, 126) + '...';
+          snippetHtml = highlightTokens(snip, tokens);
+        }
+
+        html += '<a href="' + basePath + escapeHtml(r.id) + '/index.html" class="cmd-item' + (isSelected ? ' selected' : '') + '" role="option" data-idx="' + idx + '" tabindex="-1">' +
+          '<div class="cmd-item-platform platform-' + pClass + '">' + escapeHtml(pLabel) + '</div>' +
+          '<div class="cmd-item-main">' +
+            '<div class="cmd-item-title">' + titleHtml + '</div>' +
+            '<div class="cmd-item-snippet">' + snippetHtml + '</div>' +
+            '<div class="cmd-item-meta">' +
+              '<span class="cmd-meta-family">' + escapeHtml(r.family || r.category || 'Malware Analysis') + '</span>' +
+              '<span class="cmd-meta-dot">•</span>' +
+              '<span>' + escapeHtml(r.date || '') + '</span>' +
+              '<span class="cmd-meta-dot">•</span>' +
+              '<span>' + escapeHtml(r.readTime || '') + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="cmd-item-action"><span class="cmd-item-enter">↵</span></div>' +
+        '</a>';
+      });
+
+      resultsContainer.innerHTML = html;
+      updateSelectionScroll();
+    }
+
+    function updateSelectionScroll() {
+      if (!resultsContainer) return;
+      var selected = resultsContainer.querySelector('.cmd-item.selected');
+      if (selected && selected.scrollIntoView) {
+        selected.scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    function updateSelection() {
+      if (!resultsContainer) return;
+      var items = resultsContainer.querySelectorAll('.cmd-item');
+      items.forEach(function(item, idx) {
+        if (idx === selectedIndex) {
+          item.classList.add('selected');
+        } else {
+          item.classList.remove('selected');
+        }
+      });
+      updateSelectionScroll();
+    }
+
+    window.addEventListener('keydown', function(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (isOpen) {
+          closePalette();
+        } else {
+          openPalette();
+        }
+        return;
+      }
+
+      if (e.key === '/' && !isOpen) {
+        var tag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toLowerCase() : '';
+        if (tag !== 'input' && tag !== 'textarea' && !(document.activeElement && document.activeElement.isContentEditable)) {
+          e.preventDefault();
+          openPalette();
+          return;
+        }
+      }
+
+      if (isOpen) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closePalette();
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (currentResults.length > 0) {
+            selectedIndex = (selectedIndex + 1) % currentResults.length;
+            updateSelection();
+          }
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (currentResults.length > 0) {
+            selectedIndex = (selectedIndex - 1 + currentResults.length) % currentResults.length;
+            updateSelection();
+          }
+        } else if (e.key === 'Tab') {
+          e.preventDefault();
+          var pillList = Array.prototype.slice.call(filterPills);
+          var currentPillIdx = 0;
+          for (var i = 0; i < pillList.length; i++) {
+            if (pillList[i].classList.contains('active')) {
+              currentPillIdx = i;
+              break;
+            }
+          }
+          var nextPillIdx = (currentPillIdx + (e.shiftKey ? -1 : 1) + pillList.length) % pillList.length;
+          pillList[nextPillIdx].click();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (currentResults.length > 0 && currentResults[selectedIndex]) {
+            var target = currentResults[selectedIndex].item;
+            window.location.href = basePath + target.id + '/index.html';
+          }
+        }
+      }
+    });
+
+    if (input) {
+      input.addEventListener('input', function() {
+        selectedIndex = 0;
+        render();
+      });
+    }
+
+    if (filterPills) {
+      filterPills.forEach(function(pill) {
+        pill.addEventListener('click', function() {
+          filterPills.forEach(function(p) { p.classList.remove('active'); });
+          pill.classList.add('active');
+          activeFilter = pill.getAttribute('data-filter') || 'all';
+          selectedIndex = 0;
+          render();
+          if (input) input.focus();
+        });
+      });
+    }
+
+    if (backdrop) {
+      backdrop.addEventListener('click', function(e) {
+        if (e.target === backdrop) closePalette();
+      });
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function() {
+        closePalette();
+      });
+    }
+
+    if (navSearchBtn) {
+      navSearchBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        openPalette();
+      });
+    }
+
+    window.mareOpenSearch = openPalette;
+  })();
+  `;
 }
 
 // 2. CONVERT MARKDOWN AND BUNDLE ALL REFERENCED SCREENSHOTS LOCALLY
@@ -2715,6 +3532,7 @@ function buildReportPage(r) {
         padding: 6px 6px;
       }
     }
+    ${getCommandPaletteCss()}
   </style>
 </head>
 <body>
@@ -2740,6 +3558,11 @@ function buildReportPage(r) {
     </div>
 
     <div class="nav-actions">
+      <button class="nav-search-btn" id="nav-search-btn" title="Search investigations (⌘K or /)" aria-label="Search investigations">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <span>Search</span>
+        <kbd>⌘K</kbd>
+      </button>
       <span class="badge-tlp">● TLP:CLEAR</span>
     </div>
   </nav>
@@ -3242,6 +4065,11 @@ function buildReportPage(r) {
         td.innerHTML = '<div class="hash-cell-wrapper"><code>' + text + '</code><button class="btn-copy" type="button">Copy</button></div>';
       }
     });
+  </script>
+  ${renderCommandPaletteModal()}
+  <script src="../data/catalog.js"></script>
+  <script>
+${getCommandPaletteJs('../')}
   </script>
 </body>
 </html>
@@ -4968,6 +5796,7 @@ function buildPortalIndex(allReports) {
         padding: 11px 20px;
       }
     }
+    ${getCommandPaletteCss()}
   </style>
 </head>
 <body>
@@ -5075,8 +5904,10 @@ ${techniquesDropdownHtml}
       </nav>
 
       <div class="right-nav-actions">
-        <button class="nav-search-icon-btn" id="nav-search-btn" title="Search investigations (⌘K)" aria-label="Search">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <button class="nav-search-btn" id="nav-search-btn" title="Search investigations (⌘K or /)" aria-label="Search investigations">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <span>Search</span>
+          <kbd>⌘K</kbd>
         </button>
         <div class="mobile-about-wrapper">
           <button class="mobile-about-btn" id="mobile-about-btn" aria-label="About Me &amp; Social Links" title="About Chandra Kant Bauri">
@@ -5546,32 +6377,26 @@ ${techniquesDropdownHtml}
       selectFilter('all');
     }
 
-    // Keyboard shortcuts: ⌘K or / to search, Esc to clear
-    document.addEventListener('keydown', (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        if (searchInput) searchInput.focus();
-      } else if (e.key === '/' && document.activeElement !== searchInput) {
-        e.preventDefault();
-        if (searchInput) searchInput.focus();
-      } else if (e.key === 'Escape' && document.activeElement === searchInput) {
-        searchInput.value = '';
-        searchQuery = '';
-        if (currentFilter === 'all' && currentCategory === 'all') {
-          visibleLimit = INITIAL_PAGE_SIZE;
+    // In-page live search escape listener
+    if (searchInput) {
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          searchInput.value = '';
+          searchQuery = '';
+          if (currentFilter === 'all' && currentCategory === 'all') {
+            visibleLimit = INITIAL_PAGE_SIZE;
+          }
+          filterCards();
+          searchInput.blur();
         }
-        filterCards();
-        searchInput.blur();
-      }
-    });
+      });
+    }
 
-    // Nav search trigger
-    const navSearchBtn = document.getElementById('nav-search-btn');
-    if (navSearchBtn) {
-      navSearchBtn.addEventListener('click', () => {
-        const invSec = document.getElementById('investigations');
-        if (invSec) invSec.scrollIntoView({ behavior: 'smooth' });
-        setTimeout(() => { if (searchInput) searchInput.focus(); }, 400);
+    if (searchKbd) {
+      searchKbd.addEventListener('click', () => {
+        if (typeof window.mareOpenSearch === 'function') {
+          window.mareOpenSearch();
+        }
       });
     }
 
@@ -5717,35 +6542,16 @@ ${techniquesDropdownHtml}
       filterCards();
     }
   </script>
+  ${renderCommandPaletteModal()}
+  <script src="data/catalog.js"></script>
+  <script>
+${getCommandPaletteJs('')}
+  </script>
 </body>
 </html>
 `;
 
   fs.writeFileSync(path.join(REPORTS_DIR, 'index.html'), portalHtml, 'utf8');
-
-  // Generate lightweight JSON catalog for fast search, virtual pagination & external APIs
-  const dataDir = path.join(REPORTS_DIR, 'data');
-  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-  const catalog = allReports.map(r => ({
-    id: r.id,
-    title: r.title,
-    subtitle: r.lead || r.subtitle || '',
-    os: r.os,
-    category: r.category,
-    date: r.date,
-    readTime: r.readTime,
-    family: r.family,
-    classification: r.classification,
-    delivery: r.delivery,
-    c2: r.c2,
-    targets: r.targets,
-    hashType: r.hashType,
-    hashVal: r.hashVal,
-    image: r.firstImage || '',
-    navTitle: getReportNavTitle(r),
-    featured: Boolean(r.featured)
-  }));
-  fs.writeFileSync(path.join(dataDir, 'catalog.json'), JSON.stringify(catalog, null, 2), 'utf8');
 
   // Generate SEO-friendly XML Sitemap
   const siteUrl = 'https://lynk4.github.io/mare';
@@ -5811,6 +6617,9 @@ allReports.forEach(r => {
   platformStats[r.os] = (platformStats[r.os] || 0) + 1;
 });
 console.log('Platform Breakdown:', platformStats);
+
+generateCatalogData(allReports);
+console.log('Catalog Index: generated reports/data/catalog.json and reports/data/catalog.js');
 
 const buildCache = loadBuildCache();
 let builtCount = 0;
