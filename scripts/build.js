@@ -4787,9 +4787,12 @@ function buildPortalIndex(allReports) {
     .hero-immersive-section {
       position: relative;
       width: 100%;
-      min-height: clamp(520px, 48vh, 640px);
+      min-height: calc(100svh - 60px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
       overflow: hidden;
-      padding: 24px 0 16px;
+      padding: 36px 0 20px;
     }
 
     .immersive-bg-wrapper {
@@ -4806,7 +4809,7 @@ function buildPortalIndex(allReports) {
       height: 100%;
       object-fit: cover;
       object-position: center 34%;
-      filter: contrast(1.04) brightness(1.12);
+      filter: contrast(1.05) brightness(1.1);
       transform: scale(1.02);
       animation: heroBgZoom 20s ease-in-out infinite alternate;
     }
@@ -4821,11 +4824,11 @@ function buildPortalIndex(allReports) {
       inset: 0;
       background:
         /* Balanced translucent horizontal tint: protects text readability without blacking out the left monitor */
-        linear-gradient(to right, rgba(5, 9, 13, 0.66) 0%, rgba(5, 9, 13, 0.45) 36%, rgba(5, 9, 13, 0.16) 66%, rgba(5, 9, 13, 0.40) 100%),
+        linear-gradient(to right, rgba(5, 9, 13, 0.72) 0%, rgba(5, 9, 13, 0.48) 38%, rgba(5, 9, 13, 0.18) 68%, rgba(5, 9, 13, 0.42) 100%),
         /* Smooth top & bottom edge fade into site background */
-        linear-gradient(to bottom, rgba(5, 9, 13, 0.50) 0%, transparent 20%, transparent 72%, #05090D 100%),
+        linear-gradient(to bottom, rgba(5, 9, 13, 0.6) 0%, transparent 22%, transparent 70%, #05090D 100%),
         /* Balanced ambient vignette centered across the entire workstation */
-        radial-gradient(ellipse at 50% 42%, transparent 48%, rgba(5, 9, 13, 0.52) 100%);
+        radial-gradient(ellipse at 50% 42%, transparent 44%, rgba(5, 9, 13, 0.58) 100%);
     }
 
     .immersive-container {
@@ -4833,11 +4836,93 @@ function buildPortalIndex(allReports) {
       z-index: 2;
       max-width: 1480px;
       margin: 0 auto;
-      padding: 44px 44px 36px;
+      padding: 40px 44px 16px;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      min-height: 480px;
+      flex: 1;
+      width: 100%;
+    }
+
+    /* Kinetic Optical Laser Conduit Scroll Cue (Zero Text, Zero Icons) */
+    .hero-scroll-cue-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: auto;
+      padding: 24px 0 28px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .opt-conduit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      cursor: pointer;
+      padding: 6px 14px;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), filter 0.3s ease;
+    }
+
+    .opt-conduit:hover {
+      transform: translateY(4px);
+      filter: drop-shadow(0 0 16px rgba(183, 255, 60, 0.6));
+    }
+
+    .cue-conduit-node {
+      width: 6px;
+      height: 6px;
+      border-radius: 1px;
+      background: #35E5D0;
+      box-shadow: 0 0 10px #35E5D0, 0 0 18px rgba(53, 229, 208, 0.8);
+      margin-bottom: 3px;
+    }
+
+    .cue-conduit-track {
+      width: 2px;
+      height: 46px;
+      background: rgba(53, 229, 208, 0.35);
+      box-shadow: 0 0 6px rgba(53, 229, 208, 0.25);
+      position: relative;
+      overflow: hidden;
+      border-radius: 9999px;
+    }
+
+    .cue-conduit-beam {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 16px;
+      background: #B7FF3C;
+      box-shadow: 0 0 14px #B7FF3C, 0 0 24px rgba(183, 255, 60, 0.9);
+      border-radius: 9999px;
+      animation: conduitTravel 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes conduitTravel {
+      0% {
+        top: -16px;
+        opacity: 0;
+      }
+      20% {
+        opacity: 1;
+      }
+      80% {
+        opacity: 1;
+      }
+      100% {
+        top: 46px;
+        opacity: 0;
+      }
+    }
+
+    .opt-conduit:hover .cue-conduit-track {
+      background: rgba(183, 255, 60, 0.5);
+      box-shadow: 0 0 10px rgba(183, 255, 60, 0.4);
     }
 
     .immersive-content-box-borderless {
@@ -5677,10 +5762,15 @@ function buildPortalIndex(allReports) {
 
     @media (max-width: 768px) {
       .site-nav {
-        padding: 0 20px;
+        padding: 0 !important;
       }
       .nav-container {
-        padding: 0;
+        padding: 0 16px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      .site-nav .btn-explore-reports {
+        display: none !important;
       }
       .center-nav {
         display: none;
@@ -5688,14 +5778,30 @@ function buildPortalIndex(allReports) {
       .mobile-about-wrapper {
         display: block;
       }
-      .brand-subtext {
-        display: none;
+      .brand-subtext, .brand-vsep {
+        display: none !important;
       }
-      .brand-vsep {
-        display: none;
+      .nav-search-btn {
+        padding: 7px !important;
+        gap: 0 !important;
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 8px !important;
+        justify-content: center !important;
+      }
+      .nav-search-label, .nav-search-badge {
+        display: none !important;
+      }
+      .hero-immersive-section {
+        min-height: calc(100svh - 58px);
+        padding: 20px 0 16px;
       }
       .immersive-container {
-        padding: 24px 20px 20px;
+        padding: 24px 16px 12px;
+      }
+      .hero-scroll-cue-wrapper {
+        padding-top: 14px;
+        padding-bottom: 8px;
       }
       .cover-headline {
         font-size: clamp(34px, 8vw, 44px);
@@ -5750,11 +5856,14 @@ function buildPortalIndex(allReports) {
 
     @media (max-width: 480px) {
       .site-nav {
-        padding: 0 16px;
+        padding: 0 !important;
         height: 56px;
       }
+      .nav-container {
+        padding: 0 14px !important;
+      }
       .brand-group {
-        gap: 10px;
+        gap: 8px;
       }
       .brand-logo-img {
         width: 26px;
@@ -5765,26 +5874,13 @@ function buildPortalIndex(allReports) {
         letter-spacing: 1px;
       }
       .right-nav-actions {
-        gap: 10px;
-      }
-      .nav-search-icon-btn {
-        width: 30px;
-        height: 30px;
-      }
-      .btn-explore-reports {
-        padding: 6px 12px;
-        font-size: 12px;
-        gap: 6px;
-      }
-      .btn-explore-reports svg {
-        width: 12px;
-        height: 12px;
+        gap: 8px;
       }
       .hero-immersive-section {
         padding: 16px 0 10px;
       }
       .immersive-container {
-        padding: 20px 16px 16px;
+        padding: 18px 14px 12px;
       }
       .cover-borderless-badge {
         gap: 5px;
@@ -6121,6 +6217,16 @@ ${techniquesDropdownHtml}
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Optical Laser Conduit Scroll Cue (Zero Text, Zero Icons) -->
+    <div class="hero-scroll-cue-wrapper">
+      <a href="#investigations" class="opt-conduit" title="Explore research stream" aria-label="Scroll down to research investigations">
+        <div class="cue-conduit-node" aria-hidden="true"></div>
+        <div class="cue-conduit-track" aria-hidden="true">
+          <div class="cue-conduit-beam"></div>
+        </div>
+      </a>
     </div>
   </section>
 
