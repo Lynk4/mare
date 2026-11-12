@@ -6389,9 +6389,7 @@ ${techniquesDropdownHtml}
     function filterByCategory(catName) {
       currentCategory = catName;
       currentFilter = 'all';
-      if (catName === 'all') {
-        visibleLimit = INITIAL_PAGE_SIZE;
-      }
+      visibleLimit = INITIAL_PAGE_SIZE;
       filterPills.forEach(pill => {
         const isAll = (pill.getAttribute('data-filter') === 'all');
         pill.classList.toggle('active', isAll);
@@ -6405,9 +6403,7 @@ ${techniquesDropdownHtml}
     function selectFilter(filterName) {
       currentFilter = filterName;
       currentCategory = 'all';
-      if (filterName.toLowerCase() === 'all') {
-        visibleLimit = INITIAL_PAGE_SIZE;
-      }
+      visibleLimit = INITIAL_PAGE_SIZE;
       filterPills.forEach(pill => {
         const isActive = (pill.getAttribute('data-filter').toLowerCase() === filterName.toLowerCase());
         pill.classList.toggle('active', isActive);
@@ -6425,6 +6421,7 @@ ${techniquesDropdownHtml}
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
         searchQuery = e.target.value;
+        visibleLimit = INITIAL_PAGE_SIZE;
         filterCards();
       });
     }
@@ -6433,9 +6430,7 @@ ${techniquesDropdownHtml}
       clearBtn.addEventListener('click', () => {
         searchInput.value = '';
         searchQuery = '';
-        if (currentFilter === 'all' && currentCategory === 'all') {
-          visibleLimit = INITIAL_PAGE_SIZE;
-        }
+        visibleLimit = INITIAL_PAGE_SIZE;
         filterCards();
         searchInput.focus();
       });
@@ -6455,9 +6450,7 @@ ${techniquesDropdownHtml}
         if (e.key === 'Escape') {
           searchInput.value = '';
           searchQuery = '';
-          if (currentFilter === 'all' && currentCategory === 'all') {
-            visibleLimit = INITIAL_PAGE_SIZE;
-          }
+          visibleLimit = INITIAL_PAGE_SIZE;
           filterCards();
           searchInput.blur();
         }
