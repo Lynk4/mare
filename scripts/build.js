@@ -29,7 +29,7 @@ function saveBuildCache(cache) {
   } catch (e) {}
 }
 
-const BUILD_GENERATOR_VERSION = 'v2.3-cmd-palette';
+const BUILD_GENERATOR_VERSION = 'v2.4-card-hydration';
 
 function computeReportSourceHash(r) {
   const hash = crypto.createHash('sha256');
@@ -602,29 +602,130 @@ function getReportNavTitle(r) {
   return t;
 }
 
+function formatCardDate(dateStr) {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr || '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatCardMeta(r) {
+  let fallbackImg = 'assets/home/card-threatintel.png';
+  let badgeClass = 'badge-cross';
+  let badgeText = r.os || 'Cross-platform';
+
+  if (r.source === 'malops') {
+    badgeClass = 'badge-malops';
+    badgeText = `MALOPS • ${(r.difficulty || 'CHALLENGE').toUpperCase()}`;
+    fallbackImg = 'assets/home/card-threatintel.png';
+  } else if (r.os === 'macOS') {
+    fallbackImg = 'assets/home/card-macos.png';
+    badgeClass = 'badge-macos';
+    badgeText = 'macOS';
+  } else if (r.os === 'Windows') {
+    fallbackImg = 'assets/home/card-windows.png';
+    badgeClass = 'badge-windows';
+    badgeText = 'Windows';
+  } else if (r.os === 'Linux') {
+    fallbackImg = 'assets/home/card-threatintel.png';
+    badgeClass = 'badge-linux';
+    badgeText = 'Linux';
+  }
+
+  let cardImg = fallbackImg;
+  const img = r.firstImage || r.image;
+  if (img) {
+    cardImg = (img.startsWith('http://') || img.startsWith('https://'))
+      ? img
+      : `${r.id}/${img}`;
+  }
+
+  let displayTitle = r.title;
+  let displayDesc = r.lead || r.subtitle;
+  let displayDate = formatCardDate(r.date);
+  let displayReadTime = r.readTime || '14 min read';
+
+  if (r.id === 'rustbucket-2') {
+    displayTitle = 'macOS Malware Analysis — Part 2: Reverse Engineering RustBucket';
+    displayDesc = 'In-depth analysis of a macOS sample focusing on Mach-O internals, ARM64 assembly, Swift symbols, and reverse engineering techniques used to understand its functionality.';
+    displayReadTime = '18 min read';
+    badgeClass = 'badge-macos';
+    badgeText = 'macOS';
+  } else if (r.id === 'unpacking-modified-upx-malware') {
+    displayTitle = 'Unpacking Modified UPX Malware';
+    displayDesc = 'Analysis of a modified UPX-packed executable, focusing on PE header reconstruction, section metadata, and techniques to recover a valid structure for further static analysis.';
+    displayReadTime = '13 min read';
+    badgeClass = 'badge-windows';
+    badgeText = 'Windows';
+  } else if (r.id === 'digit-stealer') {
+    displayTitle = 'Digit Stealer: Inside a macOS Campaign';
+    displayDesc = 'Technical analysis of Digit Stealer, examining sample artifacts, infrastructure, and key implementation details observed in the campaign.';
+    displayReadTime = '16 min read';
+    badgeClass = 'badge-macos';
+    badgeText = 'macOS';
+  }
+
+  return {
+    id: r.id,
+    title: displayTitle,
+    subtitle: displayDesc || '',
+    os: r.os,
+    category: r.category,
+    source: r.source || '',
+    date: r.date,
+    formattedDate: displayDate,
+    readTime: displayReadTime,
+    cardImg,
+    badgeClass,
+    badgeText,
+    family: r.family || '',
+    classification: r.classification || '',
+    delivery: r.delivery || '',
+    targets: r.targets || '',
+    c2: r.c2 || '',
+    hashType: r.hashType || '',
+    hashVal: r.hashVal || '',
+    image: r.firstImage || r.image || '',
+    navTitle: getReportNavTitle(r),
+    featured: Boolean(r.featured)
+  };
+}
+
+function renderPortalCardHtml(m) {
+  const searchKeywords = `${m.title} ${m.subtitle} ${m.category} ${m.os} ${m.family} ${m.targets} ${m.delivery}`.toLowerCase();
+  return `
+        <article class="inv-card" data-os="${escapeHtml(m.os)}" data-category="${escapeHtml(m.category)}" data-source="${escapeHtml(m.source || '')}" data-search="${escapeHtml(searchKeywords)}">
+          <a href="${escapeHtml(m.id)}/index.html" class="card-banner" aria-label="${escapeHtml(m.title)}">
+            <span class="card-platform-badge ${escapeHtml(m.badgeClass)}">${escapeHtml(m.badgeText)}</span>
+            <img src="${escapeHtml(m.cardImg)}" alt="${escapeHtml(m.title)}" class="card-banner-img" loading="lazy">
+          </a>
+          <div class="card-content-body">
+            <a href="${escapeHtml(m.id)}/index.html" style="text-decoration:none; color:inherit;">
+              <h3 class="card-title">${escapeHtml(m.title)}</h3>
+            </a>
+            <p class="card-desc">${escapeHtml(m.subtitle)}</p>
+            <div class="card-footer">
+              <div class="card-meta-left">
+                <span class="meta-date">
+                  <svg class="meta-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  <span>${escapeHtml(m.formattedDate)}</span>
+                </span>
+                <span class="meta-readtime">
+                  <svg class="meta-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span>${escapeHtml(m.readTime)}</span>
+                </span>
+              </div>
+              <a href="${escapeHtml(m.id)}/index.html" class="card-arrow-btn" aria-label="Read ${escapeHtml(m.title)}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </a>
+            </div>
+          </div>
+        </article>`;
+}
+
 function generateCatalogData(allReports) {
   const dataDir = path.join(REPORTS_DIR, 'data');
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-  const catalog = allReports.map(r => ({
-    id: r.id,
-    title: r.title,
-    subtitle: r.lead || r.subtitle || '',
-    os: r.os,
-    category: r.category,
-    date: r.date,
-    readTime: r.readTime,
-    family: r.family,
-    classification: r.classification,
-    delivery: r.delivery,
-    c2: r.c2,
-    targets: r.targets,
-    hashType: r.hashType,
-    hashVal: r.hashVal,
-    image: r.firstImage || '',
-    navTitle: getReportNavTitle(r),
-    featured: Boolean(r.featured),
-    source: r.source || ''
-  }));
+  const catalog = allReports.map(formatCardMeta);
   fs.writeFileSync(path.join(dataDir, 'catalog.json'), JSON.stringify(catalog, null, 2), 'utf8');
   fs.writeFileSync(path.join(dataDir, 'catalog.js'), 'window.__MARE_CATALOG__ = ' + JSON.stringify(catalog) + ';\n', 'utf8');
   return catalog;
@@ -4169,12 +4270,6 @@ function buildPortalIndex(allReports) {
               <span class="dropdown-count-tag">(${catCounts['Reverse Engineering Techniques'] || techniqueReports.length}) &rarr;</span>
             </a>`;
 
-  function formatCardDate(dateStr) {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  }
-
   // Sort order: display reports strictly by latest date descending
   const displayReports = allReports;
 
@@ -4188,6 +4283,7 @@ function buildPortalIndex(allReports) {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="data/catalog.js"></script>
   <style>
     :root {
       --bg-page: #05090D;
@@ -6075,101 +6171,9 @@ ${techniquesDropdownHtml}
       </button>
     </div>
 
-    <!-- Cards Stream Grid -->
+    <!-- Cards Stream Grid (Initial 9 Cards Static for Instant Paint & SEO) -->
     <div class="investigations-grid" id="investigations-grid">
-      ${displayReports.map((r, idx) => {
-        let fallbackImg = 'assets/home/card-threatintel.png';
-        let badgeClass = 'badge-cross';
-        let badgeText = r.os || 'Cross-platform';
-
-        if (r.source === 'malops') {
-          badgeClass = 'badge-malops';
-          badgeText = `MALOPS • ${(r.difficulty || 'CHALLENGE').toUpperCase()}`;
-          fallbackImg = 'assets/home/card-threatintel.png';
-        } else if (r.os === 'macOS') {
-          fallbackImg = 'assets/home/card-macos.png';
-          badgeClass = 'badge-macos';
-          badgeText = 'macOS';
-        } else if (r.os === 'Windows') {
-          fallbackImg = 'assets/home/card-windows.png';
-          badgeClass = 'badge-windows';
-          badgeText = 'Windows';
-        } else if (r.os === 'Linux') {
-          fallbackImg = 'assets/home/card-threatintel.png';
-          badgeClass = 'badge-linux';
-          badgeText = 'Linux';
-        } else {
-          fallbackImg = 'assets/home/card-threatintel.png';
-          badgeClass = 'badge-cross';
-          badgeText = 'Cross-platform';
-        }
-
-        // Use first image from report if available, else clean platform banner
-        let cardImg = fallbackImg;
-        if (r.firstImage) {
-          cardImg = (r.firstImage.startsWith('http://') || r.firstImage.startsWith('https://'))
-            ? r.firstImage
-            : `${r.id}/${r.firstImage}`;
-        }
-
-        // Custom exact overrides for the 3 featured reference cards
-        let displayTitle = r.title;
-        let displayDesc = r.lead || r.subtitle;
-        let displayDate = formatCardDate(r.date);
-        let displayReadTime = r.readTime || '14 min read';
-
-        if (r.id === 'rustbucket-2') {
-          displayTitle = 'macOS Malware Analysis — Part 2: Reverse Engineering RustBucket';
-          displayDesc = 'In-depth analysis of a macOS sample focusing on Mach-O internals, ARM64 assembly, Swift symbols, and reverse engineering techniques used to understand its functionality.';
-          displayReadTime = '18 min read';
-          badgeClass = 'badge-macos';
-          badgeText = 'macOS';
-        } else if (r.id === 'unpacking-modified-upx-malware') {
-          displayTitle = 'Unpacking Modified UPX Malware';
-          displayDesc = 'Analysis of a modified UPX-packed executable, focusing on PE header reconstruction, section metadata, and techniques to recover a valid structure for further static analysis.';
-          displayReadTime = '13 min read';
-          badgeClass = 'badge-windows';
-          badgeText = 'Windows';
-        } else if (r.id === 'digit-stealer') {
-          displayTitle = 'Digit Stealer: Inside a macOS Campaign';
-          displayDesc = 'Technical analysis of Digit Stealer, examining sample artifacts, infrastructure, and key implementation details observed in the campaign.';
-          displayReadTime = '16 min read';
-          badgeClass = 'badge-macos';
-          badgeText = 'macOS';
-        }
-
-        const searchKeywords = `${displayTitle} ${displayDesc} ${r.category} ${r.os} ${r.family} ${r.targets} ${r.delivery}`.toLowerCase();
-
-        return `
-        <article class="inv-card" data-os="${escapeHtml(r.os)}" data-category="${escapeHtml(r.category)}" data-source="${escapeHtml(r.source || '')}" data-search="${escapeHtml(searchKeywords)}"${idx >= 9 ? ' style="display:none;"' : ''}>
-          <a href="${r.id}/index.html" class="card-banner" aria-label="${escapeHtml(displayTitle)}">
-            <span class="card-platform-badge ${badgeClass}">${escapeHtml(badgeText)}</span>
-            <img src="${cardImg}" alt="${escapeHtml(displayTitle)}" class="card-banner-img" loading="lazy">
-          </a>
-          <div class="card-content-body">
-            <a href="${r.id}/index.html" style="text-decoration:none; color:inherit;">
-              <h3 class="card-title">${escapeHtml(displayTitle)}</h3>
-            </a>
-            <p class="card-desc">${escapeHtml(displayDesc)}</p>
-            <div class="card-footer">
-              <div class="card-meta-left">
-                <span class="meta-date">
-                  <svg class="meta-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                  <span>${displayDate}</span>
-                </span>
-                <span class="meta-readtime">
-                  <svg class="meta-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                  <span>${displayReadTime}</span>
-                </span>
-              </div>
-              <a href="${r.id}/index.html" class="card-arrow-btn" aria-label="Read ${escapeHtml(displayTitle)}">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-              </a>
-            </div>
-          </div>
-        </article>
-        `;
-      }).join('')}
+      ${displayReports.slice(0, 9).map(r => renderPortalCardHtml(formatCardMeta(r))).join('\n')}
 
       <div id="empty-search-state" class="empty-search-state" style="display:none;">
         <h3>No matching investigations</h3>
@@ -6196,7 +6200,7 @@ ${techniquesDropdownHtml}
     const clearBtn = document.getElementById('search-clear-btn');
     const searchKbd = document.querySelector('.search-shortcut-badge');
     const filterPills = document.querySelectorAll('.filter-pill');
-    const cards = document.querySelectorAll('.inv-card');
+    const gridContainer = document.getElementById('investigations-grid');
     const emptyState = document.getElementById('empty-search-state');
     const loadMoreContainer = document.getElementById('load-more-container');
     const btnLoadMore = document.getElementById('btn-load-more');
@@ -6211,52 +6215,125 @@ ${techniquesDropdownHtml}
     let currentCategory = 'all';
     let searchQuery = '';
 
-    function filterCards() {
+    let allCatalog = Array.isArray(window.__MARE_CATALOG__) ? window.__MARE_CATALOG__ : [];
+    if (!allCatalog.length) {
+      try {
+        fetch('data/catalog.json')
+          .then(res => res.json())
+          .then(data => {
+            if (Array.isArray(data)) {
+              allCatalog = data;
+              window.__MARE_CATALOG__ = data;
+              filterCards();
+            }
+          })
+          .catch(() => {});
+      } catch(e) {}
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function createCardElement(m) {
+      const searchKeywords = (m.title + ' ' + m.subtitle + ' ' + m.category + ' ' + m.os + ' ' + (m.family || '') + ' ' + (m.targets || '') + ' ' + (m.delivery || '')).toLowerCase();
+      const article = document.createElement('article');
+      article.className = 'inv-card';
+      article.setAttribute('data-os', m.os);
+      article.setAttribute('data-category', m.category);
+      article.setAttribute('data-source', m.source || '');
+      article.setAttribute('data-search', searchKeywords);
+      article.innerHTML = \`
+        <a href="\${escapeHtml(m.id)}/index.html" class="card-banner" aria-label="\${escapeHtml(m.title)}">
+          <span class="card-platform-badge \${escapeHtml(m.badgeClass)}">\${escapeHtml(m.badgeText)}</span>
+          <img src="\${escapeHtml(m.cardImg)}" alt="\${escapeHtml(m.title)}" class="card-banner-img" loading="lazy">
+        </a>
+        <div class="card-content-body">
+          <a href="\${escapeHtml(m.id)}/index.html" style="text-decoration:none; color:inherit;">
+            <h3 class="card-title">\${escapeHtml(m.title)}</h3>
+          </a>
+          <p class="card-desc">\${escapeHtml(m.subtitle)}</p>
+          <div class="card-footer">
+            <div class="card-meta-left">
+              <span class="meta-date">
+                <svg class="meta-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span>\${escapeHtml(m.formattedDate || m.date)}</span>
+              </span>
+              <span class="meta-readtime">
+                <svg class="meta-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>\${escapeHtml(m.readTime || '14 min read')}</span>
+              </span>
+            </div>
+            <a href="\${escapeHtml(m.id)}/index.html" class="card-arrow-btn" aria-label="Read \${escapeHtml(m.title)}">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </a>
+          </div>
+        </div>
+      \`;
+      return article;
+    }
+
+    function getMatchingReports() {
       const q = searchQuery.trim().toLowerCase();
-      const isDefaultView = (currentFilter === 'all' && currentCategory === 'all' && !q);
+      const tokens = q ? q.split(/\\s+/).filter(Boolean) : [];
 
-      let matchingCount = 0;
-      let visibleCount = 0;
-
-      cards.forEach(card => {
-        const cardOs = card.getAttribute('data-os') || '';
-        const cardCat = card.getAttribute('data-category') || '';
-        const cardSearch = card.getAttribute('data-search') || '';
-        const cardSource = card.getAttribute('data-source') || '';
-
+      return allCatalog.filter(item => {
         let filterMatch = false;
         if (currentFilter === 'all') {
           filterMatch = true;
         } else if (currentFilter.toLowerCase() === 'malops') {
-          filterMatch = (cardSource.toLowerCase() === 'malops');
+          filterMatch = ((item.source || '').toLowerCase() === 'malops');
         } else {
-          filterMatch = (cardOs.toLowerCase() === currentFilter.toLowerCase());
+          filterMatch = ((item.os || '').toLowerCase() === currentFilter.toLowerCase());
+        }
+        if (!filterMatch) return false;
+
+        if (currentCategory !== 'all' && (item.category || '').toLowerCase() !== currentCategory.toLowerCase()) {
+          return false;
         }
 
-        const catMatch = (currentCategory === 'all' || cardCat.toLowerCase() === currentCategory.toLowerCase());
-        const searchMatch = !q || cardSearch.includes(q);
-
-        if (filterMatch && catMatch && searchMatch) {
-          matchingCount++;
-          if (isDefaultView) {
-            if (matchingCount <= visibleLimit) {
-              card.style.display = 'flex';
-              visibleCount++;
-            } else {
-              card.style.display = 'none';
-            }
-          } else {
-            // Specific OS, category, or search: load all matching
-            card.style.display = 'flex';
-            visibleCount++;
-          }
-        } else {
-          card.style.display = 'none';
+        if (tokens.length > 0) {
+          const haystack = (
+            (item.title || '') + ' ' +
+            (item.subtitle || '') + ' ' +
+            (item.family || '') + ' ' +
+            (item.os || '') + ' ' +
+            (item.category || '') + ' ' +
+            (item.hashVal || '') + ' ' +
+            (item.c2 || '') + ' ' +
+            (item.delivery || '') + ' ' +
+            (item.targets || '')
+          ).toLowerCase();
+          return tokens.every(t => haystack.includes(t));
         }
+
+        return true;
       });
+    }
+
+    function filterCards() {
+      const matched = getMatchingReports();
+      const q = searchQuery.trim();
+
+      if (gridContainer) {
+        gridContainer.querySelectorAll('.inv-card').forEach(c => c.remove());
+        const sliceCount = Math.min(visibleLimit, matched.length);
+        const toRender = matched.slice(0, sliceCount);
+        const fragment = document.createDocumentFragment();
+        toRender.forEach(item => {
+          fragment.appendChild(createCardElement(item));
+        });
+        gridContainer.insertBefore(fragment, emptyState);
+      }
 
       if (emptyState) {
-        emptyState.style.display = (matchingCount === 0) ? 'block' : 'none';
+        emptyState.style.display = (matched.length === 0) ? 'block' : 'none';
       }
 
       const activeFilterIndicator = document.getElementById('active-filter-indicator');
@@ -6264,10 +6341,10 @@ ${techniquesDropdownHtml}
       if (activeFilterIndicator && activeFilterLabel) {
         if (currentCategory !== 'all') {
           activeFilterIndicator.style.display = 'inline-flex';
-          activeFilterLabel.innerHTML = 'Category: <strong>' + currentCategory + '</strong> &bull; ' + matchingCount + ' report' + (matchingCount === 1 ? '' : 's');
+          activeFilterLabel.innerHTML = 'Category: <strong>' + escapeHtml(currentCategory) + '</strong> &bull; ' + matched.length + ' report' + (matched.length === 1 ? '' : 's');
         } else if (q) {
           activeFilterIndicator.style.display = 'inline-flex';
-          activeFilterLabel.innerHTML = 'Search: &ldquo;<strong>' + q + '</strong>&rdquo; &bull; ' + matchingCount + ' match' + (matchingCount === 1 ? '' : 'es');
+          activeFilterLabel.innerHTML = 'Search: &ldquo;<strong>' + escapeHtml(q) + '</strong>&rdquo; &bull; ' + matched.length + ' match' + (matched.length === 1 ? '' : 'es');
         } else {
           activeFilterIndicator.style.display = 'none';
         }
@@ -6284,22 +6361,17 @@ ${techniquesDropdownHtml}
       }
 
       if (loadMoreContainer) {
-        if (isDefaultView && matchingCount > visibleCount) {
+        const sliceCount = Math.min(visibleLimit, matched.length);
+        if (matched.length > sliceCount) {
           loadMoreContainer.style.display = 'flex';
           if (btnLoadMore) btnLoadMore.style.display = 'inline-flex';
-          const remaining = matchingCount - visibleCount;
-          if (loadMoreBadge) {
-            loadMoreBadge.textContent = remaining + ' remaining';
-          }
-          if (loadMoreStatus) {
-            loadMoreStatus.textContent = 'Showing ' + visibleCount + ' of ' + matchingCount + ' investigations';
-          }
-        } else if (isDefaultView && matchingCount > 0 && matchingCount <= visibleCount && visibleCount > INITIAL_PAGE_SIZE) {
+          const remaining = matched.length - sliceCount;
+          if (loadMoreBadge) loadMoreBadge.textContent = remaining + ' remaining';
+          if (loadMoreStatus) loadMoreStatus.textContent = 'Showing ' + sliceCount + ' of ' + matched.length + ' investigations';
+        } else if (matched.length > 0 && sliceCount > INITIAL_PAGE_SIZE) {
           loadMoreContainer.style.display = 'flex';
           if (btnLoadMore) btnLoadMore.style.display = 'none';
-          if (loadMoreStatus) {
-            loadMoreStatus.textContent = 'All ' + matchingCount + ' investigations loaded';
-          }
+          if (loadMoreStatus) loadMoreStatus.textContent = 'All ' + matched.length + ' investigations loaded';
         } else {
           loadMoreContainer.style.display = 'none';
           if (btnLoadMore) btnLoadMore.style.display = 'inline-flex';
