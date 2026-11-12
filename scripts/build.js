@@ -1125,8 +1125,16 @@ function getCommandPaletteCss() {
       .cmd-footer-shortcuts {
         display: none;
       }
+      .nav-search-btn {
+        width: 34px !important;
+        height: 34px !important;
+        padding: 0 !important;
+        justify-content: center !important;
+        box-sizing: border-box !important;
+      }
+      .nav-search-btn span,
       .nav-search-btn kbd {
-        display: none;
+        display: none !important;
       }
     }
   `;
@@ -4304,7 +4312,12 @@ function buildPortalIndex(allReports) {
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    html {
+      scroll-behavior: smooth;
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100%;
+    }
 
     body {
       background-color: var(--bg-page);
@@ -4315,6 +4328,8 @@ function buildPortalIndex(allReports) {
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
+      width: 100%;
+      max-width: 100%;
       min-height: 100vh;
       position: relative;
     }
@@ -5734,11 +5749,16 @@ function buildPortalIndex(allReports) {
         right: auto !important;
         margin-bottom: 14px;
         align-self: flex-start;
-        flex-wrap: wrap;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
         gap: 6px;
       }
       .bb-lime, .bb-cyan {
         font-size: 12px;
+        white-space: normal !important;
+        word-break: break-word !important;
       }
       .hero-stats-row {
         display: grid;
@@ -5773,24 +5793,89 @@ function buildPortalIndex(allReports) {
         display: none !important;
       }
       .center-nav {
-        display: none;
+        display: none !important;
       }
       .mobile-about-wrapper {
-        display: block;
+        display: block !important;
       }
       .brand-subtext, .brand-vsep {
         display: none !important;
       }
-      .nav-search-btn {
-        padding: 7px !important;
-        gap: 0 !important;
-        width: 36px !important;
-        height: 36px !important;
-        border-radius: 8px !important;
-        justify-content: center !important;
+      .brand-group {
+        gap: 10px;
       }
-      .nav-search-label, .nav-search-badge {
+      .brand-logo-img {
+        width: 28px;
+        height: 28px;
+      }
+      .brand-title {
+        font-size: 17px;
+        letter-spacing: 1.2px;
+      }
+      .right-nav-actions {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex-shrink: 0 !important;
+      }
+      .nav-search-btn {
+        width: 36px !important;
+        min-width: 36px !important;
+        max-width: 36px !important;
+        height: 36px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 8px !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        flex-shrink: 0 !important;
+      }
+      .nav-search-btn span,
+      .nav-search-btn kbd {
         display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        overflow: hidden !important;
+      }
+      .nav-search-btn svg {
+        width: 15px !important;
+        height: 15px !important;
+        margin: 0 !important;
+        flex-shrink: 0 !important;
+        color: #94A3B8 !important;
+      }
+      .mobile-about-btn {
+        height: 36px !important;
+        padding: 0 12px !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        border-radius: 8px !important;
+        flex-shrink: 0 !important;
+        box-sizing: border-box !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+        color: var(--text-secondary) !important;
+        font-family: var(--font-body);
+      }
+      .mobile-about-btn:hover,
+      .mobile-about-btn.active {
+        color: var(--neon-lime) !important;
+        border-color: var(--neon-lime) !important;
+        background: rgba(183, 255, 60, 0.08) !important;
       }
       .hero-immersive-section {
         min-height: calc(100svh - 58px);
@@ -5874,7 +5959,29 @@ function buildPortalIndex(allReports) {
         letter-spacing: 1px;
       }
       .right-nav-actions {
-        gap: 8px;
+        gap: 6px !important;
+      }
+      .nav-search-btn {
+        width: 34px !important;
+        min-width: 34px !important;
+        max-width: 34px !important;
+        height: 34px !important;
+        border-radius: 8px !important;
+      }
+      .nav-search-btn svg {
+        width: 14px !important;
+        height: 14px !important;
+      }
+      .mobile-about-btn {
+        height: 34px !important;
+        padding: 0 10px !important;
+        font-size: 11.5px !important;
+        gap: 5px !important;
+        border-radius: 8px !important;
+      }
+      .mobile-about-btn svg {
+        width: 13px !important;
+        height: 13px !important;
       }
       .hero-immersive-section {
         padding: 16px 0 10px;
@@ -5885,11 +5992,16 @@ function buildPortalIndex(allReports) {
       .cover-borderless-badge {
         gap: 5px;
         margin-bottom: 10px;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
       }
       .bb-lime, .bb-cyan {
         font-size: 11px;
         letter-spacing: 0.4px;
-        white-space: normal;
+        white-space: normal !important;
+        word-break: break-word !important;
       }
       .cover-eyebrow {
         margin-bottom: 10px;
