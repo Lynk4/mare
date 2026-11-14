@@ -214,7 +214,22 @@ function formatCodeBlockHeader(declared, codeText) {
     return 'HEX DUMP';
   }
 
-  // 5. JSON Documents
+  // 5. XML / Plist Documents
+  if (c.startsWith('<?xml') || c.startsWith('<!DOCTYPE plist') || c.startsWith('<plist') || /<\?xml\b/i.test(firstLine) || /<!DOCTYPE\s+plist/i.test(sample)) {
+    if (/<plist\b/i.test(sample) || /com\.apple\./i.test(sample)) {
+      return 'XML / PLIST';
+    }
+    return 'XML';
+  }
+  if (/^\s*<[a-zA-Z0-9_-]+(\s+[^>]*)?>/i.test(firstLine) && /<\/[a-zA-Z0-9_-]+>\s*$/i.test(lines[lines.length - 1])) {
+    if (!/(?:#include|int\s+main|std::)/.test(sample)) {
+      if (/<plist\b/i.test(sample)) return 'XML / PLIST';
+      if (/<html\b/i.test(sample)) return 'HTML';
+      return 'XML';
+    }
+  }
+
+  // 6. JSON Documents
   if ((c.startsWith('{') && c.endsWith('}')) || (c.startsWith('[') && c.endsWith(']'))) {
     if (/"[a-zA-Z0-9_.-]+"\s*:/i.test(sample)) {
       return 'JSON';
@@ -280,6 +295,13 @@ function formatCodeBlockHeader(declared, codeText) {
     return 'TELEMETRY / OUTPUT';
   }
 
+  if (cleanDeclared === 'xml' || cleanDeclared === 'plist') {
+    if (/<plist\b/i.test(sample) || /com\.apple\./i.test(sample) || cleanDeclared === 'plist') {
+      return 'XML / PLIST';
+    }
+    return 'XML';
+  }
+
   const declaredMap = {
     c: 'C',
     cpp: 'C++',
@@ -292,6 +314,24 @@ function formatCodeBlockHeader(declared, codeText) {
     powershell: 'POWERSHELL',
     ps1: 'POWERSHELL',
     json: 'JSON',
+    xml: 'XML',
+    plist: 'XML / PLIST',
+    html: 'HTML',
+    yaml: 'YAML',
+    yml: 'YAML',
+    sql: 'SQL',
+    go: 'GO',
+    golang: 'GO',
+    rust: 'RUST',
+    rs: 'RUST',
+    js: 'JAVASCRIPT',
+    javascript: 'JAVASCRIPT',
+    ts: 'TYPESCRIPT',
+    typescript: 'TYPESCRIPT',
+    toml: 'CONFIG / TOML',
+    ini: 'CONFIG / INI',
+    diff: 'DIFF / PATCH',
+    patch: 'DIFF / PATCH',
     swift: 'SWIFT',
     objectivec: 'OBJECTIVE-C',
     objc: 'OBJECTIVE-C',
@@ -304,7 +344,11 @@ function formatCodeBlockHeader(declared, codeText) {
     return declaredMap[cleanDeclared];
   }
 
-  return 'TELEMETRY / DISASSEMBLY';
+  if (isAsmDisasm || genericAsm >= 1 || arm64Matches >= 1 || x86Matches >= 1 || hasHexOffsets >= 1) {
+    return 'DISASSEMBLY';
+  }
+
+  return 'TELEMETRY / OUTPUT';
 }
 
 // 1. DISCOVER ALL REPORTS FROM DISK DYNAMICALLY
