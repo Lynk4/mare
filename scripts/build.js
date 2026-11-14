@@ -29,7 +29,7 @@ function saveBuildCache(cache) {
   } catch (e) {}
 }
 
-const BUILD_GENERATOR_VERSION = 'v2.5-external-css';
+const BUILD_GENERATOR_VERSION = 'v2.6-webp-pipeline';
 
 function computeReportSourceHash(r) {
   const hash = crypto.createHash('sha256');
@@ -705,11 +705,18 @@ function formatCardMeta(r) {
   }
 
   let cardImg = fallbackImg;
-  const img = r.firstImage || r.image;
+  let img = r.firstImage || r.image;
   if (img) {
-    cardImg = (img.startsWith('http://') || img.startsWith('https://'))
-      ? img
-      : `${r.id}/${img}`;
+    if (img.startsWith('http://') || img.startsWith('https://')) {
+      cardImg = img;
+    } else {
+      const webpCandidate = img.replace(/\.(png|jpe?g)$/i, '.webp');
+      const targetWebp = path.join(REPORTS_DIR, r.id, webpCandidate);
+      if (fs.existsSync(targetWebp)) {
+        img = webpCandidate;
+      }
+      cardImg = `${r.id}/${img}`;
+    }
   }
 
   let displayTitle = r.title;
@@ -1514,6 +1521,45 @@ function buildReportPage(r) {
     return cells;
   }
 
+  function copyOrConvertImage(srcFile, targetDir, baseName) {
+    const ext = path.extname(baseName).toLowerCase();
+    const rawTarget = path.join(targetDir, baseName);
+
+    if (ext === '.png' || ext === '.jpg' || ext === '.jpeg') {
+      const webpName = baseName.replace(/\.[^.]+$/, '.webp');
+      const webpTarget = path.join(targetDir, webpName);
+
+      if (fs.existsSync(webpTarget) && fs.statSync(webpTarget).size > 100 && fs.statSync(webpTarget).mtimeMs >= fs.statSync(srcFile).mtimeMs) {
+        if (fs.existsSync(rawTarget)) {
+          try { fs.unlinkSync(rawTarget); } catch (e) {}
+        }
+        return `images/${encodeURIComponent(webpName)}`;
+      }
+
+      try {
+        execSync(`cwebp -q 85 "${srcFile}" -o "${webpTarget}"`, { stdio: 'ignore' });
+        if (fs.existsSync(webpTarget) && fs.statSync(webpTarget).size > 100) {
+          if (fs.existsSync(rawTarget)) {
+            try { fs.unlinkSync(rawTarget); } catch (e) {}
+          }
+          return `images/${encodeURIComponent(webpName)}`;
+        }
+      } catch (e) {
+        // Fallback to direct copy if cwebp fails
+      }
+    }
+
+    try {
+      if (!fs.existsSync(rawTarget) || fs.statSync(rawTarget).mtimeMs < fs.statSync(srcFile).mtimeMs) {
+        fs.copyFileSync(srcFile, rawTarget);
+      }
+      return `images/${encodeURIComponent(baseName)}`;
+    } catch (e) {
+      console.warn(`[Warning] Could not copy image ${srcFile}:`, e.message);
+      return `images/${encodeURIComponent(baseName)}`;
+    }
+  }
+
   // Copies image locally to reports/<id>/images/ and returns self-contained relative path 'images/<name>'
   function bundleImageLocally(rawSrc) {
     if (rawSrc.startsWith('http://') || rawSrc.startsWith('https://')) {
@@ -1529,7 +1575,7 @@ function buildReportPage(r) {
           execSync(`curl -sL --max-time 15 "${rawSrc}" -o "${targetPath}"`, { stdio: 'ignore' });
         }
         if (fs.existsSync(targetPath) && fs.statSync(targetPath).size > 100) {
-          return `images/${encodeURIComponent(baseName)}`;
+          return copyOrConvertImage(targetPath, imagesDir, baseName);
         }
       } catch (e) {
         // Fallback to raw remote URL
@@ -1541,18 +1587,22 @@ function buildReportPage(r) {
 
     if (fs.existsSync(absSrc) && fs.statSync(absSrc).isFile()) {
       const baseName = path.basename(absSrc).replace(/[^\w.-]/g, '_');
-      const targetPath = path.join(imagesDir, baseName);
-      try {
-        fs.copyFileSync(absSrc, targetPath);
-        return `images/${encodeURIComponent(baseName)}`;
-      } catch (e) {
-        console.warn(`[Warning] Could not copy image ${absSrc}:`, e.message);
-      }
+      return copyOrConvertImage(absSrc, imagesDir, baseName);
     }
     return rawSrc;
   }
 
   let firstEncounteredImage = null;
+  if (r.thumbnail) {
+    const rawThumb = decodeURIComponent(String(r.thumbnail).trim().replace(/^images\//, ''));
+    const absThumb = path.resolve(r.srcDir, rawThumb);
+    if (fs.existsSync(absThumb) && fs.statSync(absThumb).isFile()) {
+      const baseName = path.basename(absThumb).replace(/[^\w.-]/g, '_');
+      r.thumbnail = copyOrConvertImage(absThumb, imagesDir, baseName);
+      r.firstImage = r.thumbnail;
+      firstEncounteredImage = r.thumbnail;
+    }
+  }
   let firstH1Encountered = false;
 
   for (let i = 0; i < lines.length; i++) {
@@ -3345,9 +3395,6 @@ allReports.forEach(r => {
 });
 console.log('Platform Breakdown:', platformStats);
 
-generateCatalogData(allReports);
-console.log('Catalog Index: generated reports/data/catalog.json and reports/data/catalog.js');
-
 copyGlobalAssets();
 const buildCache = loadBuildCache();
 let builtCount = 0;
@@ -3373,6 +3420,9 @@ allReports.forEach(r => {
     builtCount++;
   }
 });
+
+generateCatalogData(allReports);
+console.log('Catalog Index: generated reports/data/catalog.json and reports/data/catalog.js');
 
 saveBuildCache(buildCache);
 console.log(`Compilation: ${builtCount} built, ${cachedCount} unchanged (cached).`);

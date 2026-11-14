@@ -44,6 +44,9 @@ jobs:
           restore-keys: |
             mare-build-cache-
 
+      - name: Ensure WebP Tools
+        run: which cwebp >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y webp)
+
       - name: Build Threat Intelligence Portal & Advisories
         run: npm run build
 
