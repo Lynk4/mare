@@ -184,10 +184,17 @@ function formatCodeBlockHeader(declared, codeText) {
     return 'YARA RULE';
   }
 
+  // Pre-calculate assembly & disassembly signals
+  const arm64Matches = (sample.match(/\b(?:ldr|str|stp|ldp|bl|adr|adrp|cbnz|cbz|w[0-9]{1,2}|x[0-9]{1,2})\b/gi) || []).length;
+  const x86Matches = (sample.match(/\b(?:eax|ebx|ecx|edx|rax|rbx|rcx|rdx|rsi|rdi|rbp|rsp|r[89]|r1[0-5]|qword|dword|byte ptr|syscall)\b/gi) || []).length;
+  const genericAsm = (sample.match(/\b(?:mov|push|pop|call|lea|xor|cmp|test|sub|add|jmp|jne|je|ret|nop)\b/gi) || []).length;
+  const hasHexOffsets = (sample.match(/^(?:0x[0-9a-fA-F]+|[0-9a-fA-F]{8,16})\b/gm) || []).length;
+  const isAsmDisasm = (arm64Matches >= 2 || x86Matches >= 2 || (genericAsm >= 2 && hasHexOffsets >= 1) || (arm64Matches >= 1 && (genericAsm >= 1 || hasHexOffsets >= 1)) || (x86Matches >= 1 && (genericAsm >= 1 || hasHexOffsets >= 1)));
+
   // 2. Terminal Prompts or CLI Tool Invocations
   const isCliPrompt = /^(?:[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+.*?[%#\$>]|┌──\(|PS\s+[A-Z]:\\|[A-Z]:\\[^\n>]*>|\$\s+|#\s+|>\s*)/.test(firstLine);
-  const isCliCmd = /^(?:python3?\s+-[cm]|codesign\s+|otool\s+|objdump\s+|strings\s+|nm\s+|xxd\s+|hexdump\s+|curl\s+|wget\s+|sudo\s+|chmod\s+|file\s+|grep\s+|find\s+|cat\s+|sysctl\s+|volatility\s+|gcc\s+|g\+\+\s+|make\s+|npm\s+|git\s+|upx\s+|xattr\s+)/.test(firstLine);
-  if (isCliPrompt || isCliCmd) {
+  const isCliCmd = /^(?:go\s+|python3?\s+-[cm]|codesign\s+|otool\s+|objdump\s+|strings\s+|nm\s+|xxd\s+|hexdump\s+|curl\s+|wget\s+|sudo\s+|chmod\s+|file\s+|grep\s+|find\s+|cat\s+|sysctl\s+|volatility\s+|gcc\s+|g\+\+\s+|make\s+|npm\s+|git\s+|upx\s+|xattr\s+)/.test(firstLine);
+  if (isCliCmd || (isCliPrompt && !isAsmDisasm)) {
     return 'TERMINAL / COMMAND';
   }
 
@@ -233,11 +240,6 @@ function formatCodeBlockHeader(declared, codeText) {
   }
 
   // 8. Assembly & Disassembly (ARM64 vs x86/x64 vs Generic)
-  const arm64Matches = (sample.match(/\b(?:ldr|str|stp|ldp|bl|adr|adrp|cbnz|cbz|w[0-9]{1,2}|x[0-9]{1,2})\b/gi) || []).length;
-  const x86Matches = (sample.match(/\b(?:eax|ebx|ecx|edx|rax|rbx|rcx|rdx|rsi|rdi|rbp|rsp|r[89]|r1[0-5]|qword|dword|byte ptr|syscall)\b/gi) || []).length;
-  const genericAsm = (sample.match(/\b(?:mov|push|pop|call|lea|xor|cmp|test|sub|add|jmp|jne|je|ret|nop)\b/gi) || []).length;
-  const hasHexOffsets = (sample.match(/^(?:0x[0-9a-fA-F]+|[0-9a-fA-F]{8,16})\b/gm) || []).length;
-
   if (arm64Matches >= 2 || (arm64Matches >= 1 && genericAsm >= 1)) {
     if (!/(?:#include|int\s+main|void\s+[a-zA-Z0-9_]+\s*\(|return\s+[^;]+;)/.test(sample)) {
       return 'ARM64 DISASSEMBLY';
@@ -265,6 +267,19 @@ function formatCodeBlockHeader(declared, codeText) {
   const bogusTags = new Set(['jsx', 'passw0rd1337', '001a1287', '006813b4', 'mruprac', 'mal', 'malware-report']);
   const cleanDeclared = bogusTags.has(d) ? '' : d;
 
+  if (cleanDeclared === 'nasm' || cleanDeclared === 'asm') {
+    if (arm64Matches >= 1 || x86Matches >= 1 || genericAsm >= 1 || hasHexOffsets >= 1) {
+      if (arm64Matches >= 2 || (arm64Matches >= 1 && genericAsm >= 1)) return 'ARM64 DISASSEMBLY';
+      if (x86Matches >= 2 || (x86Matches >= 1 && genericAsm >= 1)) return 'X86_64 DISASSEMBLY';
+      return 'ASSEMBLY (ASM)';
+    }
+    // No assembly instructions found: plain text, translation, or CLI command
+    if (isCliPrompt || isCliCmd || /^(?:go\s|curl\s|python|chmod|git|cat|grep)/i.test(firstLine)) {
+      return 'TERMINAL / COMMAND';
+    }
+    return 'TELEMETRY / OUTPUT';
+  }
+
   const declaredMap = {
     c: 'C',
     cpp: 'C++',
@@ -276,8 +291,6 @@ function formatCodeBlockHeader(declared, codeText) {
     zsh: 'SHELL',
     powershell: 'POWERSHELL',
     ps1: 'POWERSHELL',
-    nasm: 'ASSEMBLY (ASM)',
-    asm: 'ASSEMBLY (ASM)',
     json: 'JSON',
     swift: 'SWIFT',
     objectivec: 'OBJECTIVE-C',
@@ -424,6 +437,7 @@ function discoverReports() {
       }
 
       let thumbnail = null;
+      let subtitle = null;
       let featured = false;
       let navTitle = null;
       let navDropdown = null;
@@ -440,7 +454,10 @@ function discoverReports() {
           const meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
           if (meta.id) id = meta.id;
           if (meta.title) title = meta.title;
-          if (meta.subtitle || meta.lead) lead = meta.subtitle || meta.lead;
+          if (meta.lead) lead = meta.lead;
+          if (meta.subtitle) subtitle = meta.subtitle;
+          if (!lead && subtitle) lead = subtitle;
+          if (!subtitle && lead) subtitle = lead;
           if (meta.thumbnail || meta.thumb || meta.image) {
             let rawThumb = String(meta.thumbnail || meta.thumb || meta.image).trim();
             if (rawThumb.startsWith('http://') || rawThumb.startsWith('https://')) {
@@ -491,6 +508,7 @@ function discoverReports() {
         iconType,
         title,
         lead,
+        subtitle,
         date,
         readTime,
         family,
@@ -648,7 +666,7 @@ function formatCardMeta(r) {
   }
 
   let displayTitle = r.title;
-  let displayDesc = r.lead || r.subtitle;
+  let displayDesc = r.subtitle || r.lead;
   let displayDate = formatCardDate(r.date);
   let displayReadTime = r.readTime || '14 min read';
 
