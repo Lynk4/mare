@@ -1938,6 +1938,32 @@ function buildReportPage(r) {
     if (h1Match) {
       if (!firstH1Encountered) {
         firstH1Encountered = true;
+        // Skip any immediate subtitle / divider that mirrors the header lead
+        let j = i + 1;
+        while (j < lines.length) {
+          const nextTrimmed = lines[j].trim();
+          if (!nextTrimmed) {
+            j++;
+            continue;
+          }
+          const italicMatch = nextTrimmed.match(/^[*_]{1,2}(.*?)[*_]{1,2}$/);
+          if (italicMatch) {
+            const candidate = italicMatch[1].trim().toLowerCase();
+            const leadLower = (r.lead || '').trim().toLowerCase();
+            const subLower = (r.subtitle || '').trim().toLowerCase();
+            if (candidate === leadLower || candidate === subLower || (subLower && subLower.startsWith(candidate)) || (leadLower && leadLower.startsWith(candidate))) {
+              i = j;
+              j++;
+              continue;
+            }
+          }
+          if (/^---+$|^___+$|^\*\*\*+$/.test(nextTrimmed)) {
+            i = j;
+            j++;
+            continue;
+          }
+          break;
+        }
         continue;
       }
       const title = h1Match[1].replace(/[*_`]/g, '').trim();
