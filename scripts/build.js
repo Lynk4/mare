@@ -441,9 +441,8 @@ function discoverReports() {
       const readMinutes = Math.max(8, Math.min(25, Math.round(wordCount / 180)));
       let readTime = `${readMinutes} min read`;
 
-      // Date: extract authentic commit date when added to repository
-      const gitDate = getGitAddedDate(mdPath, id);
-      let date = gitDate || 'August 2026';
+      // Date: extracted authentic commit date fallback if not set in meta.json
+      let date = null;
 
       // Threat Profile Defaults
       let family = dirName.replace(/Malware|Analysis|Report|Sample/gi, '').trim() || dirName;
@@ -542,6 +541,10 @@ function discoverReports() {
         } catch (e) {
           console.warn(`[Warning] Could not parse meta.json in ${fullDir}:`, e.message);
         }
+      }
+
+      if (!date) {
+        date = getGitAddedDate(mdPath, id) || 'August 2026';
       }
 
       discovered.push({
@@ -1243,7 +1246,6 @@ function getCommandPaletteJs(basePath) {
           .catch(function() {});
       } catch (e) {}
     }
-    loadCatalogFallback();
 
     function escapeHtml(str) {
       if (!str) return '';
@@ -1584,6 +1586,8 @@ function getCommandPaletteJs(basePath) {
     }
 
     if (navSearchBtn) {
+      navSearchBtn.addEventListener('mouseenter', function() { loadCatalogFallback(); }, { once: true });
+      navSearchBtn.addEventListener('focus', function() { loadCatalogFallback(); }, { once: true });
       navSearchBtn.addEventListener('click', function(e) {
         e.preventDefault();
         openPalette();
@@ -4272,7 +4276,6 @@ function buildReportPage(r) {
     });
   </script>
   ${renderCommandPaletteModal()}
-  <script src="../data/catalog.js"></script>
   <script>
 ${getCommandPaletteJs('../')}
   </script>
@@ -6922,7 +6925,6 @@ ${techniquesDropdownHtml}
     }
   </script>
   ${renderCommandPaletteModal()}
-  <script src="data/catalog.js"></script>
   <script>
 ${getCommandPaletteJs('')}
   </script>
