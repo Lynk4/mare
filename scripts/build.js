@@ -442,7 +442,15 @@ function discoverReports() {
           if (meta.title) title = meta.title;
           if (meta.subtitle || meta.lead) lead = meta.subtitle || meta.lead;
           if (meta.thumbnail || meta.thumb || meta.image) {
-            thumbnail = meta.thumbnail || meta.thumb || meta.image;
+            let rawThumb = String(meta.thumbnail || meta.thumb || meta.image).trim();
+            if (rawThumb.startsWith('http://') || rawThumb.startsWith('https://')) {
+              thumbnail = rawThumb;
+            } else if (rawThumb.startsWith('images/')) {
+              thumbnail = rawThumb;
+            } else {
+              const baseName = path.basename(decodeURIComponent(rawThumb)).replace(/[^\w.-]/g, '_');
+              thumbnail = `images/${encodeURIComponent(baseName)}`;
+            }
             firstImage = thumbnail;
           }
           if (meta.category) category = meta.category;
