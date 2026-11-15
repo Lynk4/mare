@@ -29,7 +29,7 @@ function saveBuildCache(cache) {
   } catch (e) {}
 }
 
-const BUILD_GENERATOR_VERSION = 'v2.6-webp-pipeline';
+const BUILD_GENERATOR_VERSION = 'v2.7-mitre-badges';
 
 function computeReportSourceHash(r) {
   const hash = crypto.createHash('sha256');
@@ -1472,6 +1472,14 @@ function buildReportPage(r) {
     tableRows = [];
   }
 
+  function formatMitreBadge(id) {
+    const parts = id.split('.');
+    const url = parts.length === 2
+      ? `https://attack.mitre.org/techniques/${parts[0]}/${parts[1]}/`
+      : `https://attack.mitre.org/techniques/${parts[0]}/`;
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="mitre-badge" title="MITRE ATT&amp;CK Technique ${id}"><span class="mitre-label">ATT&amp;CK</span><span class="mitre-id">${id}</span><span class="mitre-arrow">↗</span></a>`;
+  }
+
   function inlineFormat(text) {
     if (!text) return '';
     const codes = [];
@@ -1488,8 +1496,18 @@ function buildReportPage(r) {
       .replace(/\*([^*]+)\*/g, '<em>$1</em>')
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 
+    // Auto-badge raw MITRE ATT&CK technique IDs outside existing <a> tags
+    processed = processed.replace(/(<a\s+[^>]*>[\s\S]*?<\/a>)|(\bT1[0-9]{3}(?:\.[0-9]{3})?\b(?![0-9a-fA-F_]))/g, (match, link, mitreId) => {
+      if (link) return link;
+      return formatMitreBadge(mitreId);
+    });
+
     return processed.replace(/\x00CODE_(\d+)\x00/g, (match, idx) => {
-      return `<code>${codes[Number(idx)]}</code>`;
+      const codeVal = codes[Number(idx)];
+      if (/^T1[0-9]{3}(?:\.[0-9]{3})?$/.test(codeVal.trim())) {
+        return formatMitreBadge(codeVal.trim());
+      }
+      return `<code>${codeVal}</code>`;
     });
   }
 

@@ -1847,3 +1847,77 @@
         display: none !important;
       }
     }
+
+/* ==========================================================================
+   INTERACTIVE MITRE ATT&CK BADGE COMPONENT
+   ========================================================================== */
+.mitre-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(53, 229, 208, 0.08);
+  border: 1px solid rgba(53, 229, 208, 0.28);
+  border-radius: 4px;
+  padding: 1px 7px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--neon-cyan, #35E5D0);
+  text-decoration: none;
+  white-space: nowrap;
+  vertical-align: middle;
+  transition: all 0.18s ease;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.mitre-badge:hover {
+  background: rgba(53, 229, 208, 0.18);
+  border-color: var(--neon-cyan, #35E5D0);
+  box-shadow: 0 0 10px rgba(53, 229, 208, 0.35);
+  color: #FFFFFF;
+  text-decoration: none;
+}
+
+.mitre-badge .mitre-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: var(--text-muted, #7E8695);
+  text-transform: uppercase;
+}
+
+.mitre-badge:hover .mitre-label {
+  color: var(--neon-lime, #B7FF3C);
+}
+
+.mitre-badge .mitre-id {
+  color: var(--neon-cyan, #35E5D0);
+  letter-spacing: -0.2px;
+}
+
+.mitre-badge:hover .mitre-id {
+  color: #FFFFFF;
+}
+
+.mitre-badge .mitre-arrow {
+  font-size: 11px;
+  opacity: 0.7;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.mitre-badge:hover .mitre-arrow {
+  opacity: 1;
+  transform: translate(1px, -1px);
+}
+
+@media (max-width: 768px) {
+  .mitre-badge {
+    font-size: 11px;
+    padding: 1px 6px;
+    gap: 4px;
+  }
+  .mitre-badge .mitre-label {
+    font-size: 8.5px;
+  }
+}
