@@ -351,6 +351,43 @@ function formatCodeBlockHeader(declared, codeText) {
   return 'TELEMETRY / OUTPUT';
 }
 
+// Maps code block classification to clean user-facing label and CSS ecosystem class
+function getCodeBlockMeta(declared, codeText) {
+  const rawLabel = formatCodeBlockHeader(declared, codeText);
+  // Guarantee zero raw backticks in user-facing header
+  const label = (rawLabel || 'TELEMETRY / OUTPUT').replace(/`+/g, '').trim();
+
+  let langClass = 'lang-generic';
+  const u = label.toUpperCase();
+  if (u.includes('ARM64') || u.includes('X86') || u.includes('DISASSEMBLY') || u.includes('ASSEMBLY') || u.includes('NASM')) {
+    langClass = 'lang-disasm';
+  } else if (u.includes('TERMINAL') || u.includes('COMMAND') || u.includes('BASH') || u.includes('SHELL')) {
+    langClass = 'lang-terminal';
+  } else if (u.includes('YARA')) {
+    langClass = 'lang-yara';
+  } else if (u.includes('XML') || u.includes('PLIST') || u.includes('HTML')) {
+    langClass = 'lang-xml';
+  } else if (u.includes('PYTHON')) {
+    langClass = 'lang-python';
+  } else if (u.includes('C / C++') || u.includes('C++') || u === 'C') {
+    langClass = 'lang-c';
+  } else if (u.includes('POWERSHELL')) {
+    langClass = 'lang-powershell';
+  } else if (u.includes('HEX')) {
+    langClass = 'lang-hex';
+  } else if (u.includes('JSON') || u.includes('YAML') || u.includes('CONFIG') || u.includes('TOML') || u.includes('INI')) {
+    langClass = 'lang-config';
+  } else if (u.includes('GO')) {
+    langClass = 'lang-go';
+  } else if (u.includes('RUST')) {
+    langClass = 'lang-rust';
+  } else if (u.includes('SWIFT') || u.includes('OBJECTIVE-C')) {
+    langClass = 'lang-swift';
+  }
+
+  return { label, langClass };
+}
+
 // 1. DISCOVER ALL REPORTS FROM DISK DYNAMICALLY
 function discoverReports() {
   const discovered = [];
@@ -1680,11 +1717,11 @@ function buildReportPage(r) {
         const content = line.trim().slice(3, -3).trim();
         codeSnippetCounter++;
         const snippetId = `code-block-${codeSnippetCounter}`;
-        const label = formatCodeBlockHeader('', content);
+        const { label, langClass } = getCodeBlockMeta('', content);
         htmlBuffer.push(`
-          <div class="code-box">
+          <div class="code-box ${langClass}">
             <div class="code-box-header">
-              <span>${label}</span>
+              <span class="code-box-title"><span class="code-box-dot"></span>${escapeHtml(label)}</span>
               <button class="btn-copy" onclick="copySnippet('${snippetId}', this)">Copy Snippet</button>
             </div>
             <pre><code id="${snippetId}">${escapeHtml(content)}</code></pre>
@@ -1702,11 +1739,11 @@ function buildReportPage(r) {
         const snippetId = `code-block-${codeSnippetCounter}`;
         const rawCode = codeBlockBuffer.join('\n');
         const escaped = escapeHtml(rawCode);
-        const label = formatCodeBlockHeader(codeBlockLang, rawCode);
+        const { label, langClass } = getCodeBlockMeta(codeBlockLang, rawCode);
         htmlBuffer.push(`
-          <div class="code-box">
+          <div class="code-box ${langClass}">
             <div class="code-box-header">
-              <span>${label}</span>
+              <span class="code-box-title"><span class="code-box-dot"></span>${escapeHtml(label)}</span>
               <button class="btn-copy" onclick="copySnippet('${snippetId}', this)">Copy Snippet</button>
             </div>
             <pre><code id="${snippetId}">${escaped}</code></pre>
@@ -1944,11 +1981,11 @@ function buildReportPage(r) {
     const snippetId = `code-block-${codeSnippetCounter}`;
     const rawCode = codeBlockBuffer.join('\n');
     const escaped = escapeHtml(rawCode);
-    const label = formatCodeBlockHeader(codeBlockLang, rawCode);
+    const { label, langClass } = getCodeBlockMeta(codeBlockLang, rawCode);
     htmlBuffer.push(`
-      <div class="code-box">
+      <div class="code-box ${langClass}">
         <div class="code-box-header">
-          <span>${label}</span>
+          <span class="code-box-title"><span class="code-box-dot"></span>${escapeHtml(label)}</span>
           <button class="btn-copy" onclick="copySnippet('${snippetId}', this)">Copy Snippet</button>
         </div>
         <pre><code id="${snippetId}">${escaped}</code></pre>
