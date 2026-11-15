@@ -682,24 +682,24 @@ function formatCardDate(dateStr) {
 }
 
 function formatCardMeta(r) {
-  let fallbackImg = 'assets/home/card-threatintel.png';
+  let fallbackImg = 'assets/home/card-threatintel.webp';
   let badgeClass = 'badge-cross';
   let badgeText = r.os || 'Cross-platform';
 
   if (r.source === 'malops') {
     badgeClass = 'badge-malops';
     badgeText = `MALOPS • ${(r.difficulty || 'CHALLENGE').toUpperCase()}`;
-    fallbackImg = 'assets/home/card-threatintel.png';
+    fallbackImg = 'assets/home/card-threatintel.webp';
   } else if (r.os === 'macOS') {
-    fallbackImg = 'assets/home/card-macos.png';
+    fallbackImg = 'assets/home/card-macos.webp';
     badgeClass = 'badge-macos';
     badgeText = 'macOS';
   } else if (r.os === 'Windows') {
-    fallbackImg = 'assets/home/card-windows.png';
+    fallbackImg = 'assets/home/card-windows.webp';
     badgeClass = 'badge-windows';
     badgeText = 'Windows';
   } else if (r.os === 'Linux') {
-    fallbackImg = 'assets/home/card-threatintel.png';
+    fallbackImg = 'assets/home/card-threatintel.webp';
     badgeClass = 'badge-linux';
     badgeText = 'Linux';
   }
@@ -1233,6 +1233,42 @@ function getCommandPaletteJs(basePath) {
     }
 
     window.mareOpenSearch = openPalette;
+
+    // Instant Navigation via speculative hover & touch prefetch
+    (function initInstantNav() {
+      if (typeof document === 'undefined' || !document.addEventListener) return;
+      try {
+        var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (conn && (conn.saveData || (conn.effectiveType && conn.effectiveType.indexOf('2g') !== -1))) return;
+      } catch (e) {}
+
+      var prefetched = {};
+
+      function prefetchUrl(url) {
+        if (!url || prefetched[url]) return;
+        prefetched[url] = true;
+        var link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.as = 'document';
+        link.href = url;
+        document.head.appendChild(link);
+      }
+
+      function handleHoverOrTouch(e) {
+        var target = e.target;
+        if (!target) return;
+        var a = target.closest ? target.closest('a[href]') : null;
+        if (!a) return;
+        var rawHref = a.getAttribute('href');
+        if (!rawHref || rawHref.charAt(0) === '#' || rawHref.indexOf('javascript:') === 0 || rawHref.indexOf('mailto:') === 0) return;
+        if (a.origin !== window.location.origin) return;
+        if (/\\.(zip|exe|bin|dll|pcap|gz|tar|7z|sh)$/i.test(a.pathname)) return;
+        prefetchUrl(a.href);
+      }
+
+      document.addEventListener('pointerover', handleHoverOrTouch, { passive: true });
+      document.addEventListener('touchstart', handleHoverOrTouch, { passive: true });
+    })();
   })();
   `;
 }
@@ -2613,7 +2649,6 @@ function buildPortalIndex(allReports) {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="data/catalog.js"></script>
   <link rel="stylesheet" href="assets/css/portal.css">
 </head>
 <body>
@@ -2780,7 +2815,10 @@ ${techniquesDropdownHtml}
   <!-- Hero Section -->
   <section class="hero-immersive-section">
     <div class="immersive-bg-wrapper">
-      <img src="assets/home/re-battlestation-2.jpg" alt="16:9 HD Malware Analysis Studio" class="immersive-bg-img" loading="eager" fetchpriority="high">
+      <picture class="immersive-bg-picture">
+        <source srcset="assets/home/re-battlestation-2.webp" type="image/webp">
+        <img src="assets/home/re-battlestation-2.jpg" alt="16:9 HD Malware Analysis Studio" class="immersive-bg-img" loading="eager" fetchpriority="high">
+      </picture>
       <div class="immersive-gradient-mask"></div>
     </div>
 
@@ -2947,19 +2985,43 @@ ${techniquesDropdownHtml}
     let searchQuery = '';
 
     let allCatalog = Array.isArray(window.__MARE_CATALOG__) ? window.__MARE_CATALOG__ : [];
-    if (!allCatalog.length) {
-      try {
-        fetch('data/catalog.json')
-          .then(res => res.json())
-          .then(data => {
-            if (Array.isArray(data)) {
-              allCatalog = data;
-              window.__MARE_CATALOG__ = data;
-              filterCards();
+    let isFetchingCatalog = false;
+    let catalogCallbacks = [];
+
+    function ensureCatalog(cb) {
+      if (allCatalog.length > 0) {
+        if (cb) cb();
+        return;
+      }
+      if (cb) catalogCallbacks.push(cb);
+      if (isFetchingCatalog) return;
+      isFetchingCatalog = true;
+
+      fetch('data/catalog.json')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          isFetchingCatalog = false;
+          if (Array.isArray(data)) {
+            allCatalog = data;
+            window.__MARE_CATALOG__ = data;
+            if (catalogCallbacks.length > 0) {
+              const cbs = catalogCallbacks.slice();
+              catalogCallbacks = [];
+              cbs.forEach(function(fn) { fn(); });
+            } else {
+              updateLoadMoreUI();
             }
-          })
-          .catch(() => {});
-      } catch(e) {}
+          }
+        })
+        .catch(function() {
+          isFetchingCatalog = false;
+        });
+    }
+
+    if (typeof requestIdleCallback !== 'undefined') {
+      requestIdleCallback(function() { ensureCatalog(); });
+    } else {
+      setTimeout(function() { ensureCatalog(); }, 80);
     }
 
     function escapeHtml(str) {
@@ -3048,7 +3110,31 @@ ${techniquesDropdownHtml}
       });
     }
 
+    function updateLoadMoreUI() {
+      if (!loadMoreContainer) return;
+      const matched = getMatchingReports();
+      const sliceCount = Math.min(visibleLimit, matched.length);
+      if (matched.length > sliceCount) {
+        loadMoreContainer.style.display = 'flex';
+        if (btnLoadMore) btnLoadMore.style.display = 'inline-flex';
+        const remaining = matched.length - sliceCount;
+        if (loadMoreBadge) loadMoreBadge.textContent = remaining + ' remaining';
+        if (loadMoreStatus) loadMoreStatus.textContent = 'Showing ' + sliceCount + ' of ' + matched.length + ' investigations';
+      } else if (matched.length > 0 && sliceCount > INITIAL_PAGE_SIZE) {
+        loadMoreContainer.style.display = 'flex';
+        if (btnLoadMore) btnLoadMore.style.display = 'none';
+        if (loadMoreStatus) loadMoreStatus.textContent = 'All ' + matched.length + ' investigations loaded';
+      } else {
+        loadMoreContainer.style.display = 'none';
+        if (btnLoadMore) btnLoadMore.style.display = 'inline-flex';
+      }
+    }
+
     function filterCards() {
+      if (!allCatalog.length) {
+        ensureCatalog(filterCards);
+        return;
+      }
       const matched = getMatchingReports();
       const q = searchQuery.trim();
 
@@ -3091,23 +3177,7 @@ ${techniquesDropdownHtml}
         }
       }
 
-      if (loadMoreContainer) {
-        const sliceCount = Math.min(visibleLimit, matched.length);
-        if (matched.length > sliceCount) {
-          loadMoreContainer.style.display = 'flex';
-          if (btnLoadMore) btnLoadMore.style.display = 'inline-flex';
-          const remaining = matched.length - sliceCount;
-          if (loadMoreBadge) loadMoreBadge.textContent = remaining + ' remaining';
-          if (loadMoreStatus) loadMoreStatus.textContent = 'Showing ' + sliceCount + ' of ' + matched.length + ' investigations';
-        } else if (matched.length > 0 && sliceCount > INITIAL_PAGE_SIZE) {
-          loadMoreContainer.style.display = 'flex';
-          if (btnLoadMore) btnLoadMore.style.display = 'none';
-          if (loadMoreStatus) loadMoreStatus.textContent = 'All ' + matched.length + ' investigations loaded';
-        } else {
-          loadMoreContainer.style.display = 'none';
-          if (btnLoadMore) btnLoadMore.style.display = 'inline-flex';
-        }
-      }
+      updateLoadMoreUI();
     }
 
     if (btnLoadMore) {
