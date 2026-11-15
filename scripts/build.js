@@ -1830,7 +1830,7 @@ function buildReportPage(r) {
       const title = h1Match[1].replace(/[*_`]/g, '').trim();
       const id = getUniqueHeadingId(title);
       tocItems.push({ id, title });
-      htmlBuffer.push(`</section><section id="${id}"><h2>${escapeHtml(title)}</h2>`);
+      htmlBuffer.push(`</section><section id="${id}"><h1 class="content-h1">${escapeHtml(title)}</h1>`);
       continue;
     }
 
