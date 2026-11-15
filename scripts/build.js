@@ -388,6 +388,297 @@ function getCodeBlockMeta(declared, codeText) {
   return { label, langClass };
 }
 
+// =============================================================================
+// AUTONOMOUS SYNTAX HIGHLIGHTER (Zero Runtime Dependencies)
+// =============================================================================
+
+const ASM_OPCODES = new Set([
+  'ldr', 'str', 'ldur', 'stur', 'mov', 'movz', 'movk', 'movn', 'add', 'sub', 'adds', 'subs',
+  'cmp', 'cmn', 'b', 'bl', 'blr', 'bx', 'cbz', 'cbnz', 'tbz', 'tbnz', 'adr', 'adrp', 'nop',
+  'ret', 'svc', 'stp', 'ldp', 'and', 'orr', 'eor', 'mvn', 'lsl', 'lsr', 'asr', 'ror',
+  'lea', 'push', 'pop', 'call', 'jmp', 'je', 'jne', 'jz', 'jnz', 'ja', 'jae',
+  'jb', 'jbe', 'jg', 'jge', 'jl', 'jle', 'js', 'jns', 'test', 'xor', 'not', 'shl', 'shr',
+  'sar', 'imul', 'idiv', 'mul', 'div', 'inc', 'dec', 'int', 'int3', 'syscall', 'sysenter', 'leave'
+]);
+const ASM_DIRECTIVES = new Set([
+  'section', 'global', 'extern', 'default', 'rel', 'byte', 'word', 'dword', 'qword',
+  'ptr', 'db', 'dw', 'dd', 'dq', 'resb', 'resw', 'resd', 'resq', 'align', 'equ'
+]);
+const ARM_COND = /^(b\.(eq|ne|cs|cc|mi|pl|vs|vc|hi|ls|ge|lt|gt|le))$/i;
+const ASM_REG_REGEX = /^(x[0-9]{1,2}|w[0-9]{1,2}|sp|fp|lr|xzr|wzr|pc|d[0-9]{1,2}|q[0-9]{1,2}|s[0-9]{1,2}|v[0-9]{1,2}|r[a-d]x|r[s|d]i|r[b|s]p|r[8-9][d|w|b]?|r1[0-5][d|w|b]?|e[a-d]x|e[s|d]i|e[b|s]p|[a-d]x|[s|d]i|[b|s]p|[a-d][l|h]|cs|ds|es|fs|gs|ss|cr[0-4]|dr[0-7])$/i;
+
+function highlightDisasm(text) {
+  const lines = text.split('\n');
+  return lines.map(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith(';') || trimmed.startsWith('//') || /^#(?![+-]?(0x)?[0-9])/.test(trimmed)) {
+      return `<span class="tok-cmt">${escapeHtml(line)}</span>`;
+    }
+    let codePart = line;
+    let cmtPart = '';
+    const cmtMatch = line.match(/(;\s*.*|\/\/\s*.*|\s+#[a-zA-Z\s].*)$/);
+    if (cmtMatch) {
+      codePart = line.slice(0, cmtMatch.index);
+      cmtPart = cmtMatch[0];
+    }
+    const tokenRegex = /(#[+-]?0x[0-9a-fA-F]+|#[+-]?[0-9]+|\b0x[0-9a-fA-F]+\b|\b[0-9a-fA-F]{8,16}\b|\b\d+\b)|([a-zA-Z0-9_\.]+|\[|\]|,|!)/g;
+    let out = codePart.replace(tokenRegex, (m, num, word) => {
+      if (num) return `<span class="tok-num">${escapeHtml(num)}</span>`;
+      if (word) {
+        const lower = word.toLowerCase();
+        if (ASM_OPCODES.has(lower) || ARM_COND.test(lower)) {
+          return `<span class="tok-kw">${escapeHtml(word)}</span>`;
+        }
+        if (ASM_DIRECTIVES.has(lower)) {
+          return `<span class="tok-tag">${escapeHtml(word)}</span>`;
+        }
+        if (ASM_REG_REGEX.test(lower)) {
+          return `<span class="tok-reg">${escapeHtml(word)}</span>`;
+        }
+        if (word.startsWith('_') || word.includes('.')) {
+          return `<span class="tok-fn">${escapeHtml(word)}</span>`;
+        }
+      }
+      return escapeHtml(m);
+    });
+    if (cmtPart) {
+      out += `<span class="tok-cmt">${escapeHtml(cmtPart)}</span>`;
+    }
+    return out;
+  }).join('\n');
+}
+
+const C_KEYWORDS = new Set([
+  'int', 'char', 'void', 'float', 'double', 'short', 'long', 'unsigned', 'signed',
+  'const', 'static', 'volatile', 'struct', 'union', 'enum', 'typedef', 'sizeof',
+  'return', 'if', 'else', 'while', 'for', 'do', 'switch', 'case', 'break', 'continue',
+  'default', 'goto', 'NULL', 'nullptr', 'true', 'false', 'auto', 'class', 'public',
+  'private', 'protected', 'virtual', 'namespace', 'using', 'new', 'delete', 'try',
+  'catch', 'throw', 'DWORD', 'HANDLE', 'BOOL', 'LPVOID', 'PVOID', 'HMODULE', 'NTSTATUS',
+  'WINAPI', 'CALLBACK', 'BYTE', 'WORD', 'ULONG', 'LONG', 'SIZE_T', 'HINSTANCE',
+  'LPCSTR', 'LPWSTR', 'LPCWSTR', 'LPBYTE', 'FARPROC'
+]);
+
+function highlightC(code) {
+  const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(^#[a-zA-Z_]+[^\n]*)|(\b0x[0-9a-fA-F]+[uUlL]*\b|\b\d+(?:\.\d+)?[fFlL]?\b)|(\b[a-zA-Z_][a-zA-Z0-9_]*\b)/gm;
+  return code.replace(regex, (m, cmt, str, prep, num, ident) => {
+    if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
+    if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
+    if (prep) return `<span class="tok-tag">${escapeHtml(prep)}</span>`;
+    if (num) return `<span class="tok-num">${escapeHtml(num)}</span>`;
+    if (ident) {
+      if (C_KEYWORDS.has(ident)) return `<span class="tok-kw">${escapeHtml(ident)}</span>`;
+      return `<span class="tok-fn">${escapeHtml(ident)}</span>`;
+    }
+    return escapeHtml(m);
+  });
+}
+
+const PY_KEYWORDS = new Set([
+  'def', 'class', 'import', 'from', 'as', 'return', 'if', 'elif', 'else', 'while',
+  'for', 'in', 'try', 'except', 'finally', 'raise', 'with', 'pass', 'break', 'continue',
+  'lambda', 'yield', 'global', 'nonlocal', 'assert', 'async', 'await', 'True', 'False',
+  'None', 'and', 'or', 'not', 'is'
+]);
+const PY_BUILTINS = new Set([
+  'print', 'len', 'range', 'open', 'str', 'int', 'bytes', 'bytearray', 'list', 'dict',
+  'set', 'tuple', 'enumerate', 'zip', 'isinstance', 'type', 'hex', 'chr', 'ord', 'map', 'filter'
+]);
+
+function highlightPython(code) {
+  const regex = /(#[^\n]*)|("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(\b0x[0-9a-fA-F]+\b|\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z_][a-zA-Z0-9_]*\b)/gm;
+  return code.replace(regex, (m, cmt, str, num, ident) => {
+    if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
+    if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
+    if (num) return `<span class="tok-num">${escapeHtml(num)}</span>`;
+    if (ident) {
+      if (PY_KEYWORDS.has(ident)) return `<span class="tok-kw">${escapeHtml(ident)}</span>`;
+      if (PY_BUILTINS.has(ident)) return `<span class="tok-fn">${escapeHtml(ident)}</span>`;
+      return escapeHtml(ident);
+    }
+    return escapeHtml(m);
+  });
+}
+
+function highlightTerminal(text) {
+  const lines = text.split('\n');
+  return lines.map(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return '';
+    const promptMatch = line.match(/^(\s*)([\$#➜%]|PS\s+[^>]+>)\s+(.*)$/);
+    if (promptMatch) {
+      const indent = promptMatch[1];
+      const prompt = promptMatch[2];
+      const cmdRest = promptMatch[3];
+      const highlightedRest = cmdRest.replace(/(#[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(-{1,2}[a-zA-Z0-9_\-]+)|(^[a-zA-Z0-9_\.\-]+|\s+[a-zA-Z0-9_\.\-]+)/g, (m, cmt, str, flag, cmd) => {
+        if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
+        if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
+        if (flag) return `<span class="tok-kw">${escapeHtml(flag)}</span>`;
+        if (cmd) return `<span class="tok-fn">${escapeHtml(cmd)}</span>`;
+        return escapeHtml(m);
+      });
+      return `${indent}<span class="tok-prompt">${escapeHtml(prompt)} </span>${highlightedRest}`;
+    }
+    if (trimmed.startsWith('#') || trimmed.startsWith('//')) {
+      return `<span class="tok-cmt">${escapeHtml(line)}</span>`;
+    }
+    return line.replace(/(\b0x[0-9a-fA-F]+\b|\b[0-9a-fA-F]{32,64}\b)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|([a-zA-Z0-9_-]+=[^\s]+)/g, (m, hex, str, kv) => {
+      if (hex) return `<span class="tok-num">${escapeHtml(hex)}</span>`;
+      if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
+      if (kv) {
+        const eqIdx = kv.indexOf('=');
+        return `<span class="tok-reg">${escapeHtml(kv.slice(0, eqIdx))}</span>=${escapeHtml(kv.slice(eqIdx + 1))}`;
+      }
+      return escapeHtml(m);
+    });
+  }).join('\n');
+}
+
+const YARA_KEYWORDS = new Set([
+  'rule', 'meta', 'strings', 'condition', 'all', 'any', 'of', 'them', 'and', 'or', 'not',
+  'in', 'contains', 'matches', 'nocase', 'wide', 'ascii', 'fullword', 'xor', 'base64',
+  'filesize', 'entrypoint', 'uint8', 'uint16', 'uint32', 'int8', 'int16', 'int32'
+]);
+
+function highlightYara(code) {
+  const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*")|(\$[a-zA-Z0-9_]+)|\b(0x[0-9a-fA-F]+|\d+)\b|(\{[\s0-9a-fA-F\?\(\)\|]+\})|(\b[a-zA-Z_][a-zA-Z0-9_]*:?)/g;
+  return code.replace(regex, (m, cmt, str, varId, num, hexBytes, word) => {
+    if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
+    if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
+    if (varId) return `<span class="tok-reg">${escapeHtml(varId)}</span>`;
+    if (num) return `<span class="tok-num">${escapeHtml(num)}</span>`;
+    if (hexBytes) return `<span class="tok-str">${escapeHtml(hexBytes)}</span>`;
+    if (word) {
+      const clean = word.replace(/:$/, '').toLowerCase();
+      if (YARA_KEYWORDS.has(clean) || word.endsWith(':')) {
+        return `<span class="tok-tag">${escapeHtml(word)}</span>`;
+      }
+      return escapeHtml(word);
+    }
+    return escapeHtml(m);
+  });
+}
+
+function highlightXml(code) {
+  const regex = /(<!--[\s\S]*?-->)|(<\?[^>]*\?>|<!DOCTYPE[^>]*>)|(<\/?)([a-zA-Z0-9_\-:]+)([^>]*?)(\/?>)/g;
+  return code.replace(regex, (m, cmt, decl, openTag, tagName, attrs, closeTag) => {
+    if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
+    if (decl) return `<span class="tok-tag">${escapeHtml(decl)}</span>`;
+    if (openTag) {
+      let attrHtml = (attrs || '').replace(/([a-zA-Z0-9_\-]+)(=)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g, (am, aName, eq, aVal) => {
+        return `<span class="tok-reg">${escapeHtml(aName)}</span>=<span class="tok-str">${escapeHtml(aVal)}</span>`;
+      });
+      return `${escapeHtml(openTag)}<span class="tok-fn">${escapeHtml(tagName)}</span>${attrHtml}${escapeHtml(closeTag)}`;
+    }
+    return escapeHtml(m);
+  });
+}
+
+const GO_KEYWORDS = new Set([
+  'package', 'import', 'func', 'var', 'const', 'type', 'struct', 'interface', 'map',
+  'chan', 'return', 'if', 'else', 'for', 'range', 'switch', 'case', 'default', 'select',
+  'go', 'defer', 'break', 'continue', 'fallthrough', 'nil', 'true', 'false'
+]);
+const GO_TYPES = new Set([
+  'string', 'int', 'int8', 'int16', 'int32', 'int64', 'uint', 'uint8', 'uint16',
+  'uint32', 'uint64', 'byte', 'rune', 'float32', 'float64', 'bool', 'error', 'any'
+]);
+function highlightGo(code) {
+  const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(`(?:\\.|[^`\\])*`|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(\b0x[0-9a-fA-F]+\b|\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z_][a-zA-Z0-9_]*\b)/gm;
+  return code.replace(regex, (m, cmt, str, num, ident) => {
+    if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
+    if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
+    if (num) return `<span class="tok-num">${escapeHtml(num)}</span>`;
+    if (ident) {
+      if (GO_KEYWORDS.has(ident)) return `<span class="tok-kw">${escapeHtml(ident)}</span>`;
+      if (GO_TYPES.has(ident)) return `<span class="tok-tag">${escapeHtml(ident)}</span>`;
+      return `<span class="tok-fn">${escapeHtml(ident)}</span>`;
+    }
+    return escapeHtml(m);
+  });
+}
+
+function highlightPowerShell(code) {
+  const regex = /(#[^\n]*|<#[\s\S]*?#>)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(\$[a-zA-Z0-9_:]+)|(\b[a-zA-Z]+-[a-zA-Z0-9]+\b)|(-[a-zA-Z0-9]+)|(\b0x[0-9a-fA-F]+\b|\b\d+\b)/gm;
+  return code.replace(regex, (m, cmt, str, varId, cmdlet, param, num) => {
+    if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
+    if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
+    if (varId) return `<span class="tok-reg">${escapeHtml(varId)}</span>`;
+    if (cmdlet) return `<span class="tok-fn">${escapeHtml(cmdlet)}</span>`;
+    if (param) return `<span class="tok-kw">${escapeHtml(param)}</span>`;
+    if (num) return `<span class="tok-num">${escapeHtml(num)}</span>`;
+    return escapeHtml(m);
+  });
+}
+
+function highlightHex(code) {
+  const lines = code.split('\n');
+  return lines.map(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return '';
+    return line.replace(/^(\s*[0-9a-fA-F]{4,8}:?)|(\|[^\|]*\|)$/g, (m, addr, ascii) => {
+      if (addr) return `<span class="tok-num">${escapeHtml(addr)}</span>`;
+      if (ascii) return `<span class="tok-str">${escapeHtml(ascii)}</span>`;
+      return escapeHtml(m);
+    });
+  }).join('\n');
+}
+
+function highlightConfig(code) {
+  const regex = /(#[^\n]*|\/\/[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(\b0x[0-9a-fA-F]+\b|\b\d+(?:\.\d+)?\b)|(\b(?:true|false|null)\b)|([a-zA-Z0-9_\-]+(?=\s*[:=]))/gm;
+  return code.replace(regex, (m, cmt, str, num, boolVal, key) => {
+    if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
+    if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
+    if (num) return `<span class="tok-num">${escapeHtml(num)}</span>`;
+    if (boolVal) return `<span class="tok-kw">${escapeHtml(boolVal)}</span>`;
+    if (key) return `<span class="tok-reg">${escapeHtml(key)}</span>`;
+    return escapeHtml(m);
+  });
+}
+
+function highlightGeneric(code) {
+  const regex = /(#[^\n]*|\/\/[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(\b0x[0-9a-fA-F]+\b|\b[0-9a-fA-F]{32,64}\b|\b\d+(?:\.\d+)?\b)|(https?:\/\/[^\s"'>]+)/gm;
+  return code.replace(regex, (m, cmt, str, num, url) => {
+    if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
+    if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
+    if (num) return `<span class="tok-num">${escapeHtml(num)}</span>`;
+    if (url) return `<span class="tok-str">${escapeHtml(url)}</span>`;
+    return escapeHtml(m);
+  });
+}
+
+function highlightCode(rawCode, langClass, label) {
+  if (!rawCode) return '';
+  switch (langClass) {
+    case 'lang-disasm':
+      return highlightDisasm(rawCode);
+    case 'lang-c':
+    case 'lang-swift':
+    case 'lang-rust':
+      return highlightC(rawCode);
+    case 'lang-python':
+      return highlightPython(rawCode);
+    case 'lang-terminal':
+      return highlightTerminal(rawCode);
+    case 'lang-yara':
+      return highlightYara(rawCode);
+    case 'lang-powershell':
+      return highlightPowerShell(rawCode);
+    case 'lang-xml':
+      return highlightXml(rawCode);
+    case 'lang-go':
+      return highlightGo(rawCode);
+    case 'lang-hex':
+      return highlightHex(rawCode);
+    case 'lang-config':
+      return highlightConfig(rawCode);
+    case 'lang-generic':
+    default:
+      return highlightGeneric(rawCode);
+  }
+}
+
 // 1. DISCOVER ALL REPORTS FROM DISK DYNAMICALLY
 function discoverReports() {
   const discovered = [];
@@ -1718,13 +2009,14 @@ function buildReportPage(r) {
         codeSnippetCounter++;
         const snippetId = `code-block-${codeSnippetCounter}`;
         const { label, langClass } = getCodeBlockMeta('', content);
+        const highlighted = highlightCode(content, langClass, label);
         htmlBuffer.push(`
           <div class="code-box ${langClass}">
             <div class="code-box-header">
               <span class="code-box-title"><span class="code-box-dot"></span>${escapeHtml(label)}</span>
               <button class="btn-copy" onclick="copySnippet('${snippetId}', this)">Copy Snippet</button>
             </div>
-            <pre><code id="${snippetId}">${escapeHtml(content)}</code></pre>
+            <pre><code id="${snippetId}">${highlighted}</code></pre>
           </div>
         `);
         continue;
@@ -1738,15 +2030,15 @@ function buildReportPage(r) {
         codeSnippetCounter++;
         const snippetId = `code-block-${codeSnippetCounter}`;
         const rawCode = codeBlockBuffer.join('\n');
-        const escaped = escapeHtml(rawCode);
         const { label, langClass } = getCodeBlockMeta(codeBlockLang, rawCode);
+        const highlighted = highlightCode(rawCode, langClass, label);
         htmlBuffer.push(`
           <div class="code-box ${langClass}">
             <div class="code-box-header">
               <span class="code-box-title"><span class="code-box-dot"></span>${escapeHtml(label)}</span>
               <button class="btn-copy" onclick="copySnippet('${snippetId}', this)">Copy Snippet</button>
             </div>
-            <pre><code id="${snippetId}">${escaped}</code></pre>
+            <pre><code id="${snippetId}">${highlighted}</code></pre>
           </div>
         `);
         codeBlockBuffer = [];
@@ -1980,15 +2272,15 @@ function buildReportPage(r) {
     codeSnippetCounter++;
     const snippetId = `code-block-${codeSnippetCounter}`;
     const rawCode = codeBlockBuffer.join('\n');
-    const escaped = escapeHtml(rawCode);
     const { label, langClass } = getCodeBlockMeta(codeBlockLang, rawCode);
+    const highlighted = highlightCode(rawCode, langClass, label);
     htmlBuffer.push(`
       <div class="code-box ${langClass}">
         <div class="code-box-header">
           <span class="code-box-title"><span class="code-box-dot"></span>${escapeHtml(label)}</span>
           <button class="btn-copy" onclick="copySnippet('${snippetId}', this)">Copy Snippet</button>
         </div>
-        <pre><code id="${snippetId}">${escaped}</code></pre>
+        <pre><code id="${snippetId}">${highlighted}</code></pre>
       </div>
     `);
     codeBlockBuffer = [];

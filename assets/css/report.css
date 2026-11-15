@@ -903,7 +903,42 @@
       font-family: var(--font-mono);
       font-size: 13.5px;
       line-height: 1.65;
-      color: #A5B4FC;
+      color: #C9D1D9;
+      background: #0A0D14;
+    }
+
+    /* Syntax Highlight Tokens */
+    .tok-kw {
+      color: #FF7B72; /* Keyword / Opcode (Soft Coral) */
+      font-weight: 500;
+    }
+    .tok-fn {
+      color: #D2A8FF; /* Function / Command / Routine / Identifier (Soft Purple) */
+    }
+    .tok-str {
+      color: #A5D6FF; /* String literal / Path (Ice Blue) */
+    }
+    .tok-num {
+      color: #79C0FF; /* Address / Immediate / Constant (Sky Blue) */
+    }
+    .tok-reg {
+      color: #35E5D0; /* Register / Variable / Identifier (Electric Cyan) */
+    }
+    .tok-cmt {
+      color: #8B949E; /* Comment (Muted Slate Italic) */
+      font-style: italic;
+    }
+    .tok-tag {
+      color: #FFA657; /* Preprocessor / XML Tag / Section (Warm Amber) */
+      font-weight: 500;
+    }
+    .tok-prompt {
+      color: #B7FF3C; /* Terminal Prompt (Neon Lime) */
+      font-weight: 700;
+      user-select: none;
+    }
+    .tok-op {
+      color: #F0F6FC; /* Operators & Punctuation */
     }
 
     .btn-copy {
