@@ -1469,15 +1469,26 @@ function buildReportPage(r) {
   function flushTable() {
     if (!inTable) return;
     inTable = false;
-    const isTwoCol = tableHeader.length === 2;
-    const header0 = (tableHeader[0] || '').replace(/<[^>]+>/g, '').trim().toLowerCase();
-    const header1 = (tableHeader[1] || '').replace(/<[^>]+>/g, '').trim().toLowerCase();
+    const colCount = tableHeader.length;
+    const isTwoCol = colCount === 2;
+    const allHeaders = tableHeader.map(h => (h || '').replace(/<[^>]+>/g, '').trim().toLowerCase());
+    const header0 = allHeaders[0] || '';
+    const header1 = allHeaders[1] || '';
     const isMetadataTable = isTwoCol && (
-      (header0.includes('property') || header0.includes('attribute') || header0.includes('parameter') || header0 === 'field' || header0 === 'key') &&
-      (header1.includes('value') || header1.includes('telemetry') || header1.includes('detail'))
+      (header0.includes('property') || header0.includes('attribute') || header0.includes('parameter') || header0 === 'field' || header0 === 'key' || header0.includes('file name')) &&
+      (header1.includes('value') || header1.includes('telemetry') || header1.includes('detail') || header1.includes('sha256') || header1.includes('hash'))
     );
+    const isMitreTable = allHeaders.some(h => h.includes('tactic')) && allHeaders.some(h => h.includes('technique'));
+    const isSectionTable = allHeaders.some(h => h.includes('virtual address') || h.includes('raw size') || h.includes('offset') || h.includes('section'));
 
-    let html = `<div class="table-responsive"><table class="${isMetadataTable ? 'table-metadata' : ''}"><thead><tr>`;
+    let tableClasses = ['data-table'];
+    if (isMetadataTable) tableClasses.push('table-metadata');
+    if (isMitreTable) tableClasses.push('table-mitre');
+    if (isSectionTable) tableClasses.push('table-sections');
+    if (colCount >= 4) tableClasses.push('table-wide');
+    if (colCount === 3) tableClasses.push('table-three-col');
+
+    let html = `<div class="table-responsive"><table class="${tableClasses.join(' ')}"><thead><tr>`;
     tableHeader.forEach(cell => { html += `<th>${cell}</th>`; });
     html += '</tr></thead><tbody>';
     tableRows.forEach(row => {

@@ -592,69 +592,203 @@
     .table-responsive {
       overflow-x: auto;
       margin: 28px 0 36px;
-      border-top: 1px solid var(--border-line);
-      border-bottom: 1px solid var(--border-line);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      background: #0B0F14;
       -webkit-overflow-scrolling: touch;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+      position: relative;
+    }
+
+    .table-responsive::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .table-responsive::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb {
+      background: rgba(183, 255, 60, 0.25);
+      border-radius: 3px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+      background: rgba(183, 255, 60, 0.5);
     }
 
     table {
       width: 100%;
-      border-collapse: collapse;
-      font-size: 14.5px;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13.5px;
+      line-height: 1.55;
       text-align: left;
     }
 
+    /* Universal Anti-Squish Rule: Never break plain text words across letter boundaries */
+    th, td {
+      word-break: normal;
+      overflow-wrap: normal;
+      hyphens: none;
+    }
+
     th {
-      padding: 14px 18px;
-      color: var(--text-white);
+      padding: 13px 18px;
+      color: var(--text-muted, #8B949E);
       font-weight: 600;
-      border-bottom: 1px solid var(--border-line);
-      background: rgba(255, 255, 255, 0.02);
-      font-family: var(--font-display);
-      font-size: 13px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: #141A22;
+      font-family: var(--font-mono, 'JetBrains Mono', monospace);
+      font-size: 11.5px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      vertical-align: top;
-      word-break: break-word;
-      overflow-wrap: break-word;
+      letter-spacing: 0.06em;
+      vertical-align: middle;
+      white-space: nowrap;
     }
 
     td {
-      padding: 12px 18px;
+      padding: 13px 18px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-      color: var(--text-body);
+      color: var(--text-body, #C9D1D9);
       vertical-align: top;
-      word-break: break-word;
-      overflow-wrap: break-word;
     }
 
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    tbody tr:hover {
+      background: rgba(183, 255, 60, 0.03);
+    }
+
+    /* First column in all tables gets distinct structural emphasis */
+    tbody td:first-child {
+      font-weight: 600;
+      color: var(--text-white, #FFFFFF);
+    }
+
+    /* Code badges inside table cells */
     th code,
     td code {
-      word-break: break-word;
+      word-break: break-all;
       overflow-wrap: anywhere;
       white-space: normal;
+      font-size: 12.5px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* 2-Column Metadata / Hash / Telemetry Tables */
+    .table-metadata {
+      min-width: 480px;
     }
 
     .table-metadata th:first-child,
     .table-metadata td:first-child {
       width: 220px;
-      min-width: 160px;
+      min-width: 170px;
       max-width: 280px;
-      color: var(--text-white);
+      white-space: nowrap;
+      color: var(--text-white, #FFFFFF);
       font-weight: 600;
-      word-break: break-word;
-      overflow-wrap: break-word;
+      border-right: 1px solid rgba(255, 255, 255, 0.04);
     }
 
     .table-metadata th:last-child,
     .table-metadata td:last-child {
       width: auto;
-      word-break: break-word;
-      overflow-wrap: break-word;
+      min-width: 280px;
     }
 
-    tr:last-child td {
-      border-bottom: none;
+    /* 3-Column Tables (e.g. Index | Identifier | Description) */
+    .table-three-col {
+      min-width: 620px;
+    }
+
+    .table-three-col th:first-child,
+    .table-three-col td:first-child {
+      width: 120px;
+      min-width: 100px;
+      white-space: nowrap;
+      border-right: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .table-three-col th:nth-child(2),
+    .table-three-col td:nth-child(2) {
+      width: 180px;
+      min-width: 140px;
+      white-space: nowrap;
+      color: var(--text-white, #FFFFFF);
+      border-right: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .table-three-col th:last-child,
+    .table-three-col td:last-child {
+      min-width: 280px;
+    }
+
+    /* 4+ Column Tables (Wide Data Tables) */
+    .table-wide {
+      min-width: 760px;
+    }
+
+    /* MITRE ATT&CK Mapping Tables */
+    .table-mitre {
+      min-width: 820px;
+    }
+
+    .table-mitre th:first-child,
+    .table-mitre td:first-child {
+      width: 150px;
+      min-width: 140px;
+      white-space: nowrap;
+      color: var(--neon-lime, #B7FF3C);
+      font-weight: 600;
+      border-right: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .table-mitre th:nth-child(2),
+    .table-mitre td:nth-child(2) {
+      width: 145px;
+      min-width: 135px;
+      white-space: nowrap;
+      border-right: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .table-mitre th:nth-child(3),
+    .table-mitre td:nth-child(3) {
+      width: 220px;
+      min-width: 180px;
+      color: var(--text-white, #FFFFFF);
+      font-weight: 500;
+      line-height: 1.45;
+      border-right: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .table-mitre th:nth-child(4),
+    .table-mitre td:nth-child(4) {
+      min-width: 300px;
+      line-height: 1.6;
+      color: var(--text-body, #8B949E);
+    }
+
+    /* Section / PE / Mach-O Binary Offset Tables */
+    .table-sections {
+      min-width: 700px;
+    }
+
+    .table-sections td {
+      font-family: var(--font-mono, 'JetBrains Mono', monospace);
+      font-size: 12.5px;
+      white-space: nowrap;
     }
 
     .code-box {
@@ -1309,35 +1443,37 @@
       .table-responsive {
         margin: 18px 0 24px;
         max-width: 100%;
-        border-radius: 6px;
-        border: 1px solid var(--border-line);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
         -webkit-overflow-scrolling: touch;
       }
       table {
-        font-size: 12px;
+        font-size: 13px;
       }
       th {
-        padding: 8px 10px;
+        padding: 10px 14px;
         font-size: 11px;
-        word-break: break-word;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+        word-break: normal;
       }
       td {
-        padding: 8px 10px;
-        font-size: 12px;
-        word-break: break-word;
+        padding: 10px 14px;
+        font-size: 13px;
+        word-break: normal;
       }
       .table-metadata th:first-child,
       .table-metadata td:first-child {
-        width: 105px;
-        min-width: 85px;
-        max-width: 120px;
-        font-size: 11.5px;
-        padding: 8px 8px;
+        width: 140px;
+        min-width: 125px;
+        white-space: nowrap;
+        font-size: 12px;
+        padding: 10px 12px;
       }
       .table-metadata th:last-child,
       .table-metadata td:last-child {
-        padding: 8px 8px;
-        font-size: 12px;
+        padding: 10px 12px;
+        font-size: 12.5px;
       }
       .hash-cell-wrapper {
         flex-wrap: wrap;
