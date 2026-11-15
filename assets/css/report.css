@@ -677,13 +677,20 @@
     /* Code badges inside table cells */
     th code,
     td code {
-      word-break: break-all;
-      overflow-wrap: anywhere;
-      white-space: normal;
+      word-break: normal;
+      overflow-wrap: normal;
+      white-space: nowrap;
       font-size: 12.5px;
       padding: 2px 6px;
       border-radius: 4px;
       background: rgba(255, 255, 255, 0.06);
+    }
+
+    .hash-cell-wrapper code {
+      word-break: break-all;
+      overflow-wrap: anywhere;
+      white-space: normal;
+      max-width: 320px;
     }
 
     /* 2-Column Metadata / Hash / Telemetry Tables */

@@ -1429,8 +1429,8 @@ function buildReportPage(r) {
     if (!cell) return '';
     if (cell.includes('<button') || cell.includes('btn-copy')) return cell;
 
-    // Pattern 1: Exact <code>hash</code> cell (32, 40, or 64 hex characters)
-    const exactCode = cell.match(/^<code>([a-fA-F0-9]{32}|[a-fA-F0-9]{40}|[a-fA-F0-9]{64})<\/code>$/);
+    // Pattern 1: Exact <code>hash</code> cell (hex characters between 24 and 64)
+    const exactCode = cell.match(/^<code>([a-fA-F0-9]{24,64})<\/code>$/);
     if (exactCode) {
       const hash = exactCode[1];
       return `<div class="hash-cell-wrapper"><code>${hash}</code><button class="btn-copy" onclick="copyText('${hash}', this)" title="Copy hash to clipboard">Copy</button></div>`;
@@ -1450,15 +1450,15 @@ function buildReportPage(r) {
       return `<div class="hash-cell-wrapper"><code class="ssdeep-code">${ssdeep}</code><button class="btn-copy" onclick="copyText('${ssdeep}', this)" title="Copy SSDEEP to clipboard">Copy</button></div>`;
     }
 
-    // Pattern 4: Raw hex hash without code tags
+    // Pattern 4: Raw hex hash without code tags (between 24 and 64 characters)
     const rawClean = cell.replace(/<[^>]+>/g, '').trim();
-    if (/^[a-fA-F0-9]{32}$|^[a-fA-F0-9]{40}$|^[a-fA-F0-9]{64}$/.test(rawClean)) {
+    if (/^[a-fA-F0-9]{24,64}$/.test(rawClean)) {
       return `<div class="hash-cell-wrapper"><code>${rawClean}</code><button class="btn-copy" onclick="copyText('${rawClean}', this)" title="Copy hash to clipboard">Copy</button></div>`;
     }
 
     // Pattern 5: Any <code>hash</code> embedded in text within the cell
-    if (/<code>([a-fA-F0-9]{32}|[a-fA-F0-9]{40}|[a-fA-F0-9]{64})<\/code>/.test(cell)) {
-      return cell.replace(/<code>([a-fA-F0-9]{32}|[a-fA-F0-9]{40}|[a-fA-F0-9]{64})<\/code>/g, (match, hash) => {
+    if (/<code>([a-fA-F0-9]{24,64})<\/code>/.test(cell)) {
+      return cell.replace(/<code>([a-fA-F0-9]{24,64})<\/code>/g, (match, hash) => {
         return `<span class="hash-cell-wrapper"><code>${hash}</code><button class="btn-copy" onclick="copyText('${hash}', this)" title="Copy hash to clipboard">Copy</button></span>`;
       });
     }
