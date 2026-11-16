@@ -82,7 +82,30 @@ PLATFORMS.forEach(os => {
         if (rawSrc.startsWith('http://') || rawSrc.startsWith('https://')) continue;
 
         const cleanSrc = decodeURIComponent(rawSrc.split('#')[0].split('?')[0]);
-        const absImgPath = path.resolve(fullDir, cleanSrc);
+        let absImgPath = path.resolve(fullDir, cleanSrc);
+
+        if (!fs.existsSync(absImgPath)) {
+          // Check if file exists in any subfolder (e.g. ICMacOs, attachments, images)
+          const targetBase = path.basename(cleanSrc);
+          const findImgRec = (dir) => {
+            try {
+              const entries = fs.readdirSync(dir, { withFileTypes: true });
+              for (const ent of entries) {
+                if (ent.name.startsWith('.')) continue;
+                const full = path.join(dir, ent.name);
+                if (ent.isDirectory()) {
+                  const res = findImgRec(full);
+                  if (res) return res;
+                } else if (ent.isFile() && (ent.name === targetBase || ent.name.toLowerCase() === targetBase.toLowerCase())) {
+                  return full;
+                }
+              }
+            } catch (e) {}
+            return null;
+          };
+          const found = findImgRec(fullDir);
+          if (found) absImgPath = found;
+        }
 
         if (!fs.existsSync(absImgPath)) {
           errors.push(`Broken image reference: "${rawSrc}" does not exist on disk`);

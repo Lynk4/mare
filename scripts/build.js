@@ -407,6 +407,32 @@ const ASM_DIRECTIVES = new Set([
 const ARM_COND = /^(b\.(eq|ne|cs|cc|mi|pl|vs|vc|hi|ls|ge|lt|gt|le))$/i;
 const ASM_REG_REGEX = /^(x[0-9]{1,2}|w[0-9]{1,2}|sp|fp|lr|xzr|wzr|pc|d[0-9]{1,2}|q[0-9]{1,2}|s[0-9]{1,2}|v[0-9]{1,2}|r[a-d]x|r[s|d]i|r[b|s]p|r[8-9][d|w|b]?|r1[0-5][d|w|b]?|e[a-d]x|e[s|d]i|e[b|s]p|[a-d]x|[s|d]i|[b|s]p|[a-d][l|h]|cs|ds|es|fs|gs|ss|cr[0-4]|dr[0-7])$/i;
 
+// Safe replacement helper that HTML-escapes all text outside matched tokens
+function replaceWithHtmlEscape(text, regex, replacer) {
+  if (!text) return '';
+  let lastIndex = 0;
+  let out = '';
+  let flags = regex.flags || '';
+  if (!flags.includes('g')) flags += 'g';
+  const re = new RegExp(regex.source, flags);
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      out += escapeHtml(text.slice(lastIndex, match.index));
+    }
+    const tokenResult = replacer(...match, match.index, text);
+    out += (tokenResult !== undefined && tokenResult !== null) ? tokenResult : escapeHtml(match[0]);
+    lastIndex = re.lastIndex;
+    if (match.index === re.lastIndex) {
+      re.lastIndex++;
+    }
+  }
+  if (lastIndex < text.length) {
+    out += escapeHtml(text.slice(lastIndex));
+  }
+  return out;
+}
+
 function highlightDisasm(text) {
   const lines = text.split('\n');
   return lines.map(line => {
@@ -423,7 +449,7 @@ function highlightDisasm(text) {
       cmtPart = cmtMatch[0];
     }
     const tokenRegex = /(#[+-]?0x[0-9a-fA-F]+|#[+-]?[0-9]+|\b0x[0-9a-fA-F]+\b|\b[0-9a-fA-F]{8,16}\b|\b\d+\b)|([a-zA-Z0-9_\.]+|\[|\]|,|!)/g;
-    let out = codePart.replace(tokenRegex, (m, num, word) => {
+    let out = replaceWithHtmlEscape(codePart, tokenRegex, (m, num, word) => {
       if (num) return `<span class="tok-num">${escapeHtml(num)}</span>`;
       if (word) {
         const lower = word.toLowerCase();
@@ -462,7 +488,7 @@ const C_KEYWORDS = new Set([
 
 function highlightC(code) {
   const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(^#[a-zA-Z_]+[^\n]*)|(\b0x[0-9a-fA-F]+[uUlL]*\b|\b\d+(?:\.\d+)?[fFlL]?\b)|(\b[a-zA-Z_][a-zA-Z0-9_]*\b)/gm;
-  return code.replace(regex, (m, cmt, str, prep, num, ident) => {
+  return replaceWithHtmlEscape(code, regex, (m, cmt, str, prep, num, ident) => {
     if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
     if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
     if (prep) return `<span class="tok-tag">${escapeHtml(prep)}</span>`;
@@ -488,7 +514,7 @@ const PY_BUILTINS = new Set([
 
 function highlightPython(code) {
   const regex = /(#[^\n]*)|("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(\b0x[0-9a-fA-F]+\b|\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z_][a-zA-Z0-9_]*\b)/gm;
-  return code.replace(regex, (m, cmt, str, num, ident) => {
+  return replaceWithHtmlEscape(code, regex, (m, cmt, str, num, ident) => {
     if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
     if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
     if (num) return `<span class="tok-num">${escapeHtml(num)}</span>`;
@@ -511,7 +537,7 @@ function highlightTerminal(text) {
       const indent = promptMatch[1];
       const prompt = promptMatch[2];
       const cmdRest = promptMatch[3];
-      const highlightedRest = cmdRest.replace(/(#[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(-{1,2}[a-zA-Z0-9_\-]+)|(^[a-zA-Z0-9_\.\-]+|\s+[a-zA-Z0-9_\.\-]+)/g, (m, cmt, str, flag, cmd) => {
+      const highlightedRest = replaceWithHtmlEscape(cmdRest, /(#[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(-{1,2}[a-zA-Z0-9_\-]+)|(^[a-zA-Z0-9_\.\-]+|\s+[a-zA-Z0-9_\.\-]+)/g, (m, cmt, str, flag, cmd) => {
         if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
         if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
         if (flag) return `<span class="tok-kw">${escapeHtml(flag)}</span>`;
@@ -523,7 +549,7 @@ function highlightTerminal(text) {
     if (trimmed.startsWith('#') || trimmed.startsWith('//')) {
       return `<span class="tok-cmt">${escapeHtml(line)}</span>`;
     }
-    return line.replace(/(\b0x[0-9a-fA-F]+\b|\b[0-9a-fA-F]{32,64}\b)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|([a-zA-Z0-9_-]+=[^\s]+)/g, (m, hex, str, kv) => {
+    return replaceWithHtmlEscape(line, /(\b0x[0-9a-fA-F]+\b|\b[0-9a-fA-F]{32,64}\b)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|([a-zA-Z0-9_-]+=[^\s]+)/g, (m, hex, str, kv) => {
       if (hex) return `<span class="tok-num">${escapeHtml(hex)}</span>`;
       if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
       if (kv) {
@@ -543,7 +569,7 @@ const YARA_KEYWORDS = new Set([
 
 function highlightYara(code) {
   const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*")|(\$[a-zA-Z0-9_]+)|\b(0x[0-9a-fA-F]+|\d+)\b|(\{[\s0-9a-fA-F\?\(\)\|]+\})|(\b[a-zA-Z_][a-zA-Z0-9_]*:?)/g;
-  return code.replace(regex, (m, cmt, str, varId, num, hexBytes, word) => {
+  return replaceWithHtmlEscape(code, regex, (m, cmt, str, varId, num, hexBytes, word) => {
     if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
     if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
     if (varId) return `<span class="tok-reg">${escapeHtml(varId)}</span>`;
@@ -562,11 +588,11 @@ function highlightYara(code) {
 
 function highlightXml(code) {
   const regex = /(<!--[\s\S]*?-->)|(<\?[^>]*\?>|<!DOCTYPE[^>]*>)|(<\/?)([a-zA-Z0-9_\-:]+)([^>]*?)(\/?>)/g;
-  return code.replace(regex, (m, cmt, decl, openTag, tagName, attrs, closeTag) => {
+  return replaceWithHtmlEscape(code, regex, (m, cmt, decl, openTag, tagName, attrs, closeTag) => {
     if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
     if (decl) return `<span class="tok-tag">${escapeHtml(decl)}</span>`;
     if (openTag) {
-      let attrHtml = (attrs || '').replace(/([a-zA-Z0-9_\-]+)(=)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g, (am, aName, eq, aVal) => {
+      let attrHtml = replaceWithHtmlEscape(attrs || '', /([a-zA-Z0-9_\-]+)(=)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g, (am, aName, eq, aVal) => {
         return `<span class="tok-reg">${escapeHtml(aName)}</span>=<span class="tok-str">${escapeHtml(aVal)}</span>`;
       });
       return `${escapeHtml(openTag)}<span class="tok-fn">${escapeHtml(tagName)}</span>${attrHtml}${escapeHtml(closeTag)}`;
@@ -586,7 +612,7 @@ const GO_TYPES = new Set([
 ]);
 function highlightGo(code) {
   const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(`(?:\\.|[^`\\])*`|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(\b0x[0-9a-fA-F]+\b|\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z_][a-zA-Z0-9_]*\b)/gm;
-  return code.replace(regex, (m, cmt, str, num, ident) => {
+  return replaceWithHtmlEscape(code, regex, (m, cmt, str, num, ident) => {
     if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
     if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
     if (num) return `<span class="tok-num">${escapeHtml(num)}</span>`;
@@ -601,7 +627,7 @@ function highlightGo(code) {
 
 function highlightPowerShell(code) {
   const regex = /(#[^\n]*|<#[\s\S]*?#>)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(\$[a-zA-Z0-9_:]+)|(\b[a-zA-Z]+-[a-zA-Z0-9]+\b)|(-[a-zA-Z0-9]+)|(\b0x[0-9a-fA-F]+\b|\b\d+\b)/gm;
-  return code.replace(regex, (m, cmt, str, varId, cmdlet, param, num) => {
+  return replaceWithHtmlEscape(code, regex, (m, cmt, str, varId, cmdlet, param, num) => {
     if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
     if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
     if (varId) return `<span class="tok-reg">${escapeHtml(varId)}</span>`;
@@ -617,7 +643,7 @@ function highlightHex(code) {
   return lines.map(line => {
     const trimmed = line.trim();
     if (!trimmed) return '';
-    return line.replace(/^(\s*[0-9a-fA-F]{4,8}:?)|(\|[^\|]*\|)$/g, (m, addr, ascii) => {
+    return replaceWithHtmlEscape(line, /^(\s*[0-9a-fA-F]{4,8}:?)|(\|[^\|]*\|)$/g, (m, addr, ascii) => {
       if (addr) return `<span class="tok-num">${escapeHtml(addr)}</span>`;
       if (ascii) return `<span class="tok-str">${escapeHtml(ascii)}</span>`;
       return escapeHtml(m);
@@ -627,7 +653,7 @@ function highlightHex(code) {
 
 function highlightConfig(code) {
   const regex = /(#[^\n]*|\/\/[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(\b0x[0-9a-fA-F]+\b|\b\d+(?:\.\d+)?\b)|(\b(?:true|false|null)\b)|([a-zA-Z0-9_\-]+(?=\s*[:=]))/gm;
-  return code.replace(regex, (m, cmt, str, num, boolVal, key) => {
+  return replaceWithHtmlEscape(code, regex, (m, cmt, str, num, boolVal, key) => {
     if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
     if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
     if (num) return `<span class="tok-num">${escapeHtml(num)}</span>`;
@@ -639,7 +665,7 @@ function highlightConfig(code) {
 
 function highlightGeneric(code) {
   const regex = /(#[^\n]*|\/\/[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(\b0x[0-9a-fA-F]+\b|\b[0-9a-fA-F]{32,64}\b|\b\d+(?:\.\d+)?\b)|(https?:\/\/[^\s"'>]+)/gm;
-  return code.replace(regex, (m, cmt, str, num, url) => {
+  return replaceWithHtmlEscape(code, regex, (m, cmt, str, num, url) => {
     if (cmt) return `<span class="tok-cmt">${escapeHtml(cmt)}</span>`;
     if (str) return `<span class="tok-str">${escapeHtml(str)}</span>`;
     if (num) return `<span class="tok-num">${escapeHtml(num)}</span>`;
@@ -699,6 +725,21 @@ function discoverReports() {
 
       const rawContent = fs.readFileSync(mdPath, 'utf8');
 
+      // Support optional standard YAML frontmatter (--- ... ---) in README.md
+      const fmMatch = rawContent.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
+      const frontmatter = {};
+      const cleanContent = fmMatch ? rawContent.slice(fmMatch[0].length) : rawContent;
+      if (fmMatch) {
+        fmMatch[1].split('\n').forEach(line => {
+          const colonIdx = line.indexOf(':');
+          if (colonIdx > 0) {
+            const k = line.slice(0, colonIdx).trim();
+            const v = line.slice(colonIdx + 1).trim().replace(/^['"]|['"]$/g, '');
+            if (k && v) frontmatter[k] = v;
+          }
+        });
+      }
+
       // Generate consistent ID slug
       let id = slugify(dirName);
       if (dirName === 'Cobalt Strike beacon') id = 'cobalt-strike-beacon';
@@ -716,26 +757,26 @@ function discoverReports() {
 
       // 100% AUTOMATIC EXTRACTION FROM CONTENT
       // A. Extract Title from first # Heading
-      const titleMatch = rawContent.match(/^#\s+(.+)$/m);
+      const titleMatch = cleanContent.match(/^#\s+(.+)$/m);
       let title = titleMatch ? titleMatch[1].replace(/[*_`]/g, '').trim() : dirName;
 
       // Clean up common repetitive title prefixes
       title = title.replace(/\.\.\.+$/, '').trim();
 
       // B. Extract Hashes (SHA-256 and MD5)
-      const sha256Match = rawContent.match(/\b([a-fA-F0-9]{64})\b/);
-      const md5Match = rawContent.match(/\b([a-fA-F0-9]{32})\b/);
+      const sha256Match = cleanContent.match(/\b([a-fA-F0-9]{64})\b/);
+      const md5Match = cleanContent.match(/\b([a-fA-F0-9]{32})\b/);
 
       let hashType = sha256Match ? 'SHA-256' : (md5Match ? 'MD5' : 'N/A');
       let hashVal = sha256Match ? sha256Match[1] : (md5Match ? md5Match[1] : 'Analysis Telemetry Artifact');
 
       // C. Extract Lead / Executive Summary
       let lead = '';
-      const execMatch = rawContent.match(/##\s+Executive Summary[\s\S]*?\n\n([^\n#]+)/i);
+      const execMatch = cleanContent.match(/##\s+Executive Summary[\s\S]*?\n\n([^\n#]+)/i);
       if (execMatch) {
         lead = execMatch[1].replace(/[*_`]/g, '').trim();
       } else {
-        const firstP = rawContent.split('\n\n').find(p => p.trim() && !p.trim().startsWith('#') && !p.trim().startsWith('---') && !p.trim().startsWith('|'));
+        const firstP = cleanContent.split('\n\n').find(p => p.trim() && !p.trim().startsWith('#') && !p.trim().startsWith('---') && !p.trim().startsWith('|'));
         if (firstP) lead = firstP.replace(/[*_`]/g, '').trim();
       }
       if (!lead || lead.length < 20) {
@@ -748,7 +789,7 @@ function discoverReports() {
       // D. Determine Category & Threat Family
       let category = 'Malware Family Analysis';
       let iconType = 'binary';
-      const textLower = (rawContent + ' ' + dirName).toLowerCase();
+      const textLower = (cleanContent + ' ' + dirName).toLowerCase();
 
       if (textLower.includes('ransomware') || textLower.includes('wiper') || textLower.includes('notpetya') || textLower.includes('wannacry') || textLower.includes('whispergate') || textLower.includes('gazprom')) {
         category = 'Ransomware & Wipers';
@@ -765,7 +806,7 @@ function discoverReports() {
       }
 
       // Read time calculation (~200 words / min)
-      const wordCount = rawContent.split(/\s+/).length;
+      const wordCount = cleanContent.split(/\s+/).length;
       const readMinutes = Math.max(8, Math.min(25, Math.round(wordCount / 180)));
       let readTime = `${readMinutes} min read`;
 
@@ -785,9 +826,24 @@ function discoverReports() {
       if (iconType === 'wiper') classification = `${os} Disk Wiper / Ransomware`;
       if (iconType === 'apt') classification = 'State-Sponsored Espionage Framework';
 
+      // Apply Frontmatter overrides if present
+      if (frontmatter.title) title = frontmatter.title;
+      if (frontmatter.lead || frontmatter.subtitle) lead = frontmatter.lead || frontmatter.subtitle;
+      if (frontmatter.family) family = frontmatter.family;
+      if (frontmatter.category) category = frontmatter.category;
+      if (frontmatter.classification) classification = frontmatter.classification;
+      if (frontmatter.delivery) delivery = frontmatter.delivery;
+      if (frontmatter.c2) c2 = frontmatter.c2;
+      if (frontmatter.targets) targets = frontmatter.targets;
+      if (frontmatter.hash || frontmatter.hashVal) {
+        hashVal = frontmatter.hash || frontmatter.hashVal;
+        hashType = frontmatter.hashType || (hashVal.length === 64 ? 'SHA-256' : 'MD5');
+      }
+      if (frontmatter.date) date = frontmatter.date;
+
       // E. Extract First Image in README.md as default card thumbnail
       let firstImage = null;
-      const mdImg = rawContent.match(/!\[.*?\]\((.+?)\)/);
+      const mdImg = cleanContent.match(/!\[.*?\]\((.+?)\)/);
       const htmlImg = rawContent.match(/<img[^>]+src=["']([^"']+)["']/i);
       let foundImg = null;
       if (mdImg && htmlImg) {
@@ -817,8 +873,23 @@ function discoverReports() {
       let difficulty = null;
       let tools = null;
       let challengeUrl = null;
+      let actor = null;
+      let campaign = null;
+      let tlp = 'TLP:CLEAR';
+      let severity = null;
+      let confidence = null;
+      let mitreTactics = null;
+      let mitreTechniques = null;
+      let architecture = null;
+      let toolchain = null;
+      let codeSigning = null;
+      let secondaryHash = null;
+      let imphash = null;
+      let targetSectors = null;
+      let targetGeo = null;
+      let author = 'Chandra Kant Bauri (@Lynk4)';
 
-      // Load optional 5-line meta.json if present in the folder
+      // Load optional meta.json if present in the folder
       const metaFile = path.join(fullDir, 'meta.json');
       if (fs.existsSync(metaFile)) {
         try {
@@ -860,6 +931,21 @@ function discoverReports() {
           if (meta.difficulty) difficulty = meta.difficulty;
           if (meta.tools) tools = meta.tools;
           if (meta.challengeUrl) challengeUrl = meta.challengeUrl;
+          if (meta.actor) actor = meta.actor;
+          if (meta.campaign) campaign = meta.campaign;
+          if (meta.tlp) tlp = meta.tlp;
+          if (meta.severity) severity = meta.severity;
+          if (meta.confidence) confidence = meta.confidence;
+          if (meta.mitreTactics) mitreTactics = meta.mitreTactics;
+          if (meta.mitreTechniques) mitreTechniques = meta.mitreTechniques;
+          if (meta.architecture) architecture = meta.architecture;
+          if (meta.toolchain) toolchain = meta.toolchain;
+          if (meta.codeSigning) codeSigning = meta.codeSigning;
+          if (meta.secondaryHash) secondaryHash = meta.secondaryHash;
+          if (meta.imphash) imphash = meta.imphash;
+          if (meta.targetSectors) targetSectors = meta.targetSectors;
+          if (meta.targetGeo) targetGeo = meta.targetGeo;
+          if (meta.author) author = meta.author;
           if (meta.navDropdown !== undefined) {
             if (typeof meta.navDropdown === 'string') navDropdown = meta.navDropdown.toLowerCase();
             else if (meta.navDropdown === false) hideFromNav = true;
@@ -903,6 +989,21 @@ function discoverReports() {
         difficulty,
         tools,
         challengeUrl,
+        actor,
+        campaign,
+        tlp,
+        severity,
+        confidence,
+        mitreTactics,
+        mitreTechniques,
+        architecture,
+        toolchain,
+        codeSigning,
+        secondaryHash,
+        imphash,
+        targetSectors,
+        targetGeo,
+        author,
         srcDir: fullDir,
         mdPath
       });
@@ -1625,6 +1726,9 @@ function buildReportPage(r) {
 
   let mdContent = fs.readFileSync(r.mdPath, 'utf8');
 
+  // Strip YAML frontmatter if present
+  mdContent = mdContent.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
+
 
   // Cyber Talents CTF supplement
   if (r.id === 'cyber-talents-ctf') {
@@ -1976,7 +2080,30 @@ function buildReportPage(r) {
       return rawSrc;
     }
     const cleanSrc = decodeURIComponent(rawSrc.trim());
-    const absSrc = path.resolve(r.srcDir, cleanSrc);
+    let absSrc = path.resolve(r.srcDir, cleanSrc);
+
+    if (!fs.existsSync(absSrc) || !fs.statSync(absSrc).isFile()) {
+      // Fallback: search anywhere inside report directory recursively for matching image filename
+      const targetBase = path.basename(cleanSrc);
+      const findImageRec = (dir) => {
+        try {
+          const entries = fs.readdirSync(dir, { withFileTypes: true });
+          for (const ent of entries) {
+            if (ent.name.startsWith('.')) continue;
+            const full = path.join(dir, ent.name);
+            if (ent.isDirectory()) {
+              const res = findImageRec(full);
+              if (res) return res;
+            } else if (ent.isFile() && (ent.name === targetBase || ent.name.toLowerCase() === targetBase.toLowerCase())) {
+              return full;
+            }
+          }
+        } catch (e) {}
+        return null;
+      };
+      const found = findImageRec(r.srcDir);
+      if (found) absSrc = found;
+    }
 
     if (fs.existsSync(absSrc) && fs.statSync(absSrc).isFile()) {
       const baseName = path.basename(absSrc).replace(/[^\w.-]/g, '_');
@@ -1988,7 +2115,28 @@ function buildReportPage(r) {
   let firstEncounteredImage = null;
   if (r.thumbnail) {
     const rawThumb = decodeURIComponent(String(r.thumbnail).trim().replace(/^images\//, ''));
-    const absThumb = path.resolve(r.srcDir, rawThumb);
+    let absThumb = path.resolve(r.srcDir, rawThumb);
+    if (!fs.existsSync(absThumb) || !fs.statSync(absThumb).isFile()) {
+      const targetBase = path.basename(rawThumb);
+      const findImageRec = (dir) => {
+        try {
+          const entries = fs.readdirSync(dir, { withFileTypes: true });
+          for (const ent of entries) {
+            if (ent.name.startsWith('.')) continue;
+            const full = path.join(dir, ent.name);
+            if (ent.isDirectory()) {
+              const res = findImageRec(full);
+              if (res) return res;
+            } else if (ent.isFile() && (ent.name === targetBase || ent.name.toLowerCase() === targetBase.toLowerCase())) {
+              return full;
+            }
+          }
+        } catch (e) {}
+        return null;
+      };
+      const found = findImageRec(r.srcDir);
+      if (found) absThumb = found;
+    }
     if (fs.existsSync(absThumb) && fs.statSync(absThumb).isFile()) {
       const baseName = path.basename(absThumb).replace(/[^\w.-]/g, '_');
       r.thumbnail = copyOrConvertImage(absThumb, imagesDir, baseName);

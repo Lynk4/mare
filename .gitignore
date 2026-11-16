@@ -17,4 +17,5 @@ external/
 # Local agent memory and rules — kept strictly local, never tracked in git
 GEMINI.md
 .agents/
+.obsidian/
 

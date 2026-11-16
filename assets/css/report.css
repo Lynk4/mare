@@ -499,7 +499,7 @@
       overflow-wrap: break-word;
     }
 
-    p code, td code, th code, li code, a code, span code {
+    p :not(pre) > code, td code, th code, li :not(pre) > code, a :not(pre) > code, span :not(pre) > code {
       background: rgba(255, 255, 255, 0.06);
       padding: 2px 7px;
       border-radius: 4px;
@@ -905,6 +905,33 @@
       line-height: 1.65;
       color: #C9D1D9;
       background: #0A0D14;
+      white-space: pre !important;
+      word-break: normal !important;
+      overflow-wrap: normal !important;
+    }
+
+    .code-box pre code {
+      display: block !important;
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+      border-radius: 0 !important;
+      color: inherit !important;
+      font-family: inherit !important;
+      font-size: inherit !important;
+      line-height: inherit !important;
+      white-space: pre !important;
+      word-break: normal !important;
+      overflow-wrap: normal !important;
+      box-shadow: none !important;
+    }
+
+    .code-box pre code span {
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+      border-radius: 0 !important;
+      white-space: inherit !important;
     }
 
     /* Syntax Highlight Tokens */
