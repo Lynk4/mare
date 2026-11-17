@@ -358,6 +358,65 @@
       font-weight: 500;
     }
 
+    .threat-aliases {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .highlight-actor {
+      color: #35E5D0;
+      font-weight: 600;
+    }
+
+    .badge-severity {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      line-height: 1.4;
+    }
+
+    .badge-sev-critical {
+      background: rgba(239, 68, 68, 0.15);
+      color: #F87171;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+
+    .badge-sev-high {
+      background: rgba(245, 158, 11, 0.15);
+      color: #FBBF24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    .badge-sev-medium {
+      background: rgba(53, 229, 208, 0.15);
+      color: #35E5D0;
+      border: 1px solid rgba(53, 229, 208, 0.35);
+    }
+
+    .badge-sev-low {
+      background: rgba(148, 163, 184, 0.15);
+      color: #94A3B8;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+
+    .badge-tlp-tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10.5px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      background: rgba(255, 255, 255, 0.08);
+      color: #E2E8F0;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
     .threat-v.mono {
       font-family: var(--font-mono);
       font-size: 11px;

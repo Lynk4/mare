@@ -874,17 +874,17 @@ function discoverReports() {
       let tools = null;
       let challengeUrl = null;
       let actor = null;
+      let actorAliases = null;
       let campaign = null;
+      let motivation = null;
       let tlp = 'TLP:CLEAR';
       let severity = null;
-      let confidence = null;
-      let mitreTactics = null;
-      let mitreTechniques = null;
-      let architecture = null;
-      let toolchain = null;
-      let codeSigning = null;
+      let c2Url = null;
       let secondaryHash = null;
+      let secondaryHashType = null;
       let imphash = null;
+      let ssdeep = null;
+      let tlsh = null;
       let targetSectors = null;
       let targetGeo = null;
       let author = 'Chandra Kant Bauri (@Lynk4)';
@@ -919,6 +919,9 @@ function discoverReports() {
           if (meta.classification) classification = meta.classification;
           if (meta.delivery) delivery = meta.delivery;
           if (meta.c2) c2 = meta.c2;
+          if (meta.c2Url || meta.c2_url || meta.c2Host || meta.c2Server) {
+            c2Url = meta.c2Url || meta.c2_url || meta.c2Host || meta.c2Server;
+          }
           if (meta.targets) targets = meta.targets;
           if (meta.hashType) hashType = meta.hashType;
           if (meta.hashVal || meta.hash) hashVal = meta.hashVal || meta.hash;
@@ -932,19 +935,20 @@ function discoverReports() {
           if (meta.tools) tools = meta.tools;
           if (meta.challengeUrl) challengeUrl = meta.challengeUrl;
           if (meta.actor) actor = meta.actor;
+          if (meta.actorAliases || meta.aliases) actorAliases = meta.actorAliases || meta.aliases;
           if (meta.campaign) campaign = meta.campaign;
+          if (meta.motivation) motivation = meta.motivation;
           if (meta.tlp) tlp = meta.tlp;
           if (meta.severity) severity = meta.severity;
-          if (meta.confidence) confidence = meta.confidence;
-          if (meta.mitreTactics) mitreTactics = meta.mitreTactics;
-          if (meta.mitreTechniques) mitreTechniques = meta.mitreTechniques;
-          if (meta.architecture) architecture = meta.architecture;
-          if (meta.toolchain) toolchain = meta.toolchain;
-          if (meta.codeSigning) codeSigning = meta.codeSigning;
-          if (meta.secondaryHash) secondaryHash = meta.secondaryHash;
+          if (meta.targetSectors || meta.sectors) targetSectors = meta.targetSectors || meta.sectors;
+          if (meta.targetGeo || meta.geo || meta.regions) targetGeo = meta.targetGeo || meta.geo || meta.regions;
+          if (meta.secondaryHash || meta.md5) {
+            secondaryHash = meta.secondaryHash || meta.md5;
+            secondaryHashType = meta.secondaryHashType || (secondaryHash.length === 32 ? 'MD5 Hash' : 'Secondary Hash');
+          }
           if (meta.imphash) imphash = meta.imphash;
-          if (meta.targetSectors) targetSectors = meta.targetSectors;
-          if (meta.targetGeo) targetGeo = meta.targetGeo;
+          if (meta.ssdeep) ssdeep = meta.ssdeep;
+          if (meta.tlsh) tlsh = meta.tlsh;
           if (meta.author) author = meta.author;
           if (meta.navDropdown !== undefined) {
             if (typeof meta.navDropdown === 'string') navDropdown = meta.navDropdown.toLowerCase();
@@ -990,17 +994,17 @@ function discoverReports() {
         tools,
         challengeUrl,
         actor,
+        actorAliases,
         campaign,
+        motivation,
         tlp,
         severity,
-        confidence,
-        mitreTactics,
-        mitreTechniques,
-        architecture,
-        toolchain,
-        codeSigning,
+        c2Url,
         secondaryHash,
+        secondaryHashType,
         imphash,
+        ssdeep,
+        tlsh,
         targetSectors,
         targetGeo,
         author,
@@ -1191,8 +1195,15 @@ function formatCardMeta(r) {
     delivery: r.delivery || '',
     targets: r.targets || '',
     c2: r.c2 || '',
+    c2Url: r.c2Url || '',
+    actor: r.actor || '',
+    campaign: r.campaign || '',
+    severity: r.severity || '',
+    tlp: r.tlp || 'TLP:CLEAR',
     hashType: r.hashType || '',
     hashVal: r.hashVal || '',
+    secondaryHash: r.secondaryHash || '',
+    imphash: r.imphash || '',
     image: r.firstImage || r.image || '',
     navTitle: getReportNavTitle(r),
     featured: Boolean(r.featured)
@@ -1200,7 +1211,7 @@ function formatCardMeta(r) {
 }
 
 function renderPortalCardHtml(m) {
-  const searchKeywords = `${m.title} ${m.subtitle} ${m.category} ${m.os} ${m.family} ${m.targets} ${m.delivery}`.toLowerCase();
+  const searchKeywords = `${m.title} ${m.subtitle} ${m.category} ${m.os} ${m.family} ${m.targets} ${m.delivery} ${m.c2 || ''} ${m.c2Url || ''} ${m.actor || ''} ${m.campaign || ''} ${m.hashVal || ''}`.toLowerCase();
   return `
         <article class="inv-card" data-os="${escapeHtml(m.os)}" data-category="${escapeHtml(m.category)}" data-source="${escapeHtml(m.source || '')}" data-search="${escapeHtml(searchKeywords)}">
           <a href="${escapeHtml(m.id)}/index.html" class="card-banner" aria-label="${escapeHtml(m.title)}">
@@ -2525,7 +2536,7 @@ function buildReportPage(r) {
         <span>Search</span>
         <kbd>⌘K</kbd>
       </button>
-      <span class="badge-tlp">● TLP:CLEAR</span>
+      <span class="badge-tlp">● ${escapeHtml(r.tlp || 'TLP:CLEAR')}</span>
     </div>
   </nav>
 
@@ -2595,10 +2606,30 @@ function buildReportPage(r) {
               <span class="threat-k">Malware Family</span>
               <span class="threat-v">${escapeHtml(r.family)}</span>
             </div>
+            ${r.actor ? `
+            <div class="threat-row">
+              <span class="threat-k">Threat Actor</span>
+              <span class="threat-v highlight-actor">${escapeHtml(r.actor)}${r.actorAliases && (Array.isArray(r.actorAliases) ? r.actorAliases.length : String(r.actorAliases).trim()) ? ` <span class="threat-aliases">(${escapeHtml(Array.isArray(r.actorAliases) ? r.actorAliases.join(', ') : r.actorAliases)})</span>` : ''}</span>
+            </div>` : ''}
+            ${r.campaign ? `
+            <div class="threat-row">
+              <span class="threat-k">Campaign</span>
+              <span class="threat-v">${escapeHtml(r.campaign)}</span>
+            </div>` : ''}
+            ${r.severity ? `
+            <div class="threat-row">
+              <span class="threat-k">Severity</span>
+              <span class="threat-v"><span class="badge-severity badge-sev-${r.severity.toLowerCase()}">${escapeHtml(r.severity.toUpperCase())}</span></span>
+            </div>` : ''}
             <div class="threat-row">
               <span class="threat-k">Classification</span>
               <span class="threat-v">${escapeHtml(r.classification)}</span>
             </div>
+            ${r.motivation ? `
+            <div class="threat-row">
+              <span class="threat-k">Motivation</span>
+              <span class="threat-v">${escapeHtml(r.motivation)}</span>
+            </div>` : ''}
             <div class="threat-row">
               <span class="threat-k">Delivery Format</span>
               <span class="threat-v">${escapeHtml(r.delivery)}</span>
@@ -2607,14 +2638,49 @@ function buildReportPage(r) {
               <span class="threat-k">C2 Mechanism</span>
               <span class="threat-v mono">${escapeHtml(r.c2)}</span>
             </div>
+            ${r.c2Url ? `
+            <div class="threat-row">
+              <span class="threat-k">C2 URL / Host</span>
+              <span class="threat-v mono hash-interactive" title="Click to copy C2 URL" onclick="copyText('${escapeHtml(r.c2Url)}', this)">${escapeHtml(r.c2Url)}</span>
+            </div>` : ''}
             <div class="threat-row">
               <span class="threat-k">Primary Targets</span>
               <span class="threat-v">${escapeHtml(r.targets)}</span>
             </div>
+            ${r.targetSectors ? `
+            <div class="threat-row">
+              <span class="threat-k">Target Verticals</span>
+              <span class="threat-v">${escapeHtml(Array.isArray(r.targetSectors) ? r.targetSectors.join(', ') : r.targetSectors)}</span>
+            </div>` : ''}
+            ${r.targetGeo ? `
+            <div class="threat-row">
+              <span class="threat-k">Target Geography</span>
+              <span class="threat-v">${escapeHtml(Array.isArray(r.targetGeo) ? r.targetGeo.join(', ') : r.targetGeo)}</span>
+            </div>` : ''}
             <div class="threat-row">
               <span class="threat-k">${hashLabel}</span>
               <span class="threat-v mono hash-interactive" title="Click to copy full ${r.hashType} hash" onclick="copyText('${fullHash}', this)">${fullHash}</span>
             </div>
+            ${r.secondaryHash ? `
+            <div class="threat-row">
+              <span class="threat-k">${escapeHtml(r.secondaryHashType || 'MD5 Hash')}</span>
+              <span class="threat-v mono hash-interactive" title="Click to copy ${escapeHtml(r.secondaryHashType || 'MD5')}" onclick="copyText('${escapeHtml(r.secondaryHash)}', this)">${escapeHtml(r.secondaryHash)}</span>
+            </div>` : ''}
+            ${r.imphash ? `
+            <div class="threat-row">
+              <span class="threat-k">Import Hash (IMPHASH)</span>
+              <span class="threat-v mono hash-interactive" title="Click to copy IMPHASH" onclick="copyText('${escapeHtml(r.imphash)}', this)">${escapeHtml(r.imphash)}</span>
+            </div>` : ''}
+            ${r.ssdeep ? `
+            <div class="threat-row">
+              <span class="threat-k">Fuzzy Hash (SSDEEP)</span>
+              <span class="threat-v mono hash-interactive" title="Click to copy SSDEEP" onclick="copyText('${escapeHtml(r.ssdeep)}', this)">${escapeHtml(r.ssdeep)}</span>
+            </div>` : ''}
+            ${r.tlsh ? `
+            <div class="threat-row">
+              <span class="threat-k">Locality Hash (TLSH)</span>
+              <span class="threat-v mono hash-interactive" title="Click to copy TLSH" onclick="copyText('${escapeHtml(r.tlsh)}', this)">${escapeHtml(r.tlsh)}</span>
+            </div>` : ''}
           </div>
         </div>
 

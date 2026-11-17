@@ -140,6 +140,35 @@ PLATFORMS.forEach(os => {
             warnings.push(`Invalid MD5 format in meta.json: "${h}" (expected 32 hex characters)`);
           }
         }
+
+        // Validate optional enriched threat intel fields if author provided them
+        if (meta.tlp) {
+          const validTlps = new Set(['TLP:CLEAR', 'TLP:GREEN', 'TLP:AMBER', 'TLP:AMBER+STRICT', 'TLP:RED']);
+          if (!validTlps.has(String(meta.tlp).toUpperCase())) {
+            warnings.push(`Unrecognized TLP marking: "${meta.tlp}". Expected: ${Array.from(validTlps).join(', ')}`);
+          }
+        }
+
+        if (meta.severity) {
+          const validSev = new Set(['critical', 'high', 'medium', 'low']);
+          if (!validSev.has(String(meta.severity).toLowerCase())) {
+            warnings.push(`Unrecognized severity: "${meta.severity}". Expected: Critical, High, Medium, or Low`);
+          }
+        }
+
+        if (meta.secondaryHash) {
+          const sh = String(meta.secondaryHash).trim();
+          if (!/^[a-fA-F0-9]{32}$/.test(sh) && !/^[a-fA-F0-9]{40}$/.test(sh)) {
+            warnings.push(`Invalid secondaryHash format in meta.json: "${sh}" (expected 32-char MD5 or 40-char SHA-1)`);
+          }
+        }
+
+        if (meta.imphash) {
+          const ih = String(meta.imphash).trim();
+          if (!/^[a-fA-F0-9]{32}$/.test(ih)) {
+            warnings.push(`Invalid imphash format in meta.json: "${ih}" (expected 32 hex characters)`);
+          }
+        }
       } catch (err) {
         errors.push(`Invalid JSON syntax in meta.json: ${err.message}`);
       }

@@ -146,8 +146,12 @@ async function main() {
     const classification = await promptAsync(rl, 'Classification', defaultClassification);
 
     const delivery = await promptAsync(rl, 'Delivery Vector', platform === 'macOS' ? 'Ad-Hoc Signed Mach-O Dropper' : 'Staged Executable / Dropper');
-    const c2 = await promptAsync(rl, 'C2 Protocol / Host', 'HTTPS / Custom JSON Protocol');
+    const c2 = await promptAsync(rl, 'C2 Mechanism (Methods used)', 'HTTPS / Custom JSON Protocol');
+    const c2Url = await promptAsync(rl, 'C2 URL / Host (Optional indicator/endpoint)', '');
     const targets = await promptAsync(rl, 'Target Assets', platform === 'macOS' ? 'User Credentials, macOS Keychains, Web Browsers' : 'System Memory, Browser Sessions, Endpoints');
+    const actor = await promptAsync(rl, 'Threat Actor (Optional, e.g. Lazarus Group)', '');
+    const campaign = await promptAsync(rl, 'Campaign Name (Optional)', '');
+    const severity = await promptAsync(rl, 'Severity (Optional: Critical / High / Medium / Low)', '');
 
     const hashType = sampleData ? 'SHA-256' : 'SHA-256';
     const hashVal = sampleData ? sampleData.sha256 : await promptAsync(rl, 'Sample Hash (SHA-256 or MD5)', '0000000000000000000000000000000000000000000000000000000000000000');
@@ -195,6 +199,12 @@ async function main() {
       navDropdown: category === 'Reverse Engineering Techniques' ? 'techniques' : 'malware',
       navTitle
     };
+
+    if (c2Url) metaPayload.c2Url = c2Url;
+    if (actor) metaPayload.actor = actor;
+    if (campaign) metaPayload.campaign = campaign;
+    if (severity) metaPayload.severity = severity;
+    if (sampleData && sampleData.md5) metaPayload.secondaryHash = sampleData.md5;
 
     fs.writeFileSync(path.join(targetDir, 'meta.json'), JSON.stringify(metaPayload, null, 2) + '\n', 'utf8');
 
