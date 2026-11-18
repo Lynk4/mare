@@ -29,7 +29,30 @@ function saveBuildCache(cache) {
   } catch (e) {}
 }
 
-const BUILD_GENERATOR_VERSION = 'v2.7-mitre-badges';
+const BUILD_GENERATOR_VERSION = 'v2.8-umami-analytics';
+
+function getAnalyticsScriptTag() {
+  const configPath = path.join(ROOT_DIR, 'config', 'analytics.json');
+  let config = {
+    scriptUrl: 'https://cloud.umami.is/script.js',
+    websiteId: '23cce8d6-8705-4e5e-80a3-daa752d9a1df',
+    domains: 'lynk4.github.io'
+  };
+  if (fs.existsSync(configPath)) {
+    try {
+      config = { ...config, ...JSON.parse(fs.readFileSync(configPath, 'utf8')) };
+    } catch (e) {}
+  }
+  const scriptUrl = process.env.UMAMI_SCRIPT_URL || config.scriptUrl;
+  const websiteId = process.env.UMAMI_WEBSITE_ID || config.websiteId;
+  const domains = process.env.UMAMI_DOMAINS || config.domains;
+
+  if (scriptUrl && websiteId) {
+    const domainsAttr = domains ? ` data-domains="${escapeHtml(domains)}"` : '';
+    return `  <script defer src="${escapeHtml(scriptUrl)}" data-website-id="${escapeHtml(websiteId)}"${domainsAttr}></script>\n`;
+  }
+  return '';
+}
 
 function computeReportSourceHash(r) {
   const hash = crypto.createHash('sha256');
@@ -2507,7 +2530,7 @@ function buildReportPage(r) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/css/report.css">
-</head>
+${getAnalyticsScriptTag()}</head>
 <body>
 
   <div id="progress-bar"></div>
@@ -3204,7 +3227,7 @@ function buildPortalIndex(allReports) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/portal.css">
-</head>
+${getAnalyticsScriptTag()}</head>
 <body>
 
   <div class="bg-grid-overlay" aria-hidden="true"></div>
