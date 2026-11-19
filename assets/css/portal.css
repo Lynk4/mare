@@ -99,6 +99,7 @@
       text-decoration: none;
       gap: 14px;
       user-select: none;
+      flex-shrink: 0;
     }
 
     @keyframes logoPulse {
@@ -120,6 +121,7 @@
       animation: logoPulse 4s ease-in-out infinite;
       will-change: transform, filter;
       transition: transform 0.3s ease, filter 0.3s ease;
+      flex-shrink: 0;
     }
 
     .brand-group:hover .brand-logo-img {
@@ -131,6 +133,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      flex-shrink: 0;
     }
 
     .brand-title {
@@ -139,12 +142,14 @@
       font-weight: 800;
       letter-spacing: 1.5px;
       color: #FFFFFF;
+      white-space: nowrap;
     }
 
     .brand-vsep {
       width: 1px;
       height: 22px;
       background: rgba(255, 255, 255, 0.16);
+      flex-shrink: 0;
     }
 
     .brand-subtext {
@@ -156,6 +161,7 @@
       letter-spacing: 1.2px;
       line-height: 1.35;
       color: var(--text-secondary);
+      white-space: nowrap;
     }
 
     /* Center Nav Links */
@@ -163,6 +169,7 @@
       display: flex;
       align-items: center;
       gap: 28px;
+      flex-shrink: 0;
     }
 
     .nav-link-item {
@@ -405,10 +412,11 @@
       color: var(--text-secondary);
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 9999px;
+      border-radius: 4px;
       cursor: pointer;
       transition: all 0.2s ease;
       font-family: var(--font-body);
+      white-space: nowrap;
     }
 
     .mobile-about-btn:hover,
@@ -444,7 +452,8 @@
     .right-nav-actions {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
+      flex-shrink: 0;
     }
 
     .nav-search-icon-btn {
@@ -457,7 +466,7 @@
       justify-content: center;
       width: 34px;
       height: 34px;
-      border-radius: 50%;
+      border-radius: 4px;
       transition: color 0.2s, background 0.2s;
     }
 
@@ -467,25 +476,26 @@
     }
 
     .btn-explore-reports {
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.04);
       color: #F5F7FA;
       font-size: 13px;
-      font-weight: 500;
-      padding: 7px 18px;
-      border-radius: 9999px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 4px;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
+      white-space: nowrap;
       transition: all 0.2s ease;
     }
 
     .btn-explore-reports:hover {
       border-color: var(--neon-lime);
       color: var(--neon-lime);
-      background: rgba(183, 255, 60, 0.06);
-      box-shadow: 0 0 16px rgba(183, 255, 60, 0.2);
+      background: rgba(183, 255, 60, 0.08);
+      box-shadow: 0 0 16px rgba(183, 255, 60, 0.25);
     }
 
     /* Hero Section - 16:9 HD Studio Battlestation Cover */
@@ -1467,6 +1477,34 @@
       .investigations-grid {
         grid-template-columns: repeat(2, 1fr);
       }
+      .nav-container {
+        padding: 0 24px;
+      }
+      .brand-subtext, .brand-vsep {
+        display: none;
+      }
+      .center-nav {
+        gap: 16px;
+      }
+      .nav-link {
+        font-size: 13px;
+      }
+    }
+
+    @media (max-width: 992px) {
+      .center-nav {
+        display: none !important;
+      }
+      .mobile-about-wrapper {
+        display: block !important;
+      }
+      .right-nav-actions {
+        gap: 10px;
+      }
+      .btn-explore-reports {
+        font-size: 12px;
+        padding: 6px 12px;
+      }
     }
 
     @media (max-width: 900px) {
@@ -1563,7 +1601,7 @@
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        border-radius: 8px !important;
+        border-radius: 4px !important;
         background: rgba(255, 255, 255, 0.04) !important;
         border: 1px solid rgba(255, 255, 255, 0.14) !important;
         box-sizing: border-box !important;
@@ -2164,13 +2202,14 @@
       padding: 5px 10px;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 6px;
+      border-radius: 4px;
       color: #8B949E;
       cursor: pointer;
       font-size: 12px;
       font-family: inherit;
       transition: all 0.2s ease;
       line-height: 1;
+      white-space: nowrap;
     }
     .nav-search-btn:hover {
       background: rgba(53, 229, 208, 0.08);
