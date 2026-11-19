@@ -488,6 +488,28 @@
       box-shadow: 0 0 16px rgba(183, 255, 60, 0.2);
     }
 
+    .nav-threat-feed-btn {
+      border: 1px solid rgba(53, 229, 208, 0.35);
+      background: rgba(53, 229, 208, 0.08);
+      color: var(--neon-cyan);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 16px;
+      border-radius: 9999px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-threat-feed-btn:hover {
+      border-color: var(--neon-cyan);
+      color: #0A0D14;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 16px rgba(53, 229, 208, 0.4);
+    }
+
     /* Hero Section - 16:9 HD Studio Battlestation Cover */
     .hero-full-canvas {
       position: absolute;
@@ -737,6 +759,30 @@
       background: #c3ff5c;
     }
 
+    .btn-cover-threat-feed {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(53, 229, 208, 0.08);
+      color: var(--neon-cyan);
+      border: 1px solid rgba(53, 229, 208, 0.45);
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 22px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.25s ease;
+      box-shadow: 0 0 20px rgba(53, 229, 208, 0.15);
+    }
+
+    .btn-cover-threat-feed:hover {
+      transform: translateY(-2px);
+      background: var(--neon-cyan);
+      color: #0A0D14;
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 32px rgba(53, 229, 208, 0.55);
+    }
+
     /* Pure Text Borderless Floating Badge */
     .cover-borderless-badge {
       position: absolute;
@@ -752,7 +798,7 @@
       align-items: center;
       gap: 10px;
       animation: heroFadeUp 0.8s ease backwards;
-      pointer-events: none;
+      pointer-events: auto;
     }
 
     .hud-pulsing-dot {
@@ -788,6 +834,49 @@
       color: rgba(53, 229, 208, 0.6);
       font-weight: 400;
       margin: 0 2px;
+    }
+
+    .bb-intel-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2.5px 8px;
+      border-radius: 4px;
+      background: rgba(53, 229, 208, 0.09);
+      border: 1px solid rgba(53, 229, 208, 0.4);
+      color: var(--neon-cyan);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      text-decoration: none;
+      white-space: nowrap;
+      pointer-events: auto;
+      cursor: pointer;
+      line-height: 1.2;
+      vertical-align: middle;
+      box-shadow: 0 0 10px rgba(53, 229, 208, 0.18);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .bb-intel-btn:hover {
+      background: var(--neon-cyan);
+      color: #0A0D14;
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 16px rgba(53, 229, 208, 0.7), 0 0 28px rgba(53, 229, 208, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .bb-intel-btn:hover .bb-intel-arrow {
+      transform: translate(1.5px, -1.5px);
+      stroke: #0A0D14;
+    }
+
+    .bb-intel-arrow {
+      stroke: var(--neon-cyan);
+      transition: transform 0.2s ease, stroke 0.2s ease;
+      flex-shrink: 0;
     }
 
     .bb-cyan {
@@ -1466,10 +1555,14 @@
         box-sizing: border-box !important;
         gap: 6px;
       }
-      .bb-lime, .bb-cyan {
+      .bb-lime, .bb-cyan, .bb-intel-btn {
         font-size: 12px;
         white-space: normal !important;
         word-break: break-word !important;
+      }
+      .bb-intel-btn {
+        padding: 2px 7px;
+        white-space: nowrap !important;
       }
       .hero-stats-row {
         display: grid;
@@ -1500,7 +1593,8 @@
         width: 100% !important;
         box-sizing: border-box !important;
       }
-      .site-nav .btn-explore-reports {
+      .site-nav .btn-explore-reports,
+      .site-nav .nav-threat-feed-btn {
         display: none !important;
       }
       .center-nav {
@@ -1708,11 +1802,15 @@
         display: flex !important;
         flex-wrap: wrap !important;
       }
-      .bb-lime, .bb-cyan {
+      .bb-lime, .bb-cyan, .bb-intel-btn {
         font-size: 11px;
         letter-spacing: 0.4px;
         white-space: normal !important;
         word-break: break-word !important;
+      }
+      .bb-intel-btn {
+        padding: 2px 6px;
+        white-space: nowrap !important;
       }
       .cover-eyebrow {
         margin-bottom: 10px;
@@ -1734,13 +1832,17 @@
         margin-bottom: 18px;
       }
       .cover-cta-row {
+        flex-direction: column;
+        gap: 10px;
         margin-bottom: 22px;
       }
-      .btn-cover-explore {
+      .btn-cover-explore,
+      .btn-cover-threat-feed {
         width: 100%;
         justify-content: center;
         padding: 11px 20px;
         font-size: 13.5px;
+        box-sizing: border-box;
       }
       .hero-stats-row {
         grid-template-columns: 1fr 1fr;
