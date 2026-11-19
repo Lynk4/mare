@@ -3381,13 +3381,6 @@ ${techniquesDropdownHtml}
             </a>
           </div>
         </div>
-        <a href="ioc-feed/index.html" class="nav-threat-feed-btn" title="Unified Threat Intelligence &amp; IoC Feed">
-          <span>Threat Feed</span>
-        </a>
-        <a href="#investigations" class="btn-explore-reports">
-          <span>Explore Reports</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        </a>
       </div>
     </div>
   </header>
@@ -3409,11 +3402,7 @@ ${techniquesDropdownHtml}
         <span class="hud-pulsing-dot" aria-hidden="true"></span>
         <span class="bb-lime">Break the Binary.</span>
         <span class="bb-slash" aria-hidden="true">//</span>
-        <a href="ioc-feed/index.html" class="bb-intel-btn" title="Open Unified Threat Intelligence &amp; IoC Feed" aria-label="Open Unified Threat Intelligence &amp; IoC Feed">
-          <span>Intelligence</span>
-          <svg class="bb-intel-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
-        </a>
-        <span class="bb-cyan">Beyond Indicators.</span>
+        <span class="bb-cyan">Intelligence Beyond Indicators.</span>
         <span class="bb-cursor" aria-hidden="true"></span>
       </div>
 
